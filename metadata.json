@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Quản lý Cho thuê Máy ảnh CAOS mới nhất",
+  "description": "Hệ thống quản lý cho thuê máy ảnh thông minh với chức năng đặt lịch thiết bị trực quan, theo dõi tình trạng thiết bị và quản lý hợp đồng thuê.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Google AI Studio App</title>
+    <script>
+      // Safeguard against TypeError: Cannot set property fetch of #<Window> which has only a getter
+      // in certain sandboxed iframe environments
+      try {
+        const originalFetch = window.fetch || globalThis.fetch;
+        if (originalFetch) {
+          let currentFetch = originalFetch;
+          
+          Object.defineProperty(window, 'fetch', {
+            get() { return currentFetch; },
+            set(newFetch) { currentFetch = newFetch; },
+            configurable: true,
+            enumerable: true
+          });
+
+          if (typeof globalThis !== 'undefined') {
+            Object.defineProperty(globalThis, 'fetch', {
+              get() { return currentFetch; },
+              set(newFetch) { currentFetch = newFetch; },
+              configurable: true,
+              enumerable: true
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Sandbox fetch setter patch could not be applied:', e);
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
