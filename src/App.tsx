@@ -222,6 +222,7 @@ export default function App() {
     loadStoredData('logoBase64', '')
   );
   const [showLogoModal, setShowLogoModal] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState(false);
 
   // simulated system date for operations & notifications
   const [systemDate, setSystemDate] = useState<string>(() => {
@@ -258,112 +259,141 @@ export default function App() {
 
   // Sync data states to local storage and Supabase
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('cameras', cameras);
     if (isSupabaseConfigured) {
       syncToSupabase('cameras', cameras);
     }
-  }, [cameras]);
+  }, [loaded, cameras]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('contracts', contracts);
     if (isSupabaseConfigured) {
       syncToSupabase('contracts', contracts);
     }
-  }, [contracts]);
+  }, [loaded, contracts]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('customers', customers);
     if (isSupabaseConfigured) {
       syncToSupabase('customers', customers);
     }
-  }, [customers]);
+  }, [loaded, customers]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('expenses', expenses);
     if (isSupabaseConfigured) {
       syncToSupabase('expenses', expenses);
     }
-  }, [expenses]);
+  }, [loaded, expenses]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('systemDate', systemDate);
-  }, [systemDate]);
+  }, [loaded, systemDate]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('logoText', logoText);
-  }, [logoText]);
+  }, [loaded, logoText]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('logoSubtitle', logoSubtitle);
-  }, [logoSubtitle]);
+  }, [loaded, logoSubtitle]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('logoIconType', logoIconType);
-  }, [logoIconType]);
+  }, [loaded, logoIconType]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('logoIconColor', logoIconColor);
-  }, [logoIconColor]);
+  }, [loaded, logoIconColor]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('logoBase64', logoBase64);
-  }, [logoBase64]);
+  }, [loaded, logoBase64]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('registeredUsers', registeredUsers);
     if (isSupabaseConfigured) {
       syncToSupabase('registeredUsers', registeredUsers);
     }
-  }, [registeredUsers]);
+  }, [loaded, registeredUsers]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('currentUser', currentUser);
-  }, [currentUser]);
+  }, [loaded, currentUser]);
 
   useEffect(() => {
+    if (!loaded) return;
     saveStoredData('camlease_snapshots', snapshots);
     if (isSupabaseConfigured) {
       syncToSupabase('camlease_snapshots', snapshots);
     }
-  }, [snapshots]);
+  }, [loaded, snapshots]);
 
-  // Load initial data block asynchronously from Supabase if configured or seed if empty
+  // Load initial data block asynchronously from Supabase on mount
   useEffect(() => {
-    if (isSupabaseConfigured) {
-      const loadInitialSupabaseData = async () => {
-        try {
-          const cloudCameras = await fetchFromSupabase('cameras');
-          const cloudContracts = await fetchFromSupabase('contracts');
-          const cloudCustomers = await fetchFromSupabase('customers');
-          const cloudExpenses = await fetchFromSupabase('expenses');
-          const cloudUsers = await fetchFromSupabase('registeredUsers');
-          const cloudSnapshots = await fetchFromSupabase('camlease_snapshots');
+    const loadInitialData = async () => {
+      if (!isSupabaseConfigured) {
+        setCameras(loadStoredData('cameras', INITIAL_CAMERAS));
+        setContracts(loadStoredData('contracts', INITIAL_CONTRACTS));
+        setCustomers(loadStoredData('customers', INITIAL_CUSTOMERS));
+        setExpenses(loadStoredData('expenses', INITIAL_EXPENSES));
+        setLoaded(true);
+        return;
+      }
 
-          if (cloudCameras) setCameras(cloudCameras);
-          if (cloudContracts) setContracts(cloudContracts);
-          if (cloudCustomers) setCustomers(cloudCustomers);
-          if (cloudExpenses) setExpenses(cloudExpenses);
-          if (cloudUsers) setRegisteredUsers(cloudUsers);
-          if (cloudSnapshots) setSnapshots(cloudSnapshots);
+      try {
+        const cloudCameras = await fetchFromSupabase('cameras');
+        const cloudContracts = await fetchFromSupabase('contracts');
+        const cloudCustomers = await fetchFromSupabase('customers');
+        const cloudExpenses = await fetchFromSupabase('expenses');
 
-          if (cloudCameras || cloudContracts || cloudCustomers || cloudExpenses) {
-            // Synchronized successfully, no toast notification displayed
-          } else {
-            console.log('[Supabase] Initializing store seed records on cloud');
-            await syncToSupabase('cameras', cameras);
-            await syncToSupabase('contracts', contracts);
-            await syncToSupabase('customers', customers);
-            await syncToSupabase('expenses', expenses);
-            await syncToSupabase('registeredUsers', registeredUsers);
-            await syncToSupabase('camlease_snapshots', snapshots);
-          }
-        } catch (err) {
-          console.error('[Supabase] Sync boot error, falling back locally', err);
-          addToast('Đồng bộ Supabase thất bại. Đang chạy chế độ Local Offline.', 'warning');
+        if (cloudCameras !== null) {
+          setCameras(cloudCameras);
+        } else {
+          setCameras(loadStoredData('cameras', INITIAL_CAMERAS));
         }
-      };
-      loadInitialSupabaseData();
-    }
+
+        if (cloudContracts !== null) {
+          setContracts(cloudContracts);
+        } else {
+          setContracts(loadStoredData('contracts', INITIAL_CONTRACTS));
+        }
+
+        if (cloudCustomers !== null) {
+          setCustomers(cloudCustomers);
+        } else {
+          setCustomers(loadStoredData('customers', INITIAL_CUSTOMERS));
+        }
+
+        if (cloudExpenses !== null) {
+          setExpenses(cloudExpenses);
+        } else {
+          setExpenses(loadStoredData('expenses', INITIAL_EXPENSES));
+        }
+      } catch (err) {
+        console.error('[Supabase] Fetch error, falling back locally', err);
+        setCameras(loadStoredData('cameras', INITIAL_CAMERAS));
+        setContracts(loadStoredData('contracts', INITIAL_CONTRACTS));
+        setCustomers(loadStoredData('customers', INITIAL_CUSTOMERS));
+        setExpenses(loadStoredData('expenses', INITIAL_EXPENSES));
+      } finally {
+        setLoaded(true);
+      }
+    };
+
+    loadInitialData();
   }, []);
 
   // Operations: BACKUP & RESTORE
