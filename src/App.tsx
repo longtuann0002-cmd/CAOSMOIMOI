@@ -224,19 +224,19 @@ export default function App() {
   const [showLogoModal, setShowLogoModal] = useState<boolean>(false);
   const [loaded, setLoaded] = useState(false);
 
+  // Helper to get today's date in YYYY-MM-DD
+  const getToday = () => new Date().toISOString().split('T')[0];
+
   // simulated system date for operations & notifications
-  const [systemDate, setSystemDate] = useState<string>(() => {
-    const todayStr = new Date().toLocaleDateString('sv'); // Format YYYY-MM-DD
-    return loadStoredData('systemDate', todayStr);
-  });
+  const [systemDate, setSystemDate] = useState<string>(getToday());
 
   // Currently focused date highlights (Default to the nearest booking/schedule date relative to systemDate!)
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const loadedContracts = loadStoredData('contracts', INITIAL_CONTRACTS) as RentalContract[];
     if (!loadedContracts || loadedContracts.length === 0) {
-      return '2026-06-17';
+      return getToday();
     }
-    const currentSystemDate = loadStoredData('systemDate', '2026-06-17');
+    const currentSystemDate = loadStoredData('systemDate', getToday());
     const systemTime = new Date(currentSystemDate).getTime();
     let closestDate = currentSystemDate;
     let minDiff = Infinity;
@@ -256,6 +256,19 @@ export default function App() {
 
     return closestDate;
   });
+
+  useEffect(() => {
+    const storedSystemDate = loadStoredData('systemDate', '');
+    const today = getToday();
+
+    if (!storedSystemDate || storedSystemDate !== today) {
+      setSystemDate(today);
+      saveStoredData('systemDate', today);
+      if (isSupabaseConfigured) {
+        syncToSupabase('systemDate', today);
+      }
+    }
+  }, []);
 
   // Sync data states to local storage and Supabase
   useEffect(() => {
