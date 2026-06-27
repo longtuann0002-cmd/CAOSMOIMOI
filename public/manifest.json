@@ -1,0 +1,20 @@
+{
+  "name": "TIỆM ẢNH NHÀ CAOS",
+  "short_name": "CAOS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ea580c",
+  "icons": [
+    {
+      "src": "/logocaosdt.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logocaosdt.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
