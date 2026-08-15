@@ -419,11 +419,11 @@ export default function ContractManager({
     return (contracts || []).filter(c => c && c.status !== 'Cancelled' && ((c.totalPrice || 0) > (c.paidAmount || 0))).length;
   }, [contracts]);
 
-  // Pending Deposit (Chưa thanh toán tiền cọc)
+  // Pending Deposit (Chưa thanh toán tiền cọc 50% để giữ máy)
   const pendingDepositTotal = useMemo(() => {
     return (contracts || [])
       .filter(c => c && c.status === 'Pending')
-      .reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+      .reduce((sum, c) => sum + (c.paidAmount > 0 ? c.paidAmount : Math.round((c.totalPrice || 0) * 0.5)), 0);
   }, [contracts]);
 
   const pendingContractsCount = useMemo(() => {
@@ -659,7 +659,7 @@ export default function ContractManager({
               </div>
             )}
 
-            {/* Card 2: Chưa Thanh Toán Tiền Cọc */}
+            {/* Card 2: Chưa Thanh Toán Tiền Cọc 50% Giữ Máy */}
             {pendingContractsCount > 0 && (
               <div className="bg-gradient-to-r from-amber-50 to-amber-100/60 border border-amber-200/90 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-2.5 shadow-3xs">
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -667,7 +667,7 @@ export default function ContractManager({
                     <Clock className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[9.5px] sm:text-[11px] font-bold text-amber-800 uppercase tracking-wider block truncate">Chưa Thanh Toán Cọc</span>
+                    <span className="text-[9.5px] sm:text-[11px] font-bold text-amber-800 uppercase tracking-wider block truncate">Chưa Thanh Toán Cọc 50% Giữ Máy</span>
                     <span className="font-mono text-sm sm:text-lg font-black text-amber-700 block truncate mt-0.5">
                       {pendingDepositTotal.toLocaleString()}đ
                     </span>
@@ -682,7 +682,7 @@ export default function ContractManager({
                       : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-50'
                   }`}
                 >
-                  {statusFilter === 'UNPAID_DEPOSIT' ? '✓ Đang lọc' : `⏳ ${pendingContractsCount} đơn chờ cọc`}
+                  {statusFilter === 'UNPAID_DEPOSIT' ? '✓ Đang lọc' : `⏳ ${pendingContractsCount} đơn chờ cọc 50%`}
                 </button>
               </div>
             )}
@@ -709,7 +709,7 @@ export default function ContractManager({
               className="text-sm w-full border border-gray-200 rounded-xl p-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="ALL">Tất cả trạng thái</option>
-              <option value="UNPAID_DEPOSIT">⏳ Chưa thanh toán tiền cọc ({pendingContractsCount})</option>
+              <option value="UNPAID_DEPOSIT">⏳ Chưa thanh toán cọc 50% giữ máy ({pendingContractsCount})</option>
               <option value="UNPAID">⚠️ Còn dư nợ chưa thu ({unpaidContractsCount})</option>
               <option value="Pending">Chờ giao máy (Pending)</option>
               <option value="Active">Đang cho thuê (Active)</option>
@@ -800,9 +800,9 @@ export default function ContractManager({
                     {c.status === 'Pending' ? (
                       <>
                         <div className="flex items-center justify-between text-xs text-amber-850 bg-amber-50/40 px-1 rounded-sm">
-                          <span className="font-medium">Số cọc giữ máy cần đóng:</span>
+                          <span className="font-medium">Cọc 50% giữ máy cần đóng:</span>
                           <span className="font-mono font-bold">
-                            {c.paidAmount.toLocaleString()}đ
+                            {(c.paidAmount > 0 ? c.paidAmount : Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()}đ
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-xs pb-1 border-b border-gray-100">
@@ -818,7 +818,7 @@ export default function ContractManager({
                           </div>
                           <div>
                             <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200/70 px-2 py-0.5 rounded-md font-bold shadow-3xs">
-                              Chờ cọc {c.paidAmount.toLocaleString()}đ
+                              Chờ cọc 50%: {(c.paidAmount > 0 ? c.paidAmount : Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()}đ
                             </span>
                           </div>
                         </div>

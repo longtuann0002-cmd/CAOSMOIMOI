@@ -202,19 +202,19 @@ export default function RevenueDashboard({
       .sort((a, b) => b.remainingDebt - a.remainingDebt);
   }, [filteredContracts]);
 
-  // Contracts waiting for reservation deposit (Chưa thanh toán cọc)
+  // Contracts waiting for reservation deposit (Chưa thanh toán cọc 50% để giữ máy)
   const pendingDepositContracts = useMemo(() => {
     return filteredContracts
       .filter(c => c.status === 'Pending')
       .map(c => ({
         ...c,
-        depositNeeded: c.paidAmount || 0
+        depositNeeded: c.paidAmount > 0 ? c.paidAmount : Math.round((c.totalPrice || 0) * 0.5)
       }))
-      .sort((a, b) => (b.paidAmount || 0) - (a.paidAmount || 0));
+      .sort((a, b) => b.depositNeeded - a.depositNeeded);
   }, [filteredContracts]);
 
   const totalPendingDeposit = useMemo(() => {
-    return pendingDepositContracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+    return pendingDepositContracts.reduce((sum, c) => sum + c.depositNeeded, 0);
   }, [pendingDepositContracts]);
 
   // Overall Financials for the selected top timeframe
@@ -1677,7 +1677,7 @@ export default function RevenueDashboard({
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-extrabold text-sm sm:text-lg flex items-center gap-2 truncate">
-                    <span>{receivablesModalTab === 'debt' ? 'Danh Sách Dư Nợ Chưa Thu' : 'Danh Sách Chưa Thanh Toán Cọc'}</span>
+                    <span>{receivablesModalTab === 'debt' ? 'Danh Sách Dư Nợ Chưa Thu' : 'Danh Sách Chưa Cọc 50% Giữ Máy'}</span>
                     <span className="text-xs bg-white text-gray-900 px-2 py-0.5 rounded-full font-black">
                       {receivablesModalTab === 'debt' ? `${receivableContracts.length} đơn` : `${pendingDepositContracts.length} đơn`}
                     </span>
@@ -1724,7 +1724,7 @@ export default function RevenueDashboard({
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'
                 }`}
               >
-                <span>⏳ Chưa Thanh Toán Cọc</span>
+                <span>⏳ Chưa Cọc 50% Giữ Máy</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
                   receivablesModalTab === 'deposit' ? 'bg-amber-100 text-amber-900' : 'bg-gray-200 text-gray-700'
                 }`}>
@@ -1752,7 +1752,7 @@ export default function RevenueDashboard({
             ) : (
               <div className="bg-amber-50 border-b border-amber-100 px-4 sm:px-6 py-3 flex items-center justify-between shrink-0">
                 <div>
-                  <span className="text-[10px] sm:text-xs font-bold text-amber-800 uppercase tracking-wider block">Tổng Tiền Cọc Giữ Máy Chờ Đóng</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-amber-800 uppercase tracking-wider block">Tổng Tiền Cọc 50% Giữ Máy Cần Thu</span>
                   <span className="font-mono text-base sm:text-xl font-black text-amber-700 block">
                     {totalPendingDeposit.toLocaleString()}đ
                   </span>
