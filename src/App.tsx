@@ -80,6 +80,54 @@ const PRESET_AVATARS = [
   'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=faces'
 ];
 
+// Graceful Error Boundary for Tab Switching
+class TabErrorBoundary extends React.Component<
+  { children: React.ReactNode; tabName: string },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode; tabName: string }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Tab render error in', this.props.tabName, error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-white rounded-2xl p-6 sm:p-8 text-center border border-rose-200 shadow-sm space-y-3 my-4">
+          <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+            ⚠️
+          </div>
+          <h3 className="text-base sm:text-lg font-black text-gray-900">
+            Đã xảy ra lỗi khi hiển thị mục này
+          </h3>
+          <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
+            {this.state.error?.message || 'Có lỗi kết nối dữ liệu. Vui lòng bấm nút dưới đây để làm mới.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              window.location.reload();
+            }}
+            className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs sm:text-sm rounded-xl transition shadow-xs cursor-pointer"
+          >
+            Làm mới trang
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   // Authentication & Users State
   const [registeredUsers, setRegisteredUsers] = useState(() => {
@@ -2107,82 +2155,94 @@ export default function App() {
 
           <div className="transition-all duration-200">
             {activeTab === 'calendar' && (
-              <BookingCalendar
-                cameras={cameras}
-                contracts={contracts}
-                onAddContract={handleAddContract}
-                onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
-                selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate}
-                systemDate={systemDate}
-              />
+              <TabErrorBoundary tabName="Lịch Đặt Máy">
+                <BookingCalendar
+                  cameras={cameras}
+                  contracts={contracts}
+                  onAddContract={handleAddContract}
+                  onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
+                  selectedDate={selectedDate}
+                  setSelectedDate={setSelectedDate}
+                  systemDate={systemDate}
+                />
+              </TabErrorBoundary>
             )}
 
             {activeTab === 'contracts' && (
-              <ContractManager
-                contracts={contracts}
-                cameras={cameras}
-                onAddContract={handleAddContract}
-                onUpdateContractStatus={handleUpdateContractStatus}
-                onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
-                onUpdateContractNote={handleUpdateContractNote}
-                onUpdateContractCustomer={handleUpdateContractCustomer}
-                systemDate={systemDate}
-              />
+              <TabErrorBoundary tabName="Đơn Thuê">
+                <ContractManager
+                  contracts={contracts}
+                  cameras={cameras}
+                  onAddContract={handleAddContract}
+                  onUpdateContractStatus={handleUpdateContractStatus}
+                  onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
+                  onUpdateContractNote={handleUpdateContractNote}
+                  onUpdateContractCustomer={handleUpdateContractCustomer}
+                  systemDate={systemDate}
+                />
+              </TabErrorBoundary>
             )}
 
             {activeTab === 'equipment' && (
-              <EquipmentTracker
-                cameras={cameras}
-                onAddCamera={handleAddCamera}
-                onUpdateCamera={handleUpdateCamera}
-                onDeleteCamera={handleDeleteCamera}
-                currentUserRole={currentUser?.role}
-                contracts={contracts}
-                systemDate={systemDate}
-              />
+              <TabErrorBoundary tabName="Kho Thiết Bị">
+                <EquipmentTracker
+                  cameras={cameras}
+                  onAddCamera={handleAddCamera}
+                  onUpdateCamera={handleUpdateCamera}
+                  onDeleteCamera={handleDeleteCamera}
+                  currentUserRole={currentUser?.role}
+                  contracts={contracts}
+                  systemDate={systemDate}
+                />
+              </TabErrorBoundary>
             )}
 
             {activeTab === 'revenue' && (
-              currentUser?.role === 'admin' ? (
-                <RevenueDashboard
-                  contracts={contracts}
-                  expenses={expenses}
-                  cameras={cameras}
-                />
-              ) : (
-                <div className="bg-white rounded-2xl p-8 text-center border border-gray-150 shadow-xs">
-                  <ShieldCheck className="w-12 h-12 text-rose-500 mx-auto mb-3" />
-                  <h3 className="text-lg font-bold text-gray-900">Không có quyền truy cập</h3>
-                  <p className="text-sm text-gray-500 mt-1">Vui lòng đăng nhập tài khoản Quản trị viên (Admin) để xem báo cáo tài chính.</p>
-                </div>
-              )
+              <TabErrorBoundary tabName="Doanh Thu">
+                {currentUser?.role === 'admin' ? (
+                  <RevenueDashboard
+                    contracts={contracts}
+                    expenses={expenses}
+                    cameras={cameras}
+                  />
+                ) : (
+                  <div className="bg-white rounded-2xl p-8 text-center border border-gray-150 shadow-xs">
+                    <ShieldCheck className="w-12 h-12 text-rose-500 mx-auto mb-3" />
+                    <h3 className="text-lg font-bold text-gray-900">Không có quyền truy cập</h3>
+                    <p className="text-sm text-gray-500 mt-1">Vui lòng đăng nhập tài khoản Quản trị viên (Admin) để xem báo cáo tài chính.</p>
+                  </div>
+                )}
+              </TabErrorBoundary>
             )}
 
             {activeTab === 'customers' && (
-              <CustomerManager
-                customers={customers}
-                contracts={contracts}
-                onAddCustomer={handleAddCustomer}
-                onUpdateCustomer={handleUpdateCustomer}
-                onDeleteCustomer={currentUser?.role === 'admin' ? handleDeleteCustomer : undefined}
-              />
+              <TabErrorBoundary tabName="Khách Hàng">
+                <CustomerManager
+                  customers={customers}
+                  contracts={contracts}
+                  onAddCustomer={handleAddCustomer}
+                  onUpdateCustomer={handleUpdateCustomer}
+                  onDeleteCustomer={currentUser?.role === 'admin' ? handleDeleteCustomer : undefined}
+                />
+              </TabErrorBoundary>
             )}
 
             {activeTab === 'expenses' && (
-              currentUser?.role === 'admin' ? (
-                <ExpenseTracker
-                  expenses={expenses}
-                  onAddExpense={handleAddExpense}
-                  onDeleteExpense={handleDeleteExpense}
-                />
-              ) : (
-                <div className="bg-white rounded-2xl p-8 text-center border border-gray-150 shadow-xs">
-                  <ShieldCheck className="w-12 h-12 text-rose-500 mx-auto mb-3" />
-                  <h3 className="text-lg font-bold text-gray-900">Không có quyền truy cập</h3>
-                  <p className="text-sm text-gray-500 mt-1">Vui lòng đăng nhập tài khoản Quản trị viên (Admin) để quản lý ngân sách khoản chi.</p>
-                </div>
-              )
+              <TabErrorBoundary tabName="Khoản Chi">
+                {currentUser?.role === 'admin' ? (
+                  <ExpenseTracker
+                    expenses={expenses}
+                    onAddExpense={handleAddExpense}
+                    onDeleteExpense={handleDeleteExpense}
+                  />
+                ) : (
+                  <div className="bg-white rounded-2xl p-8 text-center border border-gray-150 shadow-xs">
+                    <ShieldCheck className="w-12 h-12 text-rose-500 mx-auto mb-3" />
+                    <h3 className="text-lg font-bold text-gray-900">Không có quyền truy cập</h3>
+                    <p className="text-sm text-gray-500 mt-1">Vui lòng đăng nhập tài khoản Quản trị viên (Admin) để quản lý ngân sách khoản chi.</p>
+                  </div>
+                )}
+              </TabErrorBoundary>
             )}
           </div>
         </main>

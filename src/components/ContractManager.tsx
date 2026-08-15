@@ -1,6 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RentalContract, Camera, ContractStatus, BankConfig, ContractTemplate } from '../types';
-import { Search, Plus, Filter, Calendar, FileText, Check, AlertCircle, RefreshCw, X, ShieldAlert, Phone, Briefcase, Trash2, CreditCard, Settings, Download, Image as ImageIcon, ChevronLeft, ChevronRight, FileSpreadsheet, Copy, Edit2, Save } from 'lucide-react';
+import { 
+  Search, Plus, Filter, Calendar, FileText, Check, AlertCircle, RefreshCw, X, 
+  ShieldAlert, Phone, Briefcase, Trash2, CreditCard, Settings, Download, 
+  Image as ImageIcon, ChevronLeft, ChevronRight, FileSpreadsheet, Copy, Edit2, 
+  Save, Clock, DollarSign, User, AlertTriangle, CheckCircle2 
+} from 'lucide-react';
 import { getCameraRateForDuration, checkBookingConflict } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
 import { toPng } from 'html-to-image';
