@@ -382,16 +382,19 @@ export default function ContractManager({
 
   // Filters calculation
   const filteredContracts = useMemo(() => {
-    return contracts.filter(c => {
+    return (contracts || []).filter(c => {
+      if (!c) return false;
       const query = searchQuery.toLowerCase().trim();
       const matchesSearch =
-        c.customerName.toLowerCase().includes(query) ||
-        c.customerPhone.includes(query) ||
-        c.contractCode.toLowerCase().includes(query);
+        (c.customerName || '').toLowerCase().includes(query) ||
+        (c.customerPhone || '').includes(query) ||
+        (c.contractCode || '').toLowerCase().includes(query);
 
       let matchesStatus = true;
-      if (statusFilter === 'UNPAID') {
-        matchesStatus = c.status !== 'Cancelled' && (c.totalPrice - c.paidAmount > 0);
+      if (statusFilter === 'UNPAID_DEPOSIT') {
+        matchesStatus = c.status === 'Pending';
+      } else if (statusFilter === 'UNPAID') {
+        matchesStatus = c.status !== 'Cancelled' && ((c.totalPrice || 0) - (c.paidAmount || 0) > 0);
       } else if (statusFilter !== 'ALL') {
         matchesStatus = c.status === statusFilter;
       }
@@ -402,13 +405,24 @@ export default function ContractManager({
 
   // Overall Contract Debt Metrics
   const totalContractDebt = useMemo(() => {
-    return contracts
-      .filter(c => c.status !== 'Cancelled')
-      .reduce((sum, c) => sum + Math.max(0, c.totalPrice - c.paidAmount), 0);
+    return (contracts || [])
+      .filter(c => c && c.status !== 'Cancelled')
+      .reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) - (c.paidAmount || 0)), 0);
   }, [contracts]);
 
   const unpaidContractsCount = useMemo(() => {
-    return contracts.filter(c => c.status !== 'Cancelled' && (c.totalPrice - c.paidAmount > 0)).length;
+    return (contracts || []).filter(c => c && c.status !== 'Cancelled' && ((c.totalPrice || 0) > (c.paidAmount || 0))).length;
+  }, [contracts]);
+
+  // Pending Deposit (Chưa thanh toán tiền cọc)
+  const pendingDepositTotal = useMemo(() => {
+    return (contracts || [])
+      .filter(c => c && c.status === 'Pending')
+      .reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+  }, [contracts]);
+
+  const pendingContractsCount = useMemo(() => {
+    return (contracts || []).filter(c => c && c.status === 'Pending').length;
   }, [contracts]);
 
   // Pagination Configuration
@@ -609,31 +623,64 @@ export default function ContractManager({
           </div>
         </div>
 
-        {/* Aggregate Debt Metric Banner */}
-        {unpaidContractsCount > 0 && (
-          <div className="bg-gradient-to-r from-rose-50/90 to-amber-50/70 border border-rose-200/80 rounded-xl p-3 sm:p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-3xs">
-            <div className="flex items-center gap-2.5">
-              <span className="p-2 bg-rose-100/90 text-rose-700 rounded-lg shrink-0">
-                <CreditCard className="w-4 h-4" />
-              </span>
-              <div>
-                <span className="text-[10px] sm:text-xs font-bold text-rose-800 uppercase tracking-wider block">Dư Nợ Khách Hàng Chưa Thu</span>
-                <span className="font-mono text-sm sm:text-lg font-black text-rose-700 block mt-0.5">
-                  {totalContractDebt.toLocaleString()}đ <span className="text-xs font-normal text-rose-600 font-sans">({unpaidContractsCount} đơn còn nợ)</span>
-                </span>
+        {/* Aggregate Financial Metrics Banner: Dư Nợ & Chưa Thanh Toán Cọc */}
+        {(unpaidContractsCount > 0 || pendingContractsCount > 0) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+            {/* Card 1: Dư Nợ Chưa Thu */}
+            {unpaidContractsCount > 0 && (
+              <div className="bg-gradient-to-r from-rose-50 to-rose-100/60 border border-rose-200/90 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-2.5 shadow-3xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-2 bg-rose-200/80 text-rose-800 rounded-xl shrink-0">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[9.5px] sm:text-[11px] font-bold text-rose-800 uppercase tracking-wider block truncate">Dư Nợ Chưa Thu</span>
+                    <span className="font-mono text-sm sm:text-lg font-black text-rose-700 block truncate mt-0.5">
+                      {totalContractDebt.toLocaleString()}đ
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter(statusFilter === 'UNPAID' ? 'ALL' : 'UNPAID')}
+                  className={`text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shrink-0 transition cursor-pointer border shadow-4xs ${
+                    statusFilter === 'UNPAID'
+                      ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                      : 'bg-white text-rose-800 border-rose-300 hover:bg-rose-50'
+                  }`}
+                >
+                  {statusFilter === 'UNPAID' ? '✓ Đang lọc' : `⚠️ ${unpaidContractsCount} đơn nợ`}
+                </button>
               </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setStatusFilter(statusFilter === 'UNPAID' ? 'ALL' : 'UNPAID')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer self-stretch sm:self-auto text-center border ${
-                statusFilter === 'UNPAID'
-                  ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                  : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-100'
-              }`}
-            >
-              {statusFilter === 'UNPAID' ? '✓ Đang lọc đơn nợ' : 'Lọc các đơn còn nợ ➔'}
-            </button>
+            )}
+
+            {/* Card 2: Chưa Thanh Toán Tiền Cọc */}
+            {pendingContractsCount > 0 && (
+              <div className="bg-gradient-to-r from-amber-50 to-amber-100/60 border border-amber-200/90 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-2.5 shadow-3xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-2 bg-amber-200/80 text-amber-800 rounded-xl shrink-0">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[9.5px] sm:text-[11px] font-bold text-amber-800 uppercase tracking-wider block truncate">Chưa Thanh Toán Cọc</span>
+                    <span className="font-mono text-sm sm:text-lg font-black text-amber-700 block truncate mt-0.5">
+                      {pendingDepositTotal.toLocaleString()}đ
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter(statusFilter === 'UNPAID_DEPOSIT' ? 'ALL' : 'UNPAID_DEPOSIT')}
+                  className={`text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shrink-0 transition cursor-pointer border shadow-4xs ${
+                    statusFilter === 'UNPAID_DEPOSIT'
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                      : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-50'
+                  }`}
+                >
+                  {statusFilter === 'UNPAID_DEPOSIT' ? '✓ Đang lọc' : `⏳ ${pendingContractsCount} đơn chờ cọc`}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -657,6 +704,7 @@ export default function ContractManager({
               className="text-sm w-full border border-gray-200 rounded-xl p-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="ALL">Tất cả trạng thái</option>
+              <option value="UNPAID_DEPOSIT">⏳ Chưa thanh toán tiền cọc ({pendingContractsCount})</option>
               <option value="UNPAID">⚠️ Còn dư nợ chưa thu ({unpaidContractsCount})</option>
               <option value="Pending">Chờ giao máy (Pending)</option>
               <option value="Active">Đang cho thuê (Active)</option>

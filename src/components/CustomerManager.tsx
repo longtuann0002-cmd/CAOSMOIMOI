@@ -18,7 +18,7 @@ export default function CustomerManager({
   onDeleteCustomer
 }: CustomerManagerProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [debtFilter, setDebtFilter] = useState<'ALL' | 'HAS_DEBT' | 'NO_DEBT'>('ALL');
+  const [debtFilter, setDebtFilter] = useState<'ALL' | 'UNPAID_DEPOSIT' | 'HAS_DEBT' | 'NO_DEBT'>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -43,7 +43,9 @@ export default function CustomerManager({
         totalDebt: 0,
         totalSpent: 0,
         totalExpected: 0,
-        debtContractsCount: 0
+        debtContractsCount: 0,
+        pendingDepositCount: 0,
+        pendingDepositAmount: 0
       };
     }
     const custContracts = (contracts || []).filter(c => c && c.customerPhone === phone && c.status !== 'Cancelled');
@@ -51,12 +53,20 @@ export default function CustomerManager({
     const totalSpent = custContracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
     const totalExpected = custContracts.reduce((sum, c) => sum + (c.totalPrice || 0), 0);
     const debtContractsCount = custContracts.filter(c => (c.totalPrice || 0) > (c.paidAmount || 0)).length;
+    
+    // Pending reservation deposits (Đơn chờ cọc giữ máy)
+    const pendingContracts = custContracts.filter(c => c.status === 'Pending');
+    const pendingDepositCount = pendingContracts.length;
+    const pendingDepositAmount = pendingContracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+
     return {
       custContracts,
       totalDebt,
       totalSpent,
       totalExpected,
-      debtContractsCount
+      debtContractsCount,
+      pendingDepositCount,
+      pendingDepositAmount
     };
   };
 
@@ -67,6 +77,12 @@ export default function CustomerManager({
       .reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) - (c.paidAmount || 0)), 0);
   }, [contracts]);
 
+  const overallPendingDeposit = useMemo(() => {
+    return (contracts || [])
+      .filter(c => c && c.status === 'Pending')
+      .reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+  }, [contracts]);
+
   const debtorCount = useMemo(() => {
     const debtorPhones = new Set(
       (contracts || [])
@@ -74,6 +90,15 @@ export default function CustomerManager({
         .map(c => c.customerPhone)
     );
     return (customers || []).filter(c => c && c.phone && debtorPhones.has(c.phone)).length;
+  }, [contracts, customers]);
+
+  const pendingDepositCustomerCount = useMemo(() => {
+    const pendingPhones = new Set(
+      (contracts || [])
+        .filter(c => c && c.status === 'Pending' && c.customerPhone)
+        .map(c => c.customerPhone)
+    );
+    return (customers || []).filter(c => c && c.phone && pendingPhones.has(c.phone)).length;
   }, [contracts, customers]);
 
   const filteredCustomers = useMemo(() => {
@@ -88,13 +113,17 @@ export default function CustomerManager({
 
       if (!matchesSearch) return false;
 
+      if (debtFilter === 'UNPAID_DEPOSIT') {
+        const { pendingDepositCount } = getCustomerFinancials(c.phone);
+        return pendingDepositCount > 0;
+      }
       if (debtFilter === 'HAS_DEBT') {
         const { totalDebt } = getCustomerFinancials(c.phone);
         return totalDebt > 0;
       }
       if (debtFilter === 'NO_DEBT') {
-        const { totalDebt } = getCustomerFinancials(c.phone);
-        return totalDebt === 0;
+        const { totalDebt, pendingDepositCount } = getCustomerFinancials(c.phone);
+        return totalDebt === 0 && pendingDepositCount === 0;
       }
 
       return true;
@@ -249,23 +278,50 @@ export default function CustomerManager({
           </div>
         </div>
 
-        {/* Aggregate Debt Metric Banner */}
-        <div className="bg-gradient-to-r from-rose-50/90 to-amber-50/70 border border-rose-200/80 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-3xs">
-          <div className="flex items-center gap-3">
-            <div className="p-2 sm:p-2.5 bg-rose-100/80 text-rose-700 rounded-xl shrink-0 border border-rose-200">
-              <DollarSign className="w-5 h-5" />
+        {/* Aggregate Financial Metrics Banner: Dư Nợ & Chưa Thanh Toán Cọc */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+          {/* Card 1: Dư Nợ Chưa Thu */}
+          <div className="bg-gradient-to-r from-rose-50 to-rose-100/60 border border-rose-200/90 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-2.5 shadow-3xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2 sm:p-2.5 bg-rose-200/80 text-rose-800 rounded-xl shrink-0">
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9.5px] sm:text-[11px] font-bold text-rose-800 uppercase tracking-wider block truncate">Dư Nợ Khách Chưa Thu</span>
+                <span className="font-mono text-sm sm:text-lg font-black text-rose-700 block truncate mt-0.5">
+                  {overallCustomerDebt.toLocaleString()}đ
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] sm:text-xs font-bold text-rose-800 uppercase tracking-wider block">Tổng Dư Nợ Khách Hàng Chưa Thu</span>
-              <span className="font-mono text-base sm:text-xl font-black text-rose-700 block mt-0.5">
-                {overallCustomerDebt.toLocaleString()}đ
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={() => setDebtFilter(debtFilter === 'HAS_DEBT' ? 'ALL' : 'HAS_DEBT')}
+              className="text-[10px] sm:text-xs font-black text-rose-800 bg-white/90 border border-rose-300 px-2.5 py-1 rounded-lg shrink-0 hover:bg-rose-50 transition cursor-pointer shadow-4xs"
+            >
+              ⚠️ {debtorCount} khách nợ
+            </button>
           </div>
-          <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
-            <span className="text-xs font-bold text-rose-800 bg-white/80 border border-rose-200 px-3 py-1.5 rounded-lg shadow-4xs">
-              ⚠️ <span className="font-black">{debtorCount}</span> khách hàng còn nợ
-            </span>
+
+          {/* Card 2: Chưa Thanh Toán Tiền Cọc */}
+          <div className="bg-gradient-to-r from-amber-50 to-amber-100/60 border border-amber-200/90 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-2.5 shadow-3xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2 sm:p-2.5 bg-amber-200/80 text-amber-800 rounded-xl shrink-0">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9.5px] sm:text-[11px] font-bold text-amber-800 uppercase tracking-wider block truncate">Chưa Thanh Toán Tiền Cọc</span>
+                <span className="font-mono text-sm sm:text-lg font-black text-amber-700 block truncate mt-0.5">
+                  {overallPendingDeposit.toLocaleString()}đ
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDebtFilter(debtFilter === 'UNPAID_DEPOSIT' ? 'ALL' : 'UNPAID_DEPOSIT')}
+              className="text-[10px] sm:text-xs font-black text-amber-800 bg-white/90 border border-amber-300 px-2.5 py-1 rounded-lg shrink-0 hover:bg-amber-50 transition cursor-pointer shadow-4xs"
+            >
+              ⏳ {pendingDepositCustomerCount} khách chưa cọc
+            </button>
           </div>
         </div>
 
@@ -282,7 +338,7 @@ export default function CustomerManager({
             />
           </div>
 
-          {/* Quick Filter Tabs for Debt Status */}
+          {/* Quick Filter Tabs for Debt & Pending Deposit Status */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none select-none">
             <button
               type="button"
@@ -294,6 +350,20 @@ export default function CustomerManager({
               }`}
             >
               Tất cả ({customers.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setDebtFilter('UNPAID_DEPOSIT')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border flex items-center gap-1.5 ${
+                debtFilter === 'UNPAID_DEPOSIT'
+                  ? 'bg-amber-600 text-white border-amber-600 shadow-3xs'
+                  : 'bg-amber-50 text-amber-800 border-amber-250 hover:bg-amber-100'
+              }`}
+            >
+              <span>Chưa thanh toán tiền cọc</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${debtFilter === 'UNPAID_DEPOSIT' ? 'bg-white/20 text-white' : 'bg-amber-200/80 text-amber-900'}`}>
+                {pendingDepositCustomerCount}
+              </span>
             </button>
             <button
               type="button"
@@ -320,7 +390,7 @@ export default function CustomerManager({
             >
               <span>Đã thanh toán đủ</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${debtFilter === 'NO_DEBT' ? 'bg-white/20 text-white' : 'bg-emerald-200/80 text-emerald-800'}`}>
-                {customers.length - debtorCount}
+                {customers.length - debtorCount - pendingDepositCustomerCount > 0 ? customers.length - debtorCount - pendingDepositCustomerCount : 0}
               </span>
             </button>
           </div>
@@ -340,7 +410,11 @@ export default function CustomerManager({
 
           return (
             <div key={cust.id} className={`bg-white border rounded-xl p-4 shadow-2xs space-y-3 flex flex-col justify-between hover:shadow-sm transition-all ${
-              financials.totalDebt > 0 ? 'border-rose-300 ring-1 ring-rose-400/20' : 'border-gray-150/70 hover:border-gray-300'
+              financials.pendingDepositCount > 0
+                ? 'border-amber-300 ring-1 ring-amber-400/30'
+                : financials.totalDebt > 0 
+                  ? 'border-rose-300 ring-1 ring-rose-400/20' 
+                  : 'border-gray-150/70 hover:border-gray-300'
             }`}>
               <div className="space-y-2.5">
                 <div className="flex justify-between items-start gap-1">
@@ -367,7 +441,24 @@ export default function CustomerManager({
                   </div>
                 </div>
 
-                {/* Dư nợ chưa thu indicator box */}
+                {/* Dư nợ chưa thu & Chưa cọc indicator boxes */}
+                {financials.pendingDepositCount > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-extrabold text-amber-900 flex items-center gap-1">
+                        ⏳ Chưa thanh toán cọc:
+                      </span>
+                      <span className="font-mono font-black text-amber-700 text-sm">
+                        +{financials.pendingDepositAmount.toLocaleString()}đ
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-amber-700 font-medium">
+                      <span>Tiền cọc giữ máy</span>
+                      <span>({financials.pendingDepositCount} đơn chờ cọc)</span>
+                    </div>
+                  </div>
+                )}
+
                 {financials.totalDebt > 0 ? (
                   <div className="bg-rose-50 border border-rose-200/90 rounded-lg p-2.5 space-y-1">
                     <div className="flex items-center justify-between text-xs">
@@ -383,7 +474,7 @@ export default function CustomerManager({
                       <span>({financials.debtContractsCount} đơn nợ)</span>
                     </div>
                   </div>
-                ) : (
+                ) : financials.pendingDepositCount === 0 ? (
                   <div className="bg-emerald-50/60 border border-emerald-150 rounded-lg px-2.5 py-1.5 flex items-center justify-between text-xs">
                     <span className="text-emerald-800 font-bold flex items-center gap-1 text-[11px]">
                       ✓ Dư nợ chưa thu:
@@ -392,7 +483,7 @@ export default function CustomerManager({
                       0đ (Đủ)
                     </span>
                   </div>
-                )}
+                ) : null}
 
                 {/* Personal contact parameters list */}
                 <div className="space-y-1.5 text-xs text-gray-655 border-t border-gray-100 pt-2.5">
@@ -852,18 +943,35 @@ export default function CustomerManager({
                 {(() => {
                   const custFin = getCustomerFinancials(selectedCustomerForHistory.phone);
                   return (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-white border border-gray-200 rounded-xl p-3 shadow-3xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-white border border-gray-200 rounded-xl p-3 shadow-3xs">
                       <div className="bg-slate-50 border border-gray-150 p-2.5 rounded-lg">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Tổng Giá Trị Đơn</span>
-                        <span className="font-mono text-sm sm:text-base font-black text-gray-900 block mt-0.5">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-wider block truncate">Tổng Đơn Hàng</span>
+                        <span className="font-mono text-xs sm:text-base font-black text-gray-900 block truncate mt-0.5">
                           {custFin.totalExpected.toLocaleString()}đ
                         </span>
                       </div>
 
                       <div className="bg-emerald-50/70 border border-emerald-200 p-2.5 rounded-lg">
-                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Thực Tế Đã Thu</span>
-                        <span className="font-mono text-sm sm:text-base font-black text-emerald-700 block mt-0.5">
+                        <span className="text-[9.5px] sm:text-[10px] font-bold text-emerald-800 uppercase tracking-wider block truncate">Thực Tế Đã Thu</span>
+                        <span className="font-mono text-xs sm:text-base font-black text-emerald-700 block truncate mt-0.5">
                           {custFin.totalSpent.toLocaleString()}đ
+                        </span>
+                      </div>
+
+                      <div className={`p-2.5 rounded-lg border ${
+                        custFin.pendingDepositCount > 0 
+                          ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-400/30' 
+                          : 'bg-slate-50 border-gray-150'
+                      }`}>
+                        <span className={`text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-wider block truncate ${
+                          custFin.pendingDepositCount > 0 ? 'text-amber-900' : 'text-gray-400'
+                        }`}>
+                          Chờ Khách Cọc
+                        </span>
+                        <span className={`font-mono text-xs sm:text-base font-black block truncate mt-0.5 ${
+                          custFin.pendingDepositCount > 0 ? 'text-amber-700' : 'text-gray-400'
+                        }`}>
+                          {custFin.pendingDepositCount > 0 ? `+${custFin.pendingDepositAmount.toLocaleString()}đ` : '0đ (Không có)'}
                         </span>
                       </div>
 
@@ -873,21 +981,16 @@ export default function CustomerManager({
                           : 'bg-emerald-50/40 border-emerald-150'
                       }`}>
                         <div className="flex items-center justify-between">
-                          <span className={`text-[10px] font-extrabold uppercase tracking-wider block ${
+                          <span className={`text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-wider block truncate ${
                             custFin.totalDebt > 0 ? 'text-rose-800' : 'text-emerald-800'
                           }`}>
                             Dư Nợ Chưa Thu
                           </span>
-                          {custFin.totalDebt > 0 && (
-                            <span className="text-[9px] bg-rose-600 text-white font-extrabold px-1.5 py-0.2 rounded-full uppercase">
-                              Còn nợ
-                            </span>
-                          )}
                         </div>
-                        <span className={`font-mono text-sm sm:text-base font-black block mt-0.5 ${
+                        <span className={`font-mono text-xs sm:text-base font-black block truncate mt-0.5 ${
                           custFin.totalDebt > 0 ? 'text-rose-700' : 'text-emerald-700'
                         }`}>
-                          {custFin.totalDebt > 0 ? `+${custFin.totalDebt.toLocaleString()}đ` : '0đ (Đã thu đủ)'}
+                          {custFin.totalDebt > 0 ? `+${custFin.totalDebt.toLocaleString()}đ` : '0đ (Đủ)'}
                         </span>
                       </div>
                     </div>
