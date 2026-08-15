@@ -470,23 +470,27 @@ export default function BookingCalendar({
 
   return (
     <div className="space-y-6">
-      {/* Real-time status cards of all cameras */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
+      {/* Real-time status cards of all cameras: Optimized compact view on mobile */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2.5">
         {systemStatusInfo.map(cam => (
           <div
             key={cam.id}
-            className={`p-2 sm:p-2.5 border rounded-xl flex items-center gap-2 sm:gap-2.5 transition-all hover:shadow-xs ${cam.statusColor}`}
+            className={`p-1.5 sm:p-2.5 border rounded-lg sm:rounded-xl flex items-start sm:items-center gap-1.5 sm:gap-2.5 transition-all hover:shadow-xs ${cam.statusColor} shadow-4xs`}
           >
-            <div className="p-1 sm:p-1.5 rounded-lg bg-white shadow-3xs text-gray-700 shrink-0">
-              <CameraIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-white/95 shadow-4xs text-gray-700 shrink-0 mt-0.5 sm:mt-0">
+              <CameraIcon className="w-3 h-3 sm:w-4 sm:h-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="font-extrabold text-[11px] sm:text-xs text-gray-900 truncate leading-tight" title={cam.name}>{cam.name}</h3>
-              <p className="text-[9px] sm:text-[10px] opacity-80 font-medium font-mono mt-0.5 truncate leading-normal">{cam.serialNumber}</p>
-              <p className="text-[10px] sm:text-[11px] font-bold mt-1 flex items-center gap-1 leading-normal">
+              <h3 className="font-extrabold text-[10px] sm:text-xs text-gray-900 truncate leading-snug" title={cam.name}>
+                {cam.name}
+              </h3>
+              <p className="text-[8.5px] sm:text-[10px] opacity-75 font-semibold font-mono truncate leading-tight mt-0.2">
+                {cam.serialNumber}
+              </p>
+              <div className="text-[8.5px] sm:text-[10.5px] font-black mt-1 flex items-center gap-1 leading-none">
                 <span className="w-1.5 h-1.5 rounded-full bg-current inline-block shrink-0 animate-pulse"></span>
                 <span className="truncate">{cam.statusText}</span>
-              </p>
+              </div>
             </div>
           </div>
         ))}

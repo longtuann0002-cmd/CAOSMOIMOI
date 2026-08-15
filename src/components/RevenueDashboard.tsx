@@ -94,64 +94,75 @@ export default function RevenueDashboard({
 
     const currentY = selectedYear;
 
-    switch (timeframe) {
-      case 'today': {
-        const todayStr = `${currentY}-06-20`;
-        start = new Date(todayStr);
-        end = new Date(todayStr);
-        label = `Hôm nay (${todayStr.split('-').reverse().join('/')})`;
-        break;
+    if (timeframe.startsWith('month-')) {
+      const mNum = parseInt(timeframe.replace('month-', ''), 10);
+      if (!isNaN(mNum) && mNum >= 1 && mNum <= 12) {
+        const lastDay = new Date(currentY, mNum, 0).getDate();
+        const mStr = String(mNum).padStart(2, '0');
+        start = new Date(`${currentY}-${mStr}-01T00:00:00`);
+        end = new Date(`${currentY}-${mStr}-${String(lastDay).padStart(2, '0')}T23:59:59`);
+        label = `Tháng ${mStr}/${currentY}`;
       }
-      case 'this-week': {
-        start = new Date(`${currentY}-06-15`);
-        end = new Date(`${currentY}-06-21`);
-        label = `Tuần này (15/06 - 21/06/${currentY})`;
-        break;
+    } else {
+      switch (timeframe) {
+        case 'today': {
+          const todayStr = `${currentY}-06-20`;
+          start = new Date(`${todayStr}T00:00:00`);
+          end = new Date(`${todayStr}T23:59:59`);
+          label = `Hôm nay (${todayStr.split('-').reverse().join('/')})`;
+          break;
+        }
+        case 'this-week': {
+          start = new Date(`${currentY}-06-15T00:00:00`);
+          end = new Date(`${currentY}-06-21T23:59:59`);
+          label = `Tuần này (15/06 - 21/06/${currentY})`;
+          break;
+        }
+        case 'last-week': {
+          start = new Date(`${currentY}-06-08T00:00:00`);
+          end = new Date(`${currentY}-06-14T23:59:59`);
+          label = `Tuần trước (08/06 - 14/06/${currentY})`;
+          break;
+        }
+        case 'this-month': {
+          start = new Date(`${currentY}-06-01T00:00:00`);
+          end = new Date(`${currentY}-06-30T23:59:59`);
+          label = `Tháng 06/${currentY}`;
+          break;
+        }
+        case 'last-month': {
+          start = new Date(`${currentY}-05-01T00:00:00`);
+          end = new Date(`${currentY}-05-31T23:59:59`);
+          label = `Tháng 05/${currentY}`;
+          break;
+        }
+        case 'this-quarter': {
+          start = new Date(`${currentY}-04-01T00:00:00`);
+          end = new Date(`${currentY}-06-30T23:59:59`);
+          label = `Quý 2/${currentY}`;
+          break;
+        }
+        case 'last-quarter': {
+          start = new Date(`${currentY}-01-01T00:00:00`);
+          end = new Date(`${currentY}-03-31T23:59:59`);
+          label = `Quý 1/${currentY}`;
+          break;
+        }
+        case 'this-year': {
+          start = new Date(`${currentY}-01-01T00:00:00`);
+          end = new Date(`${currentY}-12-31T23:59:59`);
+          label = `Cả năm ${currentY}`;
+          break;
+        }
+        case 'custom': {
+          if (customStart) start = new Date(`${customStart}T00:00:00`);
+          if (customEnd) end = new Date(`${customEnd}T23:59:59`);
+          label = `Từ ${customStart ? new Date(customStart).toLocaleDateString('vi-VN') : 'khởi đầu'} đến ${customEnd ? new Date(customEnd).toLocaleDateString('vi-VN') : 'vô hạn'}`;
+          break;
+        }
+        default:
+          label = 'Toàn bộ thời gian';
       }
-      case 'last-week': {
-        start = new Date(`${currentY}-06-08`);
-        end = new Date(`${currentY}-06-14`);
-        label = `Tuần trước (08/06 - 14/06/${currentY})`;
-        break;
-      }
-      case 'this-month': {
-        start = new Date(`${currentY}-06-01`);
-        end = new Date(`${currentY}-06-30`);
-        label = `Tháng 06/${currentY}`;
-        break;
-      }
-      case 'last-month': {
-        start = new Date(`${currentY}-05-01`);
-        end = new Date(`${currentY}-05-31`);
-        label = `Tháng 05/${currentY}`;
-        break;
-      }
-      case 'this-quarter': {
-        start = new Date(`${currentY}-04-01`);
-        end = new Date(`${currentY}-06-30`);
-        label = `Quý 2/${currentY}`;
-        break;
-      }
-      case 'last-quarter': {
-        start = new Date(`${currentY}-01-01`);
-        end = new Date(`${currentY}-03-31`);
-        label = `Quý 1/${currentY}`;
-        break;
-      }
-      case 'this-year': {
-        start = new Date(`${currentY}-01-01`);
-        end = new Date(`${currentY}-12-31`);
-        label = `Cả năm ${currentY}`;
-        break;
-      }
-      case 'custom': {
-        if (customStart) start = new Date(customStart);
-        if (customEnd) end = new Date(customEnd);
-        label = `Từ ${customStart ? new Date(customStart).toLocaleDateString('vi-VN') : 'khởi đầu'} đến ${customEnd ? new Date(customEnd).toLocaleDateString('vi-VN') : 'vô hạn'}`;
-        break;
-      }
-      default:
-        label = 'Toàn bộ thời gian';
     }
 
     return { start, end, label };
@@ -227,12 +238,12 @@ export default function RevenueDashboard({
   // Overall Financials for the selected top timeframe
   const financials = useMemo(() => {
     const totalRevenue = filteredContracts
-      .filter(c => c.status !== 'Pending' && c.status !== 'Cancelled')
-      .reduce((sum, c) => sum + c.paidAmount, 0);
+      .filter(c => c.status !== 'Cancelled')
+      .reduce((sum, c) => sum + (c.paidAmount || 0), 0);
 
     const totalReceivables = filteredContracts
       .filter(c => c.status !== 'Cancelled')
-      .reduce((sum, c) => sum + Math.max(0, c.totalPrice - c.paidAmount), 0);
+      .reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) - (c.paidAmount || 0)), 0);
 
     const activeRentalsCount = filteredContracts.filter(c => c.status === 'Active' || c.status === 'Overdue').length;
     const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -540,10 +551,23 @@ export default function RevenueDashboard({
   };
 
   const handleBarClick = (monthNum: number) => {
-    if (selectedMonth === monthNum) {
+    if (selectedMonth === monthNum && timeframe === `month-${monthNum}`) {
       setSelectedMonth(null);
+      setTimeframe('this-year');
     } else {
       setSelectedMonth(monthNum);
+      setTimeframe(`month-${monthNum}`);
+    }
+  };
+
+  const handleTimeframeSelect = (id: string) => {
+    setTimeframe(id);
+    if (id === 'this-month') {
+      setSelectedMonth(6);
+    } else if (id === 'last-month') {
+      setSelectedMonth(5);
+    } else {
+      setSelectedMonth(null);
     }
   };
 
@@ -596,6 +620,15 @@ export default function RevenueDashboard({
 
         {/* Quick Filters Options Buttons - Horizontal Touch Scroll for Mobile */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap scrollbar-none select-none">
+          {timeframe.startsWith('month-') && selectedMonth !== null && (
+            <button
+              type="button"
+              onClick={() => handleTimeframeSelect(`month-${selectedMonth}`)}
+              className="px-3 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-black border transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-sm bg-orange-600 text-white border-orange-600 ring-2 ring-orange-400/40"
+            >
+              📅 Tháng {String(selectedMonth).padStart(2, '0')}/{selectedYear}
+            </button>
+          )}
           {[
             { id: 'all', label: '🗓️ Tất cả' },
             { id: 'today', label: '⚡ Hôm nay' },
@@ -612,7 +645,7 @@ export default function RevenueDashboard({
               <button
                 key={btn.id}
                 type="button"
-                onClick={() => setTimeframe(btn.id)}
+                onClick={() => handleTimeframeSelect(btn.id)}
                 className={`px-3 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold border transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-xs ${
                   isActive
                     ? 'bg-orange-600 text-white border-orange-600 ring-2 ring-orange-400/40 shadow-sm font-black'
@@ -798,7 +831,10 @@ export default function RevenueDashboard({
 
             <button
               type="button"
-              onClick={() => setSelectedMonth(null)}
+              onClick={() => {
+                setSelectedMonth(null);
+                setTimeframe('this-year');
+              }}
               className={`text-[11px] sm:text-xs font-black px-2.5 sm:px-3 py-1 rounded-lg transition cursor-pointer shadow-xs self-start sm:self-auto ${
                 selectedMonth === null 
                   ? 'bg-orange-600 text-white border border-orange-600 ring-2 ring-orange-300' 
@@ -1236,7 +1272,10 @@ export default function RevenueDashboard({
             {/* Full Year button */}
             <button
               type="button"
-              onClick={() => setSelectedMonth(null)}
+              onClick={() => {
+                setSelectedMonth(null);
+                setTimeframe('this-year');
+              }}
               className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-black transition-all whitespace-nowrap cursor-pointer shadow-xs shrink-0 ${
                 selectedMonth === null
                   ? 'bg-orange-600 text-white shadow-md ring-2 ring-orange-400/50'
@@ -1253,7 +1292,10 @@ export default function RevenueDashboard({
                 <button
                   key={d.monthIndex}
                   type="button"
-                  onClick={() => setSelectedMonth(d.monthIndex)}
+                  onClick={() => {
+                    setSelectedMonth(d.monthIndex);
+                    setTimeframe(`month-${d.monthIndex}`);
+                  }}
                   className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-black transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 shadow-xs shrink-0 ${
                     isMonthActive
                       ? 'bg-orange-600 text-white shadow-md ring-2 ring-orange-400/50'

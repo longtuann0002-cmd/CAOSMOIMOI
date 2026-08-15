@@ -588,12 +588,6 @@ export default function NotificationCenter({
                   )}
                 </div>
 
-                {/* Quick helper footer warning */}
-                <div className="sticky bottom-0 bg-white border-t border-gray-150 px-6 py-3.5 text-center text-xs text-gray-500 font-medium flex items-center justify-center gap-1.5">
-                  <Info className="w-4 h-4 text-orange-500 shrink-0" />
-                  <span>Dữ liệu được cập nhật tự động theo mốc thời gian hệ thống giả lập.</span>
-                </div>
-
               </div>
             </div>
           )}
