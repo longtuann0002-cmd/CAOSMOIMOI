@@ -165,11 +165,12 @@ export default function BookingCalendar({
     }
   }, [calculatedTotal, prevCalculatedTotal, formData.paidAmount]);
 
-  // Calculate grid info for the rendered month OR week
+  // Calculate grid info for the rendered month OR week (T2 đầu tuần, CN cuối tuần)
   const calendarDays = useMemo(() => {
     if (viewMode === 'month') {
-      // Get first day of the month
-      const firstDayIndex = new Date(currentYear, currentMonth - 1, 1).getDay(); // 0 is CN (Sunday), 1 is T2, etc.
+      // Get first day of the month (Monday-first: 0 is T2, 1 is T3, ..., 6 is CN)
+      const rawFirstDayIndex = new Date(currentYear, currentMonth - 1, 1).getDay(); // 0 is CN, 1 is T2...
+      const firstDayIndex = (rawFirstDayIndex + 6) % 7; // Convert to Monday-first (T2 = 0, ..., CN = 6)
       const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
       const prevMonthDays = new Date(currentYear, currentMonth - 1, 0).getDate();
 
@@ -210,11 +211,12 @@ export default function BookingCalendar({
 
       return days;
     } else {
-      // Weekly view: 7 days containing the selectedDate (starting from Sunday of that week)
+      // Weekly view: 7 days starting from Monday (T2) to Sunday (CN) of that week
       const baseDate = new Date(selectedDate);
-      const dayOfWeek = baseDate.getDay(); // 0 (CN) to 6 (T7)
+      const rawDayOfWeek = baseDate.getDay(); // 0 (CN) to 6 (T7)
+      const dayOfWeekMondayFirst = (rawDayOfWeek + 6) % 7; // 0 (T2) to 6 (CN)
       const startOfWeek = new Date(baseDate);
-      startOfWeek.setDate(baseDate.getDate() - dayOfWeek); // set to CN of the week
+      startOfWeek.setDate(baseDate.getDate() - dayOfWeekMondayFirst); // set to T2 (Monday) of the week
 
       const days: { day: number; isCurrentMonth: boolean; dateString: string }[] = [];
       for (let i = 0; i < 7; i++) {
@@ -585,15 +587,15 @@ export default function BookingCalendar({
         <div className="w-full pb-1">
           <div className="w-full">
             
-            {/* Day Grid Headers */}
+            {/* Day Grid Headers: T2 ở đầu, CN ở cuối */}
             <div className="grid grid-cols-7 gap-1 bg-gray-50/70 py-1.5 sm:py-2 px-0.5 sm:px-2 rounded-lg sm:rounded-xl text-center font-black text-gray-500 text-[10.5px] sm:text-xs tracking-wider mb-1.5 sm:mb-2 select-none">
-              <div>CN</div>
               <div>T2</div>
               <div>T3</div>
               <div>T4</div>
               <div>T5</div>
               <div>T6</div>
               <div>T7</div>
+              <div className="text-rose-600 font-black">CN</div>
             </div>
 
             {/* Calendar Day Cells */}
