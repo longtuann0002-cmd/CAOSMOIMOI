@@ -99,9 +99,9 @@ export default function BookingCalendar({
   
   // For quick booking form
   const [formData, setFormData] = useState({
-    customerId: 'cust-1',
-    customerName: 'Nguyễn Văn Hải',
-    customerPhone: '0912345678',
+    customerId: '',
+    customerName: '',
+    customerPhone: '',
     customerDocType: 'CCCD' as const,
     customerDocNote: 'Giữ CCCD gốc',
     selectedCameraIds: [] as string[],
@@ -444,9 +444,9 @@ export default function BookingCalendar({
     setShowAddQuickModal(false);
     // Reset form
     setFormData({
-      customerId: 'cust-1',
-      customerName: 'Nguyễn Văn Hải',
-      customerPhone: '0912345678',
+      customerId: '',
+      customerName: '',
+      customerPhone: '',
       customerDocType: 'CCCD',
       customerDocNote: 'Giữ CCCD gốc',
       selectedCameraIds: [],
@@ -901,8 +901,8 @@ export default function BookingCalendar({
                     required
                     value={formData.customerName}
                     onChange={e => setFormData({ ...formData, customerName: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    placeholder="Nguyễn Văn A"
+                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none placeholder:text-gray-400 font-medium"
+                    placeholder="VD: Nguyễn Văn Hải"
                   />
                 </div>
                 <div>
@@ -912,8 +912,8 @@ export default function BookingCalendar({
                     required
                     value={formData.customerPhone}
                     onChange={e => setFormData({ ...formData, customerPhone: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    placeholder="09xx xxx xxx"
+                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none placeholder:text-gray-400 font-medium font-mono"
+                    placeholder="VD: 0912345678"
                   />
                 </div>
               </div>
