@@ -397,7 +397,8 @@ export default function ContractManager({
 
       let matchesStatus = true;
       if (statusFilter === 'UNPAID_DEPOSIT') {
-        matchesStatus = c.status === 'Pending';
+        const reqDeposit = Math.round((c.totalPrice || 0) * 0.5);
+        matchesStatus = c.status === 'Pending' && (c.paidAmount || 0) < reqDeposit;
       } else if (statusFilter === 'UNPAID') {
         matchesStatus = c.status !== 'Cancelled' && ((c.totalPrice || 0) - (c.paidAmount || 0) > 0);
       } else if (statusFilter !== 'ALL') {
@@ -419,16 +420,23 @@ export default function ContractManager({
     return (contracts || []).filter(c => c && c.status !== 'Cancelled' && ((c.totalPrice || 0) > (c.paidAmount || 0))).length;
   }, [contracts]);
 
-  // Pending Deposit (Chưa thanh toán tiền cọc 50% để giữ máy)
-  const pendingDepositTotal = useMemo(() => {
-    return (contracts || [])
-      .filter(c => c && c.status === 'Pending')
-      .reduce((sum, c) => sum + (c.paidAmount > 0 ? c.paidAmount : Math.round((c.totalPrice || 0) * 0.5)), 0);
+  // Pending Deposit (Chỉ tính các đơn Pending CHƯA cọc đủ 50%)
+  const pendingDepositContracts = useMemo(() => {
+    return (contracts || []).filter(c => {
+      if (!c || c.status !== 'Pending') return false;
+      const reqDeposit = Math.round((c.totalPrice || 0) * 0.5);
+      return (c.paidAmount || 0) < reqDeposit;
+    });
   }, [contracts]);
 
-  const pendingContractsCount = useMemo(() => {
-    return (contracts || []).filter(c => c && c.status === 'Pending').length;
-  }, [contracts]);
+  const pendingDepositTotal = useMemo(() => {
+    return pendingDepositContracts.reduce((sum, c) => {
+      const reqDeposit = Math.round((c.totalPrice || 0) * 0.5);
+      return sum + Math.max(0, reqDeposit - (c.paidAmount || 0));
+    }, 0);
+  }, [pendingDepositContracts]);
+
+  const pendingContractsCount = pendingDepositContracts.length;
 
   // Pagination Configuration
   const [currentPage, setCurrentPage] = useState(1);
@@ -798,31 +806,51 @@ export default function ContractManager({
                       </span>
                     </div>
                     {c.status === 'Pending' ? (
-                      <>
-                        <div className="flex items-center justify-between text-xs text-amber-850 bg-amber-50/40 px-1 rounded-sm">
-                          <span className="font-medium">Cọc 50% giữ máy cần đóng:</span>
-                          <span className="font-mono font-bold">
-                            {(c.paidAmount > 0 ? c.paidAmount : Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()}đ
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs pb-1 border-b border-gray-100">
-                          <span className="text-gray-500 font-medium">Thực tế đã thanh toán:</span>
-                          <span className="font-mono font-bold text-gray-400">
-                            0đ
-                          </span>
-                        </div>
-                        {/* Remaining debt & deposit details */}
-                        <div className="pt-1 select-none flex items-center justify-between gap-2">
-                          <div className="text-[10px] text-gray-400 font-medium">
-                            Cọc thế chấp: <strong className="text-gray-750">{c.depositAmount > 0 ? `${c.depositAmount.toLocaleString()}đ` : 'Không có'}</strong>
-                          </div>
-                          <div>
-                            <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200/70 px-2 py-0.5 rounded-md font-bold shadow-3xs">
-                              Chờ cọc 50%: {(c.paidAmount > 0 ? c.paidAmount : Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()}đ
+                      (c.paidAmount || 0) >= Math.round((c.totalPrice || 0) * 0.5) || (c.paidAmount || 0) > 0 ? (
+                        <>
+                          <div className="flex items-center justify-between text-xs pb-1 border-b border-gray-100">
+                            <span className="text-emerald-700 font-medium">Đã cọc 50% giữ máy:</span>
+                            <span className="font-mono font-bold text-emerald-700">
+                              {c.paidAmount.toLocaleString()}đ
                             </span>
                           </div>
-                        </div>
-                      </>
+                          <div className="pt-1 select-none flex items-center justify-between gap-2">
+                            <div className="text-[10px] text-gray-400 font-medium">
+                              Cọc thế chấp: <strong className="text-gray-750">{c.depositAmount > 0 ? `${c.depositAmount.toLocaleString()}đ` : 'Không có'}</strong>
+                            </div>
+                            <div>
+                              <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-bold shadow-3xs">
+                                ✓ Đã đóng cọc 50%
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between text-xs text-amber-850 bg-amber-50/40 px-1 rounded-sm">
+                            <span className="font-medium">Cọc 50% giữ máy cần đóng:</span>
+                            <span className="font-mono font-bold">
+                              {(Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()}đ
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs pb-1 border-b border-gray-100">
+                            <span className="text-gray-500 font-medium">Thực tế đã thanh toán:</span>
+                            <span className="font-mono font-bold text-gray-400">
+                              0đ
+                            </span>
+                          </div>
+                          <div className="pt-1 select-none flex items-center justify-between gap-2">
+                            <div className="text-[10px] text-gray-400 font-medium">
+                              Cọc thế chấp: <strong className="text-gray-750">{c.depositAmount > 0 ? `${c.depositAmount.toLocaleString()}đ` : 'Không có'}</strong>
+                            </div>
+                            <div>
+                              <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200/70 px-2 py-0.5 rounded-md font-bold shadow-3xs">
+                                ⏳ Chưa cọc 50%: {(Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()}đ
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      )
                     ) : (
                       <>
                         <div className="flex items-center justify-between text-xs pb-1 border-b border-gray-100">
@@ -1063,9 +1091,15 @@ export default function ContractManager({
                         </div>
                         <div className="text-[10px] text-gray-400 font-sans font-normal">
                           {c.status === 'Pending' ? (
-                            <span className="text-amber-700 font-bold inline-block bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-[10px]" title="Khoản cọc giữ máy cần chuyển khoản để hoàn thiện duyệt lịch">
-                              Sẽ cọc: {c.paidAmount.toLocaleString()}đ (Chưa đóng)
-                            </span>
+                            (c.paidAmount || 0) >= Math.round((c.totalPrice || 0) * 0.5) || (c.paidAmount || 0) > 0 ? (
+                              <span className="text-emerald-700 font-bold inline-block bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px]" title="Đã nhận đủ 50% tiền cọc giữ máy">
+                                ✓ Đã cọc 50%: {c.paidAmount.toLocaleString()}đ
+                              </span>
+                            ) : (
+                              <span className="text-amber-700 font-bold inline-block bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-[10px]" title="Khoản cọc giữ máy cần chuyển khoản để hoàn thiện duyệt lịch">
+                                ⏳ Cọc 50%: {(Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()}đ (Chưa đóng)
+                              </span>
+                            )
                           ) : (
                             <>
                               Đã thanh toán: <span className="text-emerald-600 font-semibold">{c.paidAmount.toLocaleString()}đ</span>

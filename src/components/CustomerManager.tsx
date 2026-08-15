@@ -54,10 +54,13 @@ export default function CustomerManager({
     const totalExpected = custContracts.reduce((sum, c) => sum + (c.totalPrice || 0), 0);
     const debtContractsCount = custContracts.filter(c => (c.totalPrice || 0) > (c.paidAmount || 0)).length;
     
-    // Pending reservation deposits (Đơn chờ cọc 50% giữ máy)
-    const pendingContracts = custContracts.filter(c => c.status === 'Pending');
+    // Pending reservation deposits (Đơn chờ cọc 50% giữ máy - Chỉ tính đơn chưa cọc đủ 50%)
+    const pendingContracts = custContracts.filter(c => c.status === 'Pending' && (c.paidAmount || 0) < Math.round((c.totalPrice || 0) * 0.5));
     const pendingDepositCount = pendingContracts.length;
-    const pendingDepositAmount = pendingContracts.reduce((sum, c) => sum + (c.paidAmount > 0 ? c.paidAmount : Math.round((c.totalPrice || 0) * 0.5)), 0);
+    const pendingDepositAmount = pendingContracts.reduce((sum, c) => {
+      const reqDeposit = Math.round((c.totalPrice || 0) * 0.5);
+      return sum + Math.max(0, reqDeposit - (c.paidAmount || 0));
+    }, 0);
 
     return {
       custContracts,
@@ -79,8 +82,11 @@ export default function CustomerManager({
 
   const overallPendingDeposit = useMemo(() => {
     return (contracts || [])
-      .filter(c => c && c.status === 'Pending')
-      .reduce((sum, c) => sum + (c.paidAmount > 0 ? c.paidAmount : Math.round((c.totalPrice || 0) * 0.5)), 0);
+      .filter(c => c && c.status === 'Pending' && (c.paidAmount || 0) < Math.round((c.totalPrice || 0) * 0.5))
+      .reduce((sum, c) => {
+        const reqDeposit = Math.round((c.totalPrice || 0) * 0.5);
+        return sum + Math.max(0, reqDeposit - (c.paidAmount || 0));
+      }, 0);
   }, [contracts]);
 
   const debtorCount = useMemo(() => {
@@ -95,7 +101,7 @@ export default function CustomerManager({
   const pendingDepositCustomerCount = useMemo(() => {
     const pendingPhones = new Set(
       (contracts || [])
-        .filter(c => c && c.status === 'Pending' && c.customerPhone)
+        .filter(c => c && c.status === 'Pending' && (c.paidAmount || 0) < Math.round((c.totalPrice || 0) * 0.5) && c.customerPhone)
         .map(c => c.customerPhone)
     );
     return (customers || []).filter(c => c && c.phone && pendingPhones.has(c.phone)).length;

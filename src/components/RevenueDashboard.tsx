@@ -202,14 +202,21 @@ export default function RevenueDashboard({
       .sort((a, b) => b.remainingDebt - a.remainingDebt);
   }, [filteredContracts]);
 
-  // Contracts waiting for reservation deposit (Chưa thanh toán cọc 50% để giữ máy)
+  // Contracts waiting for reservation deposit (Chưa thanh toán cọc 50% để giữ máy - chỉ tính đơn chưa cọc đủ 50%)
   const pendingDepositContracts = useMemo(() => {
     return filteredContracts
-      .filter(c => c.status === 'Pending')
-      .map(c => ({
-        ...c,
-        depositNeeded: c.paidAmount > 0 ? c.paidAmount : Math.round((c.totalPrice || 0) * 0.5)
-      }))
+      .filter(c => {
+        if (!c || c.status !== 'Pending') return false;
+        const reqDeposit = Math.round((c.totalPrice || 0) * 0.5);
+        return (c.paidAmount || 0) < reqDeposit;
+      })
+      .map(c => {
+        const reqDeposit = Math.round((c.totalPrice || 0) * 0.5);
+        return {
+          ...c,
+          depositNeeded: Math.max(0, reqDeposit - (c.paidAmount || 0))
+        };
+      })
       .sort((a, b) => b.depositNeeded - a.depositNeeded);
   }, [filteredContracts]);
 
