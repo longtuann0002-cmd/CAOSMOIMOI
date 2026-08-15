@@ -257,6 +257,9 @@ export default function App() {
   const [logoText, setLogoText] = useState<string>(() =>
     loadStoredData('logoText', 'TIỆM ẢNH NHÀ CAOS')
   );
+  const [logoFontSize, setLogoFontSize] = useState<number>(() =>
+    loadStoredData('logoFontSize', 15.5)
+  );
   const [logoSubtitle, setLogoSubtitle] = useState<string>(() =>
     loadStoredData('logoSubtitle', 'CHO THUÊ MÁY ẢNH GIÁ RẺ')
   );
@@ -348,6 +351,11 @@ export default function App() {
     if (!loaded) return;
     saveStoredData('logoText', logoText);
   }, [loaded, logoText]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    saveStoredData('logoFontSize', logoFontSize);
+  }, [loaded, logoFontSize]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -1702,8 +1710,11 @@ export default function App() {
               {(logoIconType === 'camera' || logoIconType === 'upload') && <CameraIcon className="w-8 h-8" />}
             </span>
           )}
-          <div className="leading-tight hidden lg:block">
-            <span className="font-display font-black text-white text-[15.5px] tracking-tight block uppercase">
+          <div className="leading-tight hidden lg:block min-w-0">
+            <span 
+              className="font-display font-black text-white tracking-tight block uppercase leading-snug break-words"
+              style={{ fontSize: `${logoFontSize || 15.5}px` }}
+            >
               {logoText || 'TIỆM ẢNH NHÀ CAOS'}
             </span>
             <span className="text-[10px] text-slate-400 font-bold block tracking-wider uppercase mt-0.5">
@@ -2292,8 +2303,11 @@ export default function App() {
                       {(logoIconType === 'camera' || logoIconType === 'upload') && <CameraIcon className="w-8 h-8" />}
                     </span>
                   )}
-                  <div className="leading-tight text-left">
-                    <span className="font-display font-black text-gray-950 text-[15.5px] tracking-tight block uppercase">
+                  <div className="leading-tight text-left min-w-0">
+                    <span 
+                      className="font-display font-black text-gray-950 tracking-tight block uppercase leading-snug break-words"
+                      style={{ fontSize: `${logoFontSize || 15.5}px` }}
+                    >
                       {logoText || 'TIỆM ẢNH NHÀ CAOS'}
                     </span>
                     <span className="text-[10px] text-gray-400 font-bold block tracking-wider uppercase mt-0.5">
@@ -2306,17 +2320,67 @@ export default function App() {
               {/* Form entries */}
               <div className="space-y-4">
                 
-                {/* Brand Name Input */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Tên thương hiệu chính</label>
+                {/* Brand Name Input & Font Size Control */}
+                <div className="space-y-2.5">
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Tên thương hiệu chính</label>
                   <input
                     type="text"
-                    maxLength={20}
+                    maxLength={25}
                     value={logoText}
                     onChange={(e) => setLogoText(e.target.value)}
-                    placeholder="ví dụ: CAMLEASE"
+                    placeholder="ví dụ: TIỆM ẢNH NHÀ CAOS"
                     className="w-full px-3 py-2 text-sm border border-gray-250 rounded-lg focus:outline-hidden focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-semibold"
                   />
+
+                  {/* Font Size Adjustment Slider & Presets */}
+                  <div className="bg-gray-50/90 p-3 rounded-xl border border-gray-200/90 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-gray-700 uppercase tracking-wider text-[10.5px]">
+                        Điều chỉnh cỡ chữ thương hiệu
+                      </span>
+                      <span className="font-mono font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200 text-xs">
+                        {logoFontSize || 15.5}px
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-gray-400 font-bold">11px</span>
+                      <input
+                        type="range"
+                        min={11}
+                        max={24}
+                        step={0.5}
+                        value={logoFontSize || 15.5}
+                        onChange={(e) => setLogoFontSize(parseFloat(e.target.value))}
+                        className="flex-1 accent-orange-600 h-2 bg-gray-200 rounded-lg cursor-pointer"
+                      />
+                      <span className="text-[10px] text-gray-400 font-bold">24px</span>
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto scrollbar-none">
+                      {[
+                        { label: 'Nhỏ', size: 12 },
+                        { label: 'Vừa', size: 14 },
+                        { label: 'Chuẩn', size: 15.5 },
+                        { label: 'Lớn', size: 18 },
+                        { label: 'Rất lớn', size: 21 },
+                      ].map((preset) => (
+                        <button
+                          key={preset.size}
+                          type="button"
+                          onClick={() => setLogoFontSize(preset.size)}
+                          className={`px-2.5 py-1 rounded-md text-[10.5px] font-bold border transition cursor-pointer shrink-0 ${
+                            logoFontSize === preset.size
+                              ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
+                              : 'bg-white text-gray-650 hover:bg-gray-100 hover:text-gray-900 border-gray-200'
+                          }`}
+                        >
+                          {preset.label} ({preset.size}px)
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Tagline / Subtitle Input */}
@@ -2545,11 +2609,12 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
-                  setLogoText('CAMLEASE');
-                  setLogoSubtitle('SYSTEM v1.0');
-                  setLogoIconType('camera');
+                  setLogoText('TIỆM ẢNH NHÀ CAOS');
+                  setLogoFontSize(15.5);
+                  setLogoSubtitle('CHO THUÊ MÁY ẢNH GIÁ RẺ');
+                  setLogoIconType('upload');
                   setLogoIconColor('#ea580c');
-                  setLogoBase64('');
+                  setLogoBase64('/logocaos.png');
                 }}
                 className="text-xs text-gray-500 hover:text-gray-900 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition cursor-pointer"
               >
