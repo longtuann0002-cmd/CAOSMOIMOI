@@ -19,23 +19,22 @@ export default function RevenueDashboard({
   expenses,
   cameras
 }: RevenueDashboardProps) {
-  // Extract all available years from contracts & expenses to create long-term calendar
+  // Extract all available years from contracts & expenses + current real-time year
   const availableYears = useMemo(() => {
     const yearsSet = new Set<number>();
-    const currentYear = new Date().getFullYear();
-    yearsSet.add(currentYear);
-    yearsSet.add(2025);
-    yearsSet.add(2026);
-    yearsSet.add(2027);
+    const realCurrentYear = new Date().getFullYear();
+    yearsSet.add(realCurrentYear - 1);
+    yearsSet.add(realCurrentYear);
+    yearsSet.add(realCurrentYear + 1);
 
-    contracts.forEach(c => {
+    (contracts || []).forEach(c => {
       if (c.startDate) {
         const y = parseInt(c.startDate.substring(0, 4), 10);
         if (!isNaN(y)) yearsSet.add(y);
       }
     });
 
-    expenses.forEach(e => {
+    (expenses || []).forEach(e => {
       if (e.date) {
         const y = parseInt(e.date.substring(0, 4), 10);
         if (!isNaN(y)) yearsSet.add(y);
@@ -45,17 +44,10 @@ export default function RevenueDashboard({
     return Array.from(yearsSet).sort((a, b) => a - b);
   }, [contracts, expenses]);
 
-  // Determine initial year (default to 2026 or latest contract year)
+  // Determine initial year (real-time current year)
   const initialYear = useMemo(() => {
-    if (contracts.length > 0) {
-      const dates = contracts.map(c => c.startDate).filter(Boolean).sort();
-      if (dates.length > 0) {
-        const lastYear = parseInt(dates[dates.length - 1].substring(0, 4), 10);
-        if (!isNaN(lastYear)) return lastYear;
-      }
-    }
-    return 2026;
-  }, [contracts]);
+    return new Date().getFullYear();
+  }, []);
 
   // Selected Year for the long-term monthly chart and breakdown
   const [selectedYear, setSelectedYear] = useState<number>(initialYear);
@@ -86,13 +78,14 @@ export default function RevenueDashboard({
   const [equipmentSearch, setEquipmentSearch] = useState<string>('');
   const [equipmentCategoryFilter, setEquipmentCategoryFilter] = useState<string>('all');
 
-  // Compute boundaries for top timeframe filters dynamically
+  // Compute boundaries for top timeframe filters dynamically using REAL-TIME clock
   const dateRange = useMemo(() => {
     let start: Date | null = null;
     let end: Date | null = null;
     let label = 'Toàn bộ thời gian';
 
     const currentY = selectedYear;
+    const now = new Date();
 
     if (timeframe.startsWith('month-')) {
       const mNum = parseInt(timeframe.replace('month-', ''), 10);
@@ -106,51 +99,84 @@ export default function RevenueDashboard({
     } else {
       switch (timeframe) {
         case 'today': {
-          const todayStr = `${currentY}-06-20`;
-          start = new Date(`${todayStr}T00:00:00`);
-          end = new Date(`${todayStr}T23:59:59`);
-          label = `Hôm nay (${todayStr.split('-').reverse().join('/')})`;
+          const yyyy = now.getFullYear();
+          const mm = String(now.getMonth() + 1).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+          start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+          end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+          label = `Hôm nay (${dd}/${mm}/${yyyy})`;
           break;
         }
         case 'this-week': {
-          start = new Date(`${currentY}-06-15T00:00:00`);
-          end = new Date(`${currentY}-06-21T23:59:59`);
-          label = `Tuần này (15/06 - 21/06/${currentY})`;
+          const dayIndex = (now.getDay() + 6) % 7; // Monday = 0, Sunday = 6
+          const monday = new Date(now);
+          monday.setDate(now.getDate() - dayIndex);
+          const sunday = new Date(monday);
+          sunday.setDate(monday.getDate() + 6);
+          start = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate(), 0, 0, 0);
+          end = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate(), 23, 59, 59);
+          label = `Tuần này (${monday.toLocaleDateString('vi-VN')} - ${sunday.toLocaleDateString('vi-VN')})`;
           break;
         }
         case 'last-week': {
-          start = new Date(`${currentY}-06-08T00:00:00`);
-          end = new Date(`${currentY}-06-14T23:59:59`);
-          label = `Tuần trước (08/06 - 14/06/${currentY})`;
+          const dayIndex = (now.getDay() + 6) % 7;
+          const lastMonday = new Date(now);
+          lastMonday.setDate(now.getDate() - dayIndex - 7);
+          const lastSunday = new Date(lastMonday);
+          lastSunday.setDate(lastMonday.getDate() + 6);
+          start = new Date(lastMonday.getFullYear(), lastMonday.getMonth(), lastMonday.getDate(), 0, 0, 0);
+          end = new Date(lastSunday.getFullYear(), lastSunday.getMonth(), lastSunday.getDate(), 23, 59, 59);
+          label = `Tuần trước (${lastMonday.toLocaleDateString('vi-VN')} - ${lastSunday.toLocaleDateString('vi-VN')})`;
           break;
         }
         case 'this-month': {
-          start = new Date(`${currentY}-06-01T00:00:00`);
-          end = new Date(`${currentY}-06-30T23:59:59`);
-          label = `Tháng 06/${currentY}`;
+          const y = now.getFullYear();
+          const m = now.getMonth();
+          const lastDay = new Date(y, m + 1, 0).getDate();
+          start = new Date(y, m, 1, 0, 0, 0);
+          end = new Date(y, m, lastDay, 23, 59, 59);
+          label = `Tháng ${String(m + 1).padStart(2, '0')}/${y}`;
           break;
         }
         case 'last-month': {
-          start = new Date(`${currentY}-05-01T00:00:00`);
-          end = new Date(`${currentY}-05-31T23:59:59`);
-          label = `Tháng 05/${currentY}`;
+          const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          const y = prevMonthDate.getFullYear();
+          const m = prevMonthDate.getMonth();
+          const lastDay = new Date(y, m + 1, 0).getDate();
+          start = new Date(y, m, 1, 0, 0, 0);
+          end = new Date(y, m, lastDay, 23, 59, 59);
+          label = `Tháng ${String(m + 1).padStart(2, '0')}/${y}`;
           break;
         }
         case 'this-quarter': {
-          start = new Date(`${currentY}-04-01T00:00:00`);
-          end = new Date(`${currentY}-06-30T23:59:59`);
-          label = `Quý 2/${currentY}`;
+          const y = now.getFullYear();
+          const qIndex = Math.floor(now.getMonth() / 3);
+          const startMonth = qIndex * 3;
+          const endMonth = startMonth + 2;
+          const lastDay = new Date(y, endMonth + 1, 0).getDate();
+          start = new Date(y, startMonth, 1, 0, 0, 0);
+          end = new Date(y, endMonth, lastDay, 23, 59, 59);
+          label = `Quý ${qIndex + 1}/${y}`;
           break;
         }
         case 'last-quarter': {
-          start = new Date(`${currentY}-01-01T00:00:00`);
-          end = new Date(`${currentY}-03-31T23:59:59`);
-          label = `Quý 1/${currentY}`;
+          let y = now.getFullYear();
+          let qIndex = Math.floor(now.getMonth() / 3) - 1;
+          if (qIndex < 0) {
+            qIndex = 3;
+            y -= 1;
+          }
+          const startMonth = qIndex * 3;
+          const endMonth = startMonth + 2;
+          const lastDay = new Date(y, endMonth + 1, 0).getDate();
+          start = new Date(y, startMonth, 1, 0, 0, 0);
+          end = new Date(y, endMonth, lastDay, 23, 59, 59);
+          label = `Quý ${qIndex + 1}/${y}`;
           break;
         }
         case 'this-year': {
-          start = new Date(`${currentY}-01-01T00:00:00`);
-          end = new Date(`${currentY}-12-31T23:59:59`);
+          start = new Date(currentY, 0, 1, 0, 0, 0);
+          end = new Date(currentY, 11, 31, 23, 59, 59);
           label = `Cả năm ${currentY}`;
           break;
         }
@@ -562,10 +588,17 @@ export default function RevenueDashboard({
 
   const handleTimeframeSelect = (id: string) => {
     setTimeframe(id);
+    const now = new Date();
     if (id === 'this-month') {
-      setSelectedMonth(6);
+      setSelectedYear(now.getFullYear());
+      setSelectedMonth(now.getMonth() + 1);
     } else if (id === 'last-month') {
-      setSelectedMonth(5);
+      const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      setSelectedYear(lm.getFullYear());
+      setSelectedMonth(lm.getMonth() + 1);
+    } else if (id === 'this-year') {
+      setSelectedYear(now.getFullYear());
+      setSelectedMonth(null);
     } else {
       setSelectedMonth(null);
     }
