@@ -693,6 +693,28 @@ export default function App() {
     );
   };
 
+  const handleUpdateContractCustomer = (
+    id: string,
+    customerName: string,
+    customerPhone: string,
+    customerDocType: RentalContract['customerDocType'],
+    customerDocNote: string
+  ) => {
+    setContracts(prev =>
+      prev.map(c => {
+        if (c.id === id) {
+          return { ...c, customerName, customerPhone, customerDocType, customerDocNote };
+        }
+        return c;
+      })
+    );
+    addToast(
+      'Cập nhật thông tin khách hàng',
+      'info',
+      `Thông tin khách hàng của hợp đồng đã được cập nhật thành công.`
+    );
+  };
+
   const handleDeleteContract = (id: string) => {
     const contractToDelete = contracts.find(c => c.id === id);
     if (!contractToDelete) return;
@@ -2104,6 +2126,7 @@ export default function App() {
                 onUpdateContractStatus={handleUpdateContractStatus}
                 onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
                 onUpdateContractNote={handleUpdateContractNote}
+                onUpdateContractCustomer={handleUpdateContractCustomer}
                 systemDate={systemDate}
               />
             )}
