@@ -244,24 +244,24 @@ export default function NotificationCenter({
       {/* Render overlay elements in document.body body portal so they are never clipped by header layout limitations */}
       {typeof document !== 'undefined' && createPortal(
         <>
-          {/* Toast Notification Banner - Floating Bottom Right */}
+          {/* Toast Notification Banner - Floating Top Right (Trên cùng góc phải) */}
           {showToast && (
-            <div id="toast-notification-banner" className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-[9999] max-w-md sm:w-[460px] bg-amber-50/98 backdrop-blur-md rounded-2xl shadow-2xl border border-amber-200/80 border-l-[6px] border-l-amber-600 p-5 transition-all duration-350 ease-out transform translate-y-0 animate-scale-up hover:shadow-amber-100/40 hover:border-amber-300">
-              <div className="flex gap-4.5">
-                <div className="p-3 bg-amber-100/80 text-amber-900 rounded-xl shrink-0 h-fit border border-amber-200 shadow-xs">
-                  <BellRing className="w-5.5 h-5.5 shrink-0 animate-bounce text-amber-700" />
+            <div id="toast-notification-banner" className="fixed top-3 left-3 right-3 sm:left-auto sm:right-6 sm:top-4 z-[9999] max-w-md sm:w-[440px] bg-amber-50/98 backdrop-blur-md rounded-2xl shadow-2xl border border-amber-200/80 border-l-[6px] border-l-amber-600 p-4 sm:p-5 transition-all duration-350 ease-out transform translate-y-0 animate-scale-up hover:shadow-amber-100/40 hover:border-amber-300">
+              <div className="flex gap-3 sm:gap-4.5">
+                <div className="p-2.5 sm:p-3 bg-amber-100/80 text-amber-900 rounded-xl shrink-0 h-fit border border-amber-200 shadow-xs">
+                  <BellRing className="w-5 h-5 sm:w-5.5 sm:h-5.5 shrink-0 animate-bounce text-amber-700" />
                 </div>
                 
-                <div className="flex-1 min-w-0 pr-2">
-                  <div className="flex items-center justify-between gap-2.5">
-                    <span className="text-sm font-extrabold font-display text-amber-950 tracking-tight">
+                <div className="flex-1 min-w-0 pr-1 sm:pr-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs sm:text-sm font-extrabold font-display text-amber-950 tracking-tight">
                       Nhắc Nhở Vận Hành Hôm Nay
                     </span>
                     <span className="px-2 py-0.5 bg-amber-700 text-[10px] text-white rounded font-bold font-mono tracking-wider shrink-0 uppercase shadow-3xs">
                       {systemDate}
                     </span>
                   </div>
-                  <p className="text-amber-900 text-xs mt-2.5 leading-relaxed font-bold">
+                  <p className="text-amber-900 text-[11px] sm:text-xs mt-2 leading-relaxed font-bold">
                     {toastMessage}
                   </p>
                   
@@ -271,9 +271,9 @@ export default function NotificationCenter({
                         setIsOpen(true);
                         setShowToast(false);
                       }}
-                      className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm hover:shadow transition-all duration-200 active:scale-95"
+                      className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm hover:shadow transition-all duration-200 active:scale-95 cursor-pointer"
                     >
-                      <span>Xem danh sách chi tiết chiếc camera</span>
+                      <span>Xem danh sách chi tiết ({stats.total})</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -281,9 +281,10 @@ export default function NotificationCenter({
  
                 <button
                   onClick={() => setShowToast(false)}
-                  className="p-1.5 text-amber-805 hover:text-amber-950 hover:bg-amber-100/80 rounded-lg shrink-0 h-fit transition-colors"
+                  className="p-1 sm:p-1.5 text-amber-805 hover:text-amber-950 hover:bg-amber-100/80 rounded-lg shrink-0 h-fit transition-colors cursor-pointer"
+                  title="Đóng thông báo"
                 >
-                  <X className="w-4.5 h-4.5" />
+                  <X className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </button>
               </div>
             </div>
