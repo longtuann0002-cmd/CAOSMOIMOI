@@ -108,32 +108,52 @@ export default function CustomerManager({
   }, [contracts, customers]);
 
   const filteredCustomers = useMemo(() => {
-    return (customers || []).filter(c => {
-      if (!c) return false;
-      const query = searchQuery.toLowerCase().trim();
-      const nameMatch = (c.name || '').toLowerCase().includes(query);
-      const phoneMatch = (c.phone || '').includes(query);
-      const emailMatch = !!(c.email && c.email.toLowerCase().includes(query));
-      const idMatch = !!(c.idNumber && c.idNumber.toLowerCase().includes(query));
-      const matchesSearch = nameMatch || phoneMatch || emailMatch || idMatch;
+    return (customers || [])
+      .filter(c => {
+        if (!c) return false;
+        const query = searchQuery.toLowerCase().trim();
+        const nameMatch = (c.name || '').toLowerCase().includes(query);
+        const phoneMatch = (c.phone || '').includes(query);
+        const emailMatch = !!(c.email && c.email.toLowerCase().includes(query));
+        const idMatch = !!(c.idNumber && c.idNumber.toLowerCase().includes(query));
+        const matchesSearch = nameMatch || phoneMatch || emailMatch || idMatch;
 
-      if (!matchesSearch) return false;
+        if (!matchesSearch) return false;
 
-      if (debtFilter === 'UNPAID_DEPOSIT') {
-        const { pendingDepositCount } = getCustomerFinancials(c.phone);
-        return pendingDepositCount > 0;
-      }
-      if (debtFilter === 'HAS_DEBT') {
-        const { totalDebt } = getCustomerFinancials(c.phone);
-        return totalDebt > 0;
-      }
-      if (debtFilter === 'NO_DEBT') {
-        const { totalDebt, pendingDepositCount } = getCustomerFinancials(c.phone);
-        return totalDebt === 0 && pendingDepositCount === 0;
-      }
+        if (debtFilter === 'UNPAID_DEPOSIT') {
+          const { pendingDepositCount } = getCustomerFinancials(c.phone);
+          return pendingDepositCount > 0;
+        }
+        if (debtFilter === 'HAS_DEBT') {
+          const { totalDebt } = getCustomerFinancials(c.phone);
+          return totalDebt > 0;
+        }
+        if (debtFilter === 'NO_DEBT') {
+          const { totalDebt, pendingDepositCount } = getCustomerFinancials(c.phone);
+          return totalDebt === 0 && pendingDepositCount === 0;
+        }
 
-      return true;
-    });
+        return true;
+      })
+      .sort((a, b) => {
+        // 1. Sắp xếp khách hàng có nhiều lượt thuê nhất lên trang đầu
+        const countA = (contracts || []).filter(c => c && c.customerPhone === a.phone && c.status !== 'Cancelled').length || (a.rentalCount || 0);
+        const countB = (contracts || []).filter(c => c && c.customerPhone === b.phone && c.status !== 'Cancelled').length || (b.rentalCount || 0);
+
+        if (countB !== countA) {
+          return countB - countA;
+        }
+
+        // 2. Nếu cùng lượt thuê, ưu tiên người có tổng tiền thuê (chi tiêu) cao hơn
+        const spentA = (contracts || []).filter(c => c && c.customerPhone === a.phone && c.status !== 'Cancelled').reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+        const spentB = (contracts || []).filter(c => c && c.customerPhone === b.phone && c.status !== 'Cancelled').reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+        if (spentB !== spentA) {
+          return spentB - spentA;
+        }
+
+        // 3. Xếp theo thứ tự bảng chữ cái tên
+        return (a.name || '').localeCompare(b.name || '', 'vi');
+      });
   }, [customers, searchQuery, debtFilter, contracts]);
 
   // Pagination Configuration
