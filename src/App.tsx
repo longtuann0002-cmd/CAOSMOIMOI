@@ -2083,12 +2083,12 @@ export default function App() {
         </div>
 
         {/* MAIN BODY AREA */}
-        <main className="flex-grow w-full px-4 sm:px-6 md:px-8 py-6 pb-26 md:pb-6 overflow-y-auto">
+        <main className="flex-grow w-full px-3 sm:px-6 md:px-8 py-3.5 sm:py-6 pb-24 md:pb-6 overflow-y-auto">
           {/* Header row in main panel content */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 sm:pb-4 mb-4 sm:mb-6 border-b border-gray-150">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 sm:pb-4 mb-3 sm:mb-6 border-b border-gray-150">
             <div className="space-y-0.5">
               <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[#ea580c] font-display">HỆ THỐNG VẬN HÀNH</span>
-              <h1 className="text-xl sm:text-2xl font-black text-gray-950 tracking-tight">
+              <h1 className="text-lg sm:text-2xl font-black text-gray-950 tracking-tight">
                 {activeTab === 'calendar' && 'Lịch máy'}
                 {activeTab === 'contracts' && 'Hợp đồng & Đơn thuê'}
                 {activeTab === 'equipment' && 'Kho thiết bị'}

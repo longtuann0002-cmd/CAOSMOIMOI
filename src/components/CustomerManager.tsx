@@ -614,33 +614,33 @@ export default function CustomerManager({
 
         return (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-50 animate-fade-in">
-            <div className="bg-slate-50 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-gray-150 animate-scale-up">
+            <div className="bg-slate-50 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col border border-gray-150 animate-scale-up">
               {/* Modal Header */}
-              <div className="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center shrink-0">
-                <div className="flex items-center gap-3">
-                  <span className="p-1.5 bg-indigo-500/30 rounded-lg">
-                    <FileText className="w-5 h-5 text-white" />
+              <div className="bg-indigo-600 text-white px-4 sm:px-5 py-3 sm:py-4 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <span className="p-1.5 bg-indigo-500/30 rounded-lg shrink-0">
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </span>
-                  <div>
-                    <h3 className="font-bold text-base sm:text-lg">Hồ Sơ & Lịch Sử Đơn Thuê Máy khép kín</h3>
-                    <p className="text-xs text-indigo-100">
-                      Khách hàng: <span className="font-extrabold text-white text-sm">{selectedCustomerForHistory.name}</span>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-sm sm:text-lg truncate">Hồ Sơ & Lịch Sử Đơn Thuê Máy</h3>
+                    <p className="text-[10px] sm:text-xs text-indigo-100 truncate">
+                      Khách hàng: <span className="font-extrabold text-white">{selectedCustomerForHistory.name}</span>
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelectedCustomerForHistory(null)}
-                  className="text-white hover:text-gray-200 font-extrabold text-2xl p-1 hover:bg-indigo-700/50 rounded-lg transition"
+                  className="text-white hover:text-gray-200 font-extrabold text-2xl p-1 hover:bg-indigo-700/50 rounded-lg transition shrink-0 cursor-pointer"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 select-none">
+              <div className="p-3 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1 select-none">
                 {/* Profile detail section */}
-                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-3xs grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 shadow-3xs grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <h4 className="text-xs font-extrabold text-slate-404 uppercase tracking-widest text-slate-400">Thông tin khách hàng</h4>
                     <div className="space-y-1.5 text-sm">

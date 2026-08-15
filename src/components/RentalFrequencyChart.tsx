@@ -87,10 +87,10 @@ export default function RentalFrequencyChart({
     const resizeObserver = new ResizeObserver((entries) => {
       if (!entries || entries.length === 0) return;
       const { width } = entries[0].contentRect;
-      // Set width, minimum 350px, height fixed at 320px
+      // Set width, minimum 280px, height responsive (260px on small mobile, 320px on desktop)
       setDimensions({
-        width: Math.max(width, 350),
-        height: 320,
+        width: Math.max(width, 280),
+        height: width < 480 ? 260 : 320,
       });
     });
 
@@ -106,7 +106,8 @@ export default function RentalFrequencyChart({
     svg.selectAll('*').remove(); // Clear previous rendering
 
     const { width, height } = dimensions;
-    const margin = { top: 30, right: 20, bottom: 50, left: 45 };
+    const isMobile = width < 480;
+    const margin = { top: isMobile ? 20 : 30, right: isMobile ? 10 : 20, bottom: isMobile ? 40 : 50, left: isMobile ? 35 : 45 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 

@@ -307,39 +307,45 @@ export default function EquipmentTracker({
           </div>
         </div>
 
-        {/* Dynamic Category Pill Filters */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-3.5 border-t border-gray-100/80">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mr-2 select-none">
-            Lọc Đội Thiết Bị:
-          </span>
-          {[
-            { id: 'ALL', name: 'Tất cả thiết bị', count: categoryCounts.ALL, color: 'bg-orange-600 border-orange-600 text-white' },
-            { id: 'Body', name: 'Máy ảnh / Thân máy', count: categoryCounts.Body, color: 'bg-blue-600 border-blue-600 text-white' },
-            { id: 'Lens', name: 'Ống kính (Lens)', count: categoryCounts.Lens, color: 'bg-purple-600 border-purple-600 text-white' },
-            { id: 'Combo', name: 'Bộ máy (Combo)', count: categoryCounts.Combo, color: 'bg-indigo-600 border-orange-500 text-white' },
-            { id: 'Accessory', name: 'Phụ kiện máy ảnh', count: categoryCounts.Accessory, color: 'bg-emerald-600 border-emerald-600 text-white' },
-          ].map(cat => {
-            const isSelected = categoryFilter === cat.id;
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setCategoryFilter(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer border ${
-                  isSelected
-                    ? `${cat.color} shadow-xs scale-102`
-                    : 'bg-gray-55/60 text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <span>{cat.name}</span>
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                  isSelected ? 'bg-white/20 text-white' : 'bg-gray-200/80 text-gray-600'
-                }`}>
-                  {cat.count}
-                </span>
-              </button>
-            );
-          })}
+        {/* Dynamic Category Pill Filters with mobile scroll */}
+        <div className="pt-3 border-t border-gray-100/80">
+          <div className="text-[10.5px] font-bold text-gray-400 uppercase tracking-wider mb-2 select-none sm:hidden">
+            Lọc theo loại thiết bị:
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none sm:flex-wrap">
+            <span className="hidden sm:inline text-[11px] font-bold text-gray-400 uppercase tracking-wider mr-2 select-none shrink-0">
+              Lọc Đội Thiết Bị:
+            </span>
+            {[
+              { id: 'ALL', name: 'Tất cả', fullName: 'Tất cả thiết bị', count: categoryCounts.ALL, color: 'bg-orange-600 border-orange-600 text-white' },
+              { id: 'Body', name: 'Máy ảnh', fullName: 'Máy ảnh / Thân máy', count: categoryCounts.Body, color: 'bg-blue-600 border-blue-600 text-white' },
+              { id: 'Lens', name: 'Ống kính', fullName: 'Ống kính (Lens)', count: categoryCounts.Lens, color: 'bg-purple-600 border-purple-600 text-white' },
+              { id: 'Combo', name: 'Combo', fullName: 'Bộ máy (Combo)', count: categoryCounts.Combo, color: 'bg-indigo-600 border-orange-500 text-white' },
+              { id: 'Accessory', name: 'Phụ kiện', fullName: 'Phụ kiện máy ảnh', count: categoryCounts.Accessory, color: 'bg-emerald-600 border-emerald-600 text-white' },
+            ].map(cat => {
+              const isSelected = categoryFilter === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategoryFilter(cat.id)}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer border whitespace-nowrap shrink-0 ${
+                    isSelected
+                      ? `${cat.color} shadow-xs scale-102`
+                      : 'bg-gray-55/60 text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <span className="sm:hidden">{cat.name}</span>
+                  <span className="hidden sm:inline">{cat.fullName}</span>
+                  <span className={`px-1.5 py-0.2 sm:py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-gray-200/80 text-gray-600'
+                  }`}>
+                    {cat.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
