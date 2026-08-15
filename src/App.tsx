@@ -213,14 +213,15 @@ export default function App() {
     loadStoredData('logoSubtitle', 'CHO THUÊ MÁY ẢNH GIÁ RẺ')
   );
   const [logoIconType, setLogoIconType] = useState<'camera' | 'aperture' | 'film' | 'sparkles' | 'smile' | 'image' | 'upload'>(() =>
-    loadStoredData('logoIconType', 'camera')
+    loadStoredData('logoIconType', 'upload')
   );
   const [logoIconColor, setLogoIconColor] = useState<string>(() =>
     loadStoredData('logoIconColor', '#ea580c')
   );
-  const [logoBase64, setLogoBase64] = useState<string>(() =>
-    loadStoredData('logoBase64', '')
-  );
+  const [logoBase64, setLogoBase64] = useState<string>(() => {
+    const stored = loadStoredData('logoBase64', '');
+    return stored || '/logocaos.png';
+  });
   const [showLogoModal, setShowLogoModal] = useState<boolean>(false);
   const [loaded, setLoaded] = useState(false);
 
