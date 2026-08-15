@@ -5,7 +5,7 @@ import {
   Calendar, FileText, Activity, Info, PieChart, ShoppingBag, 
   User, ChevronLeft, ChevronRight, BarChart3, CalendarDays, Filter,
   Camera as CameraIcon, Search, X, Clock, Layers, ArrowUpRight, CheckCircle2,
-  AlertTriangle
+  AlertTriangle, Phone
 } from 'lucide-react';
 
 interface RevenueDashboardProps {

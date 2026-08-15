@@ -37,11 +37,20 @@ export default function CustomerManager({
 
   // Calculate customer debt and financials helper
   const getCustomerFinancials = (phone: string) => {
-    const custContracts = (contracts || []).filter(c => c.customerPhone === phone && c.status !== 'Cancelled');
-    const totalDebt = custContracts.reduce((sum, c) => sum + Math.max(0, c.totalPrice - c.paidAmount), 0);
-    const totalSpent = custContracts.reduce((sum, c) => sum + c.paidAmount, 0);
-    const totalExpected = custContracts.reduce((sum, c) => sum + c.totalPrice, 0);
-    const debtContractsCount = custContracts.filter(c => c.totalPrice > c.paidAmount).length;
+    if (!phone) {
+      return {
+        custContracts: [],
+        totalDebt: 0,
+        totalSpent: 0,
+        totalExpected: 0,
+        debtContractsCount: 0
+      };
+    }
+    const custContracts = (contracts || []).filter(c => c && c.customerPhone === phone && c.status !== 'Cancelled');
+    const totalDebt = custContracts.reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) - (c.paidAmount || 0)), 0);
+    const totalSpent = custContracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+    const totalExpected = custContracts.reduce((sum, c) => sum + (c.totalPrice || 0), 0);
+    const debtContractsCount = custContracts.filter(c => (c.totalPrice || 0) > (c.paidAmount || 0)).length;
     return {
       custContracts,
       totalDebt,
@@ -54,27 +63,28 @@ export default function CustomerManager({
   // Total summary metrics across all customers
   const overallCustomerDebt = useMemo(() => {
     return (contracts || [])
-      .filter(c => c.status !== 'Cancelled')
-      .reduce((sum, c) => sum + Math.max(0, c.totalPrice - c.paidAmount), 0);
+      .filter(c => c && c.status !== 'Cancelled')
+      .reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) - (c.paidAmount || 0)), 0);
   }, [contracts]);
 
   const debtorCount = useMemo(() => {
     const debtorPhones = new Set(
       (contracts || [])
-        .filter(c => c.status !== 'Cancelled' && c.totalPrice > c.paidAmount)
+        .filter(c => c && c.status !== 'Cancelled' && ((c.totalPrice || 0) > (c.paidAmount || 0)) && c.customerPhone)
         .map(c => c.customerPhone)
     );
-    return customers.filter(c => debtorPhones.has(c.phone)).length;
+    return (customers || []).filter(c => c && c.phone && debtorPhones.has(c.phone)).length;
   }, [contracts, customers]);
 
   const filteredCustomers = useMemo(() => {
-    return customers.filter(c => {
+    return (customers || []).filter(c => {
+      if (!c) return false;
       const query = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        c.name.toLowerCase().includes(query) ||
-        c.phone.includes(query) ||
-        (c.email && c.email.toLowerCase().includes(query)) ||
-        (c.idNumber && c.idNumber.toLowerCase().includes(query));
+      const nameMatch = (c.name || '').toLowerCase().includes(query);
+      const phoneMatch = (c.phone || '').includes(query);
+      const emailMatch = !!(c.email && c.email.toLowerCase().includes(query));
+      const idMatch = !!(c.idNumber && c.idNumber.toLowerCase().includes(query));
+      const matchesSearch = nameMatch || phoneMatch || emailMatch || idMatch;
 
       if (!matchesSearch) return false;
 
