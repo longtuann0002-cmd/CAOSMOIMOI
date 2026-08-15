@@ -18,6 +18,7 @@ export default function CustomerManager({
   onDeleteCustomer
 }: CustomerManagerProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debtFilter, setDebtFilter] = useState<'ALL' | 'HAS_DEBT' | 'NO_DEBT'>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -34,17 +35,61 @@ export default function CustomerManager({
     notes: ''
   });
 
+  // Calculate customer debt and financials helper
+  const getCustomerFinancials = (phone: string) => {
+    const custContracts = (contracts || []).filter(c => c.customerPhone === phone && c.status !== 'Cancelled');
+    const totalDebt = custContracts.reduce((sum, c) => sum + Math.max(0, c.totalPrice - c.paidAmount), 0);
+    const totalSpent = custContracts.reduce((sum, c) => sum + c.paidAmount, 0);
+    const totalExpected = custContracts.reduce((sum, c) => sum + c.totalPrice, 0);
+    const debtContractsCount = custContracts.filter(c => c.totalPrice > c.paidAmount).length;
+    return {
+      custContracts,
+      totalDebt,
+      totalSpent,
+      totalExpected,
+      debtContractsCount
+    };
+  };
+
+  // Total summary metrics across all customers
+  const overallCustomerDebt = useMemo(() => {
+    return (contracts || [])
+      .filter(c => c.status !== 'Cancelled')
+      .reduce((sum, c) => sum + Math.max(0, c.totalPrice - c.paidAmount), 0);
+  }, [contracts]);
+
+  const debtorCount = useMemo(() => {
+    const debtorPhones = new Set(
+      (contracts || [])
+        .filter(c => c.status !== 'Cancelled' && c.totalPrice > c.paidAmount)
+        .map(c => c.customerPhone)
+    );
+    return customers.filter(c => debtorPhones.has(c.phone)).length;
+  }, [contracts, customers]);
+
   const filteredCustomers = useMemo(() => {
     return customers.filter(c => {
       const query = searchQuery.toLowerCase().trim();
-      return (
+      const matchesSearch =
         c.name.toLowerCase().includes(query) ||
         c.phone.includes(query) ||
         (c.email && c.email.toLowerCase().includes(query)) ||
-        (c.idNumber && c.idNumber.toLowerCase().includes(query))
-      );
+        (c.idNumber && c.idNumber.toLowerCase().includes(query));
+
+      if (!matchesSearch) return false;
+
+      if (debtFilter === 'HAS_DEBT') {
+        const { totalDebt } = getCustomerFinancials(c.phone);
+        return totalDebt > 0;
+      }
+      if (debtFilter === 'NO_DEBT') {
+        const { totalDebt } = getCustomerFinancials(c.phone);
+        return totalDebt === 0;
+      }
+
+      return true;
     });
-  }, [customers, searchQuery]);
+  }, [customers, searchQuery, debtFilter, contracts]);
 
   // Pagination Configuration
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,7 +98,7 @@ export default function CustomerManager({
   // Reset page when filtering
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, debtFilter]);
 
   const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage) || 1;
   const paginatedCustomers = useMemo(() => {
@@ -174,7 +219,7 @@ export default function CustomerManager({
               <User className="text-orange-600 w-4.5 h-4.5 sm:w-5 bg-orange-50 p-1 rounded-md sm:bg-transparent sm:p-0" /> Quản Lý Khách Hàng Thuê Máy
             </h2>
             <p className="text-xs sm:text-sm text-gray-500 leading-normal">
-              Tra cứu hồ sơ khách hàng, xếp hạng độ tin cậy để quyết định mức độ thế chấp hoặc cọc thế chấp.
+              Tra cứu hồ sơ khách hàng, kiểm soát dư nợ chưa thu và xếp hạng độ tin cậy để quyết định mức độ cọc.
             </p>
           </div>
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
@@ -194,15 +239,81 @@ export default function CustomerManager({
           </div>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 sm:top-3 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Tìm theo tên, SĐT, số CCCD, trang liên kết..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="pl-8.5 pr-4 py-1.5 sm:py-2.5 text-xs sm:text-sm w-full border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none placeholder-gray-400/80"
-          />
+        {/* Aggregate Debt Metric Banner */}
+        <div className="bg-gradient-to-r from-rose-50/90 to-amber-50/70 border border-rose-200/80 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-3xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2 sm:p-2.5 bg-rose-100/80 text-rose-700 rounded-xl shrink-0 border border-rose-200">
+              <DollarSign className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] sm:text-xs font-bold text-rose-800 uppercase tracking-wider block">Tổng Dư Nợ Khách Hàng Chưa Thu</span>
+              <span className="font-mono text-base sm:text-xl font-black text-rose-700 block mt-0.5">
+                {overallCustomerDebt.toLocaleString()}đ
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
+            <span className="text-xs font-bold text-rose-800 bg-white/80 border border-rose-200 px-3 py-1.5 rounded-lg shadow-4xs">
+              ⚠️ <span className="font-black">{debtorCount}</span> khách hàng còn nợ
+            </span>
+          </div>
+        </div>
+
+        {/* Search Bar & Debt Filters */}
+        <div className="space-y-2.5">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 sm:top-3 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Tìm theo tên, SĐT, số CCCD, trang liên kết..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-8.5 pr-4 py-1.5 sm:py-2.5 text-xs sm:text-sm w-full border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none placeholder-gray-400/80"
+            />
+          </div>
+
+          {/* Quick Filter Tabs for Debt Status */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none select-none">
+            <button
+              type="button"
+              onClick={() => setDebtFilter('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border ${
+                debtFilter === 'ALL'
+                  ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
+                  : 'bg-gray-50 text-gray-650 border-gray-200 hover:bg-gray-100'
+              }`}
+            >
+              Tất cả ({customers.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setDebtFilter('HAS_DEBT')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border flex items-center gap-1.5 ${
+                debtFilter === 'HAS_DEBT'
+                  ? 'bg-rose-600 text-white border-rose-600 shadow-3xs'
+                  : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+              }`}
+            >
+              <span>Còn dư nợ chưa thu</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${debtFilter === 'HAS_DEBT' ? 'bg-white/20 text-white' : 'bg-rose-200/80 text-rose-800'}`}>
+                {debtorCount}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDebtFilter('NO_DEBT')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border flex items-center gap-1.5 ${
+                debtFilter === 'NO_DEBT'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-3xs'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+              }`}
+            >
+              <span>Đã thanh toán đủ</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${debtFilter === 'NO_DEBT' ? 'bg-white/20 text-white' : 'bg-emerald-200/80 text-emerald-800'}`}>
+                {customers.length - debtorCount}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -215,8 +326,12 @@ export default function CustomerManager({
             )
             .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
+          const financials = getCustomerFinancials(cust.phone);
+
           return (
-            <div key={cust.id} className="bg-white border border-gray-150/70 rounded-xl p-4 shadow-2xs space-y-3 flex flex-col justify-between hover:shadow-sm transition-all hover:border-gray-300">
+            <div key={cust.id} className={`bg-white border rounded-xl p-4 shadow-2xs space-y-3 flex flex-col justify-between hover:shadow-sm transition-all ${
+              financials.totalDebt > 0 ? 'border-rose-300 ring-1 ring-rose-400/20' : 'border-gray-150/70 hover:border-gray-300'
+            }`}>
               <div className="space-y-2.5">
                 <div className="flex justify-between items-start gap-1">
                   <div className="min-w-0">
@@ -241,6 +356,33 @@ export default function CustomerManager({
                     </span>
                   </div>
                 </div>
+
+                {/* Dư nợ chưa thu indicator box */}
+                {financials.totalDebt > 0 ? (
+                  <div className="bg-rose-50 border border-rose-200/90 rounded-lg p-2.5 space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-extrabold text-rose-800 flex items-center gap-1">
+                        ⚠️ Dư nợ chưa thu:
+                      </span>
+                      <span className="font-mono font-black text-rose-700 text-sm">
+                        +{financials.totalDebt.toLocaleString()}đ
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-rose-600 font-medium">
+                      <span>Đã thanh toán: {financials.totalSpent.toLocaleString()}đ</span>
+                      <span>({financials.debtContractsCount} đơn nợ)</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-emerald-50/60 border border-emerald-150 rounded-lg px-2.5 py-1.5 flex items-center justify-between text-xs">
+                    <span className="text-emerald-800 font-bold flex items-center gap-1 text-[11px]">
+                      ✓ Dư nợ chưa thu:
+                    </span>
+                    <span className="font-mono text-emerald-700 font-bold text-xs">
+                      0đ (Đủ)
+                    </span>
+                  </div>
+                )}
 
                 {/* Personal contact parameters list */}
                 <div className="space-y-1.5 text-xs text-gray-655 border-t border-gray-100 pt-2.5">
@@ -696,6 +838,52 @@ export default function CustomerManager({
                   </div>
                 </div>
 
+                {/* Financial Debt & Payment Summary for this customer */}
+                {(() => {
+                  const custFin = getCustomerFinancials(selectedCustomerForHistory.phone);
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-white border border-gray-200 rounded-xl p-3 shadow-3xs">
+                      <div className="bg-slate-50 border border-gray-150 p-2.5 rounded-lg">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Tổng Giá Trị Đơn</span>
+                        <span className="font-mono text-sm sm:text-base font-black text-gray-900 block mt-0.5">
+                          {custFin.totalExpected.toLocaleString()}đ
+                        </span>
+                      </div>
+
+                      <div className="bg-emerald-50/70 border border-emerald-200 p-2.5 rounded-lg">
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Thực Tế Đã Thu</span>
+                        <span className="font-mono text-sm sm:text-base font-black text-emerald-700 block mt-0.5">
+                          {custFin.totalSpent.toLocaleString()}đ
+                        </span>
+                      </div>
+
+                      <div className={`p-2.5 rounded-lg border ${
+                        custFin.totalDebt > 0 
+                          ? 'bg-rose-50 border-rose-300 ring-1 ring-rose-400/30' 
+                          : 'bg-emerald-50/40 border-emerald-150'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] font-extrabold uppercase tracking-wider block ${
+                            custFin.totalDebt > 0 ? 'text-rose-800' : 'text-emerald-800'
+                          }`}>
+                            Dư Nợ Chưa Thu
+                          </span>
+                          {custFin.totalDebt > 0 && (
+                            <span className="text-[9px] bg-rose-600 text-white font-extrabold px-1.5 py-0.2 rounded-full uppercase">
+                              Còn nợ
+                            </span>
+                          )}
+                        </div>
+                        <span className={`font-mono text-sm sm:text-base font-black block mt-0.5 ${
+                          custFin.totalDebt > 0 ? 'text-rose-700' : 'text-emerald-700'
+                        }`}>
+                          {custFin.totalDebt > 0 ? `+${custFin.totalDebt.toLocaleString()}đ` : '0đ (Đã thu đủ)'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Orders section */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -716,6 +904,7 @@ export default function CustomerManager({
                         
                         const diffTime = Math.abs(new Date(contract.endDate).getTime() - new Date(contract.startDate).getTime());
                         const calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+                        const remainingDebt = Math.max(0, contract.totalPrice - contract.paidAmount);
 
                         const statusStyles = 
                           contract.status === 'Completed' ? { bg: 'bg-green-500/10 text-green-700 border-green-200', label: 'Hoàn thành' } :
@@ -727,7 +916,11 @@ export default function CustomerManager({
                         return (
                           <div 
                             key={contract.id} 
-                            className="bg-white border border-gray-200 rounded-xl p-4 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all space-y-3"
+                            className={`bg-white border rounded-xl p-4 shadow-2xs hover:shadow-xs transition-all space-y-3 ${
+                              remainingDebt > 0 && contract.status !== 'Cancelled'
+                                ? 'border-rose-300 ring-1 ring-rose-300/40' 
+                                : 'border-gray-200 hover:border-indigo-300'
+                            }`}
                           >
                             {/* Contract Card Header */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
@@ -738,6 +931,11 @@ export default function CustomerManager({
                                 <span className="bg-orange-50 text-orange-700 border border-orange-200 text-[11px] font-bold px-2.5 py-0.5 rounded-lg flex items-center gap-1">
                                   ⭐ Lần thuê thứ {sequenceNum}
                                 </span>
+                                {remainingDebt > 0 && contract.status !== 'Cancelled' && (
+                                  <span className="bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1">
+                                    ⚠️ Còn nợ {remainingDebt.toLocaleString()}đ
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${statusStyles.bg}`}>
@@ -787,9 +985,9 @@ export default function CustomerManager({
                             </div>
 
                             {/* Financial values and deposit details */}
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                               <div className="bg-slate-50 border border-gray-200 p-2 rounded-xl">
-                                <div className="text-[10px] text-gray-400 font-extrabold uppercase">Giá trị đơn hàng</div>
+                                <div className="text-[10px] text-gray-400 font-extrabold uppercase">Tổng giá trị</div>
                                 <div className="font-mono text-xs sm:text-sm text-gray-800 font-extrabold">
                                   {contract.totalPrice.toLocaleString()}đ
                                 </div>
@@ -800,10 +998,26 @@ export default function CustomerManager({
                                   {contract.paidAmount.toLocaleString()}đ
                                 </div>
                               </div>
-                              <div className="bg-indigo-50/40 border border-indigo-100 p-2 rounded-xl col-span-2 sm:col-span-1">
-                                <div className="text-[10px] text-indigo-605 font-extrabold uppercase text-indigo-700">Bảo đảm thế chấp</div>
+                              <div className={`p-2 rounded-xl border ${
+                                remainingDebt > 0 && contract.status !== 'Cancelled'
+                                  ? 'bg-rose-50 border-rose-200'
+                                  : 'bg-emerald-50/20 border-gray-200'
+                              }`}>
+                                <div className={`text-[10px] font-extrabold uppercase ${
+                                  remainingDebt > 0 && contract.status !== 'Cancelled' ? 'text-rose-700' : 'text-gray-400'
+                                }`}>
+                                  Dư nợ chưa thu
+                                </div>
+                                <div className={`font-mono text-xs sm:text-sm font-black ${
+                                  remainingDebt > 0 && contract.status !== 'Cancelled' ? 'text-rose-700' : 'text-emerald-700'
+                                }`}>
+                                  {remainingDebt > 0 && contract.status !== 'Cancelled' ? `+${remainingDebt.toLocaleString()}đ` : '0đ (Đủ)'}
+                                </div>
+                              </div>
+                              <div className="bg-indigo-50/40 border border-indigo-100 p-2 rounded-xl">
+                                <div className="text-[10px] text-indigo-605 font-extrabold uppercase text-indigo-700">Thế chấp</div>
                                 <div className="font-mono text-[11px] text-indigo-700 font-bold truncate" title={contract.customerDocNote || `${contract.customerDocType === 'CCCD_And_1M' ? 'Giữ CCCD + 1 triệu' : contract.customerDocType}: ${contract.depositAmount.toLocaleString()}đ`}>
-                                  {contract.customerDocNote || `${contract.customerDocType === 'CCCD_And_1M' ? 'Giữ CCCD + 1 triệu' : contract.customerDocType === 'CCCD' ? 'Giữ CCCD' : contract.customerDocType} (Trị giá ${contract.depositAmount.toLocaleString()}đ)`}
+                                  {contract.customerDocNote || `${contract.customerDocType === 'CCCD_And_1M' ? 'CCCD + 1M' : contract.customerDocType}`}
                                 </div>
                               </div>
                             </div>

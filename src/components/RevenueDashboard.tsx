@@ -78,6 +78,9 @@ export default function RevenueDashboard({
     image?: string;
   } | null>(null);
 
+  // State for opening uncollected receivables drill-down modal
+  const [showReceivablesModal, setShowReceivablesModal] = useState<boolean>(false);
+
   // Equipment table search and filter
   const [equipmentSearch, setEquipmentSearch] = useState<string>('');
   const [equipmentCategoryFilter, setEquipmentCategoryFilter] = useState<string>('all');
@@ -186,6 +189,17 @@ export default function RevenueDashboard({
     });
   }, [expenses, dateRange]);
 
+  // Contracts that currently have uncollected debt (totalPrice > paidAmount)
+  const receivableContracts = useMemo(() => {
+    return filteredContracts
+      .filter(c => c.status !== 'Cancelled' && (c.totalPrice - c.paidAmount > 0))
+      .map(c => ({
+        ...c,
+        remainingDebt: c.totalPrice - c.paidAmount
+      }))
+      .sort((a, b) => b.remainingDebt - a.remainingDebt);
+  }, [filteredContracts]);
+
   // Overall Financials for the selected top timeframe
   const financials = useMemo(() => {
     const totalRevenue = filteredContracts
@@ -193,8 +207,8 @@ export default function RevenueDashboard({
       .reduce((sum, c) => sum + c.paidAmount, 0);
 
     const totalReceivables = filteredContracts
-      .filter(c => c.status === 'Active' || c.status === 'Overdue')
-      .reduce((sum, c) => sum + (c.totalPrice - c.paidAmount), 0);
+      .filter(c => c.status !== 'Cancelled')
+      .reduce((sum, c) => sum + Math.max(0, c.totalPrice - c.paidAmount), 0);
 
     const activeRentalsCount = filteredContracts.filter(c => c.status === 'Active' || c.status === 'Overdue').length;
     const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -648,15 +662,25 @@ export default function RevenueDashboard({
           </div>
         </div>
 
-        {/* Card 2: Total Outstanding Receivables */}
-        <div className="bg-white border border-gray-200 p-2.5 sm:p-5 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-2 sm:gap-4 hover:shadow-md transition-all">
-          <div className="p-2 sm:p-3.5 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
+        {/* Card 2: Total Outstanding Receivables (Clickable to view debt details) */}
+        <div 
+          onClick={() => setShowReceivablesModal(true)}
+          className="bg-white border border-gray-200 p-2.5 sm:p-5 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-2 sm:gap-4 hover:shadow-md hover:border-rose-300 hover:ring-2 hover:ring-rose-200/50 transition-all cursor-pointer group"
+          title="Bấm để xem danh sách khách hàng và đơn thuê còn nợ tiền"
+        >
+          <div className="p-2 sm:p-3.5 rounded-lg sm:rounded-xl bg-rose-50 text-rose-600 shrink-0 group-hover:scale-105 transition-transform">
             <Landmark className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-gray-500 text-[9px] sm:text-xs font-bold block uppercase tracking-wider truncate">Dư Nợ Chưa Thu</span>
-            <span className="font-mono text-xs sm:text-xl font-black text-gray-900 block truncate mt-0.5">{financials.totalReceivables.toLocaleString()}đ</span>
-            <span className="text-[9px] sm:text-[10px] text-amber-700 font-bold block mt-0.5 truncate">Dự kiến thu</span>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500 text-[9px] sm:text-xs font-bold block uppercase tracking-wider truncate">Dư Nợ Chưa Thu</span>
+              <span className="text-[8px] sm:text-[9px] text-rose-600 bg-rose-50 px-1 py-0.2 rounded font-black hidden sm:inline-block">Chi tiết ➔</span>
+            </div>
+            <span className="font-mono text-xs sm:text-xl font-black text-rose-700 block truncate mt-0.5">{financials.totalReceivables.toLocaleString()}đ</span>
+            <span className="text-[9px] sm:text-[10px] text-rose-600 font-bold block mt-0.5 truncate flex items-center gap-1">
+              <span>{receivableContracts.length} đơn nợ</span>
+              <span className="text-gray-400 font-normal sm:hidden">• Xem ➔</span>
+            </span>
           </div>
         </div>
 
@@ -1608,6 +1632,175 @@ export default function RevenueDashboard({
                 type="button"
                 onClick={() => setSelectedCameraForModal(null)}
                 className="px-4 py-1.5 bg-gray-900 hover:bg-gray-800 text-white font-black text-xs rounded-xl transition cursor-pointer shadow-xs shrink-0"
+              >
+                Đóng
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 2: UNCOLLECTED RECEIVABLES (DƯ NỢ CHƯA THU) DRILL-DOWN MODAL        */}
+      {/* ========================================================================= */}
+      {showReceivablesModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden self-center animate-scale-up border border-gray-200 flex flex-col max-h-[92vh]">
+            
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 sm:px-6 py-3.5 sm:py-4 flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                <div className="p-2 bg-white/20 rounded-xl shrink-0">
+                  <Landmark className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-extrabold text-sm sm:text-lg flex items-center gap-2 truncate">
+                    <span>Danh Sách Dư Nợ Chưa Thu</span>
+                    <span className="text-xs bg-white text-rose-700 px-2 py-0.5 rounded-full font-black">
+                      {receivableContracts.length} đơn
+                    </span>
+                  </h3>
+                  <p className="text-[10px] sm:text-xs text-rose-100 mt-0.5 truncate">
+                    Các hợp đồng khách hàng chưa thanh toán đủ trong kỳ: <b>{dateRange.label}</b>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReceivablesModal(false)}
+                className="text-white hover:text-rose-200 text-2xl font-bold p-1 leading-none shrink-0 cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Total summary bar inside modal */}
+            <div className="bg-rose-50 border-b border-rose-100 px-4 sm:px-6 py-3 flex items-center justify-between shrink-0">
+              <div>
+                <span className="text-[10px] sm:text-xs font-bold text-rose-800 uppercase tracking-wider block">Tổng Tiền Cần Thu</span>
+                <span className="font-mono text-base sm:text-xl font-black text-rose-700 block">
+                  {financials.totalReceivables.toLocaleString()}đ
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-gray-500 font-bold block">Tổng giá trị đơn nợ:</span>
+                <span className="font-mono text-xs sm:text-sm font-bold text-gray-800">
+                  {receivableContracts.reduce((sum, c) => sum + c.totalPrice, 0).toLocaleString()}đ
+                </span>
+              </div>
+            </div>
+
+            {/* List of debtor contracts */}
+            <div className="p-3.5 sm:p-6 overflow-y-auto space-y-3 flex-1">
+              {receivableContracts.length === 0 ? (
+                <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-200 text-gray-400 font-medium text-xs sm:text-sm">
+                  🎉 Tuyệt vời! Không có khoản dư nợ chưa thu nào trong kỳ này.
+                </div>
+              ) : (
+                receivableContracts.map((c) => {
+                  let statusText = 'Chờ bàn giao';
+                  let statusClass = 'bg-amber-50 text-amber-800 border-amber-200';
+                  if (c.status === 'Active') {
+                    statusText = 'Đang thuê';
+                    statusClass = 'bg-blue-50 text-blue-800 border-blue-200';
+                  } else if (c.status === 'Completed') {
+                    statusText = 'Đã trả máy';
+                    statusClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                  } else if (c.status === 'Overdue') {
+                    statusText = 'Quá hạn';
+                    statusClass = 'bg-rose-50 text-rose-800 border-rose-200 animate-pulse';
+                  }
+
+                  return (
+                    <div
+                      key={c.id}
+                      className="bg-white border border-rose-200/80 rounded-xl p-3 sm:p-4 shadow-3xs space-y-2.5 hover:shadow-sm transition-all"
+                    >
+                      {/* Header row: Code, Customer & Status */}
+                      <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-black text-xs text-gray-900 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                              {c.contractCode}
+                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusClass}`}>
+                              ● {statusText}
+                            </span>
+                          </div>
+                          <div className="font-black text-gray-900 text-sm mt-1 flex items-center gap-1.5 truncate">
+                            <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                            <span className="truncate">{c.customerName}</span>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="text-[10px] text-gray-400 font-bold block uppercase">Dư nợ chưa thu</span>
+                          <span className="font-mono font-black text-rose-700 text-sm sm:text-base block">
+                            +{c.remainingDebt.toLocaleString()}đ
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Financial values breakdown */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-50 p-2 rounded-lg border border-gray-150">
+                        <div>
+                          <span className="text-[9.5px] text-gray-400 font-bold uppercase block">Tổng tiền</span>
+                          <span className="font-mono font-bold text-gray-800">{c.totalPrice.toLocaleString()}đ</span>
+                        </div>
+                        <div>
+                          <span className="text-[9.5px] text-emerald-700 font-bold uppercase block">Đã thanh toán</span>
+                          <span className="font-mono font-bold text-emerald-700">{c.paidAmount.toLocaleString()}đ</span>
+                        </div>
+                        <div>
+                          <span className="text-[9.5px] text-gray-400 font-bold uppercase block">Ngày thuê</span>
+                          <span className="font-mono text-gray-700 text-[11px]">{new Date(c.startDate).toLocaleDateString('vi-VN')}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9.5px] text-gray-400 font-bold uppercase block">Liên hệ</span>
+                          <a
+                            href={`tel:${c.customerPhone}`}
+                            className="inline-flex items-center gap-1 text-orange-600 hover:underline font-mono font-bold text-[11px]"
+                          >
+                            <Phone className="w-3 h-3 text-orange-500 shrink-0" />
+                            <span>{c.customerPhone}</span>
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Equipment items summary */}
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase mr-1">Thiết bị:</span>
+                        {c.items.map((item, idx) => (
+                          <span
+                            key={idx}
+                            className="bg-orange-50 text-orange-800 border border-orange-100 text-[10px] font-bold px-2 py-0.5 rounded"
+                          >
+                            {item.cameraName}
+                          </span>
+                        ))}
+                      </div>
+
+                      {c.note && (
+                        <p className="text-[10.5px] text-gray-600 bg-amber-50/70 border border-amber-100 p-1.5 rounded font-medium italic">
+                          💬 {c.note}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-4 sm:px-6 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
+              <span className="text-[10.5px] sm:text-xs text-gray-600 font-medium truncate mr-2">
+                Tổng cộng: <b className="text-rose-700">{receivableContracts.length}</b> hợp đồng có dư nợ
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowReceivablesModal(false)}
+                className="px-5 py-2 bg-gray-900 hover:bg-gray-800 text-white font-black text-xs rounded-xl transition cursor-pointer shadow-xs shrink-0"
               >
                 Đóng
               </button>

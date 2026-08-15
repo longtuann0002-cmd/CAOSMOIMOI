@@ -390,13 +390,26 @@ export default function ContractManager({
         c.contractCode.toLowerCase().includes(query);
 
       let matchesStatus = true;
-      if (statusFilter !== 'ALL') {
+      if (statusFilter === 'UNPAID') {
+        matchesStatus = c.status !== 'Cancelled' && (c.totalPrice - c.paidAmount > 0);
+      } else if (statusFilter !== 'ALL') {
         matchesStatus = c.status === statusFilter;
       }
 
       return matchesSearch && matchesStatus;
     });
   }, [contracts, searchQuery, statusFilter]);
+
+  // Overall Contract Debt Metrics
+  const totalContractDebt = useMemo(() => {
+    return contracts
+      .filter(c => c.status !== 'Cancelled')
+      .reduce((sum, c) => sum + Math.max(0, c.totalPrice - c.paidAmount), 0);
+  }, [contracts]);
+
+  const unpaidContractsCount = useMemo(() => {
+    return contracts.filter(c => c.status !== 'Cancelled' && (c.totalPrice - c.paidAmount > 0)).length;
+  }, [contracts]);
 
   // Pagination Configuration
   const [currentPage, setCurrentPage] = useState(1);
@@ -596,6 +609,34 @@ export default function ContractManager({
           </div>
         </div>
 
+        {/* Aggregate Debt Metric Banner */}
+        {unpaidContractsCount > 0 && (
+          <div className="bg-gradient-to-r from-rose-50/90 to-amber-50/70 border border-rose-200/80 rounded-xl p-3 sm:p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-3xs">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 bg-rose-100/90 text-rose-700 rounded-lg shrink-0">
+                <CreditCard className="w-4 h-4" />
+              </span>
+              <div>
+                <span className="text-[10px] sm:text-xs font-bold text-rose-800 uppercase tracking-wider block">Dư Nợ Khách Hàng Chưa Thu</span>
+                <span className="font-mono text-sm sm:text-lg font-black text-rose-700 block mt-0.5">
+                  {totalContractDebt.toLocaleString()}đ <span className="text-xs font-normal text-rose-600 font-sans">({unpaidContractsCount} đơn còn nợ)</span>
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStatusFilter(statusFilter === 'UNPAID' ? 'ALL' : 'UNPAID')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer self-stretch sm:self-auto text-center border ${
+                statusFilter === 'UNPAID'
+                  ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                  : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-100'
+              }`}
+            >
+              {statusFilter === 'UNPAID' ? '✓ Đang lọc đơn nợ' : 'Lọc các đơn còn nợ ➔'}
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-2.5 sm:top-3 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
@@ -616,6 +657,7 @@ export default function ContractManager({
               className="text-sm w-full border border-gray-200 rounded-xl p-2 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="ALL">Tất cả trạng thái</option>
+              <option value="UNPAID">⚠️ Còn dư nợ chưa thu ({unpaidContractsCount})</option>
               <option value="Pending">Chờ giao máy (Pending)</option>
               <option value="Active">Đang cho thuê (Active)</option>
               <option value="Completed">Đã trả máy (Completed)</option>
