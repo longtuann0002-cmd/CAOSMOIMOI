@@ -1144,10 +1144,41 @@ export default function BookingCalendar({
                       Không cọc (0đ)
                     </button>
                   </div>
-                  <span className="text-[10px] text-orange-600 font-medium block mt-2 bg-orange-50/50 border border-orange-100/50 p-1.5 rounded-lg leading-relaxed">
-                    💡 <b>Quy định:</b> Đặt lịch cọc trước 50% tiền thuê, hoặc chọn Không cọc nếu khách quen thanh toán khi trả máy.
-                  </span>
                 </div>
+              </div>
+
+              {/* TÍCH CHỌN: KHÁCH CHƯA THANH TOÁN 50% GIỮ MÁY */}
+              <div className="bg-gradient-to-r from-amber-50 to-amber-100/70 border-2 border-amber-300 rounded-xl p-3.5 shadow-3xs">
+                <label className="flex items-start gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={formData.paidAmount === 0}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setFormData({ ...formData, paidAmount: 0 });
+                      } else {
+                        setFormData({ ...formData, paidAmount: Math.round(calculatedTotal * 0.5) });
+                      }
+                    }}
+                    className="w-5 h-5 text-amber-600 rounded border-amber-400 focus:ring-amber-500 mt-0.5 shrink-0 cursor-pointer accent-amber-600"
+                  />
+                  <div className="flex-1">
+                    <span className="font-extrabold text-amber-950 text-xs sm:text-sm flex items-center gap-1.5 flex-wrap">
+                      <span>⏳ Khách chưa thanh toán tiền cọc 50% để giữ máy</span>
+                      {formData.paidAmount === 0 && (
+                        <span className="bg-amber-600 text-white text-[10px] px-2 py-0.2 rounded-full font-black">
+                          ✓ Đang tích chọn
+                        </span>
+                      )}
+                    </span>
+                    <p className="text-[11px] text-amber-850 mt-1 leading-relaxed">
+                      {formData.paidAmount === 0
+                        ? `⚠️ Đơn sẽ được ghi nhận là "Chưa cọc 50% giữ máy" với số tiền cần thu là ${(Math.round(calculatedTotal * 0.5)).toLocaleString()}đ.`
+                        : `✓ Khách đã thanh toán trước 50% tiền cọc (${formData.paidAmount.toLocaleString()}đ).`
+                      }
+                    </p>
+                  </div>
+                </label>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

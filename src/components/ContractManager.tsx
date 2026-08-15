@@ -1412,11 +1412,44 @@ export default function ContractManager({
 
               {/* Status Update Quick Controls */}
               <div className="border-t border-gray-150 pt-4 space-y-3 shrink-0">
-                <h4 className="text-[10px] sm:text-xs uppercase font-extrabold text-gray-400 tracking-wider">VẬN HÀNH TRẠNG THÁI HỢP ĐỒNG</h4>
+                <h4 className="text-[10px] sm:text-xs uppercase font-extrabold text-gray-400 tracking-wider">VẬN HÀNH TRẠNG THÁI HỢP ĐỒNG & CỌC GIỮ MÁY</h4>
                 
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
                   {selectedContract.status === 'Pending' && (
                     <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const deposit50 = Math.round(selectedContract.totalPrice * 0.5);
+                          onUpdateContractStatus(selectedContract.id, 'Pending', 'Đã nhận đủ 50% tiền cọc giữ máy chuyển khoản từ khách hàng.', deposit50);
+                          setSelectedContract({
+                            ...selectedContract,
+                            paidAmount: deposit50
+                          });
+                        }}
+                        className="bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2.5 sm:py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0"
+                        title="Xác nhận khách đã chuyển khoản 50% tiền cọc"
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                        <span>✓ Xác nhận ĐÃ thu cọc 50% ({Math.round(selectedContract.totalPrice * 0.5).toLocaleString()}đ)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onUpdateContractStatus(selectedContract.id, 'Pending', 'Khách hàng chưa thanh toán tiền cọc 50% để giữ máy.', 0);
+                          setSelectedContract({
+                            ...selectedContract,
+                            paidAmount: 0
+                          });
+                        }}
+                        className="bg-amber-50 hover:bg-amber-100 text-amber-850 border border-amber-300 font-bold px-3 py-2.5 sm:py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                        title="Đánh dấu khách chưa chuyển tiền cọc 50%"
+                      >
+                        <Clock className="w-4 h-4 text-amber-700" />
+                        <span>⏳ Đánh dấu CHƯA cọc 50%</span>
+                      </button>
+
                       <button
                         onClick={() => {
                           onUpdateContractStatus(selectedContract.id, 'Active', 'Bàn giao thiết bị và chụp ảnh lưu hồ sơ cọc.');
@@ -1426,6 +1459,7 @@ export default function ContractManager({
                       >
                         <Check className="w-4 h-4 text-white" /> Bàn giao máy (Bắt đầu thuê)
                       </button>
+
                       <button
                         onClick={() => {
                           onUpdateContractStatus(selectedContract.id, 'Cancelled', 'Khách hàng hủy đặt lịch do thay đổi kế hoạch.');
@@ -1811,10 +1845,41 @@ export default function ContractManager({
                       Không cọc (0đ)
                     </button>
                   </div>
-                  <span className="text-[10px] text-orange-600 font-medium block mt-2 bg-orange-50/50 border border-orange-100/50 p-1.5 rounded-lg leading-relaxed">
-                    💡 <b>Quy định:</b> Đặt lịch cọc trước 50% tiền thuê, hoặc chọn Không cọc nếu khách quen thanh toán khi trả máy.
-                  </span>
                 </div>
+              </div>
+
+              {/* TÍCH CHỌN: KHÁCH CHƯA THANH TOÁN 50% GIỮ MÁY */}
+              <div className="bg-gradient-to-r from-amber-50 to-amber-100/70 border-2 border-amber-300 rounded-xl p-3.5 shadow-3xs">
+                <label className="flex items-start gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={newContractForm.paidAmount === 0}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setNewContractForm({ ...newContractForm, paidAmount: 0 });
+                      } else {
+                        setNewContractForm({ ...newContractForm, paidAmount: Math.round(calculatedTotal * 0.5) });
+                      }
+                    }}
+                    className="w-5 h-5 text-amber-600 rounded border-amber-400 focus:ring-amber-500 mt-0.5 shrink-0 cursor-pointer accent-amber-600"
+                  />
+                  <div className="flex-1">
+                    <span className="font-extrabold text-amber-950 text-xs sm:text-sm flex items-center gap-1.5 flex-wrap">
+                      <span>⏳ Khách chưa thanh toán tiền cọc 50% để giữ máy</span>
+                      {newContractForm.paidAmount === 0 && (
+                        <span className="bg-amber-600 text-white text-[10px] px-2 py-0.2 rounded-full font-black">
+                          ✓ Đang tích chọn
+                        </span>
+                      )}
+                    </span>
+                    <p className="text-[11px] text-amber-850 mt-1 leading-relaxed">
+                      {newContractForm.paidAmount === 0
+                        ? `⚠️ Đơn sẽ được ghi nhận là "Chưa cọc 50% giữ máy" với số tiền cần thu là ${(Math.round(calculatedTotal * 0.5)).toLocaleString()}đ.`
+                        : `✓ Khách đã thanh toán trước 50% tiền cọc (${newContractForm.paidAmount.toLocaleString()}đ).`
+                      }
+                    </p>
+                  </div>
+                </label>
               </div>
  
               {/* Special Discount & Note Grid */}
