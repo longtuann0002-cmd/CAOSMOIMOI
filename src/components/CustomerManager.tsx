@@ -32,9 +32,31 @@ export default function CustomerManager({
     email: '',
     address: '',
     idNumber: '',
+    idPhotoFront: '',
+    idPhotoBack: '',
     trustLevel: 'High' as Customer['trustLevel'],
     notes: ''
   });
+
+  // Resize image to max width 1200px, quality 0.65
+  const resizeImage = (file: File, callback: (base64: string) => void) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 1200;
+        const scale = img.width > maxW ? maxW / img.width : 1;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        callback(canvas.toDataURL('image/jpeg', 0.65));
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Calculate customer debt and financials helper
   const getCustomerFinancials = (phone: string) => {
@@ -179,6 +201,8 @@ export default function CustomerManager({
       email: '',
       address: '',
       idNumber: '',
+      idPhotoFront: '',
+      idPhotoBack: '',
       trustLevel: 'High',
       notes: ''
     });
@@ -193,6 +217,8 @@ export default function CustomerManager({
       email: c.email || '',
       address: c.address || '',
       idNumber: c.idNumber || '',
+      idPhotoFront: c.idPhotoFront || '',
+      idPhotoBack: c.idPhotoBack || '',
       trustLevel: c.trustLevel,
       notes: c.notes || ''
     });
@@ -216,6 +242,7 @@ export default function CustomerManager({
       const newCust: Customer = {
         id: `cust-${Date.now()}`,
         rentalCount: 0,
+        createdAt: new Date().toISOString(),
         ...formState
       };
       onAddCustomer(newCust);
@@ -761,6 +788,80 @@ export default function CustomerManager({
                 />
               </div>
 
+              {/* CCCD Photo Upload Section */}
+              <div className="bg-indigo-50/40 border border-indigo-150 rounded-xl p-3.5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-indigo-950 uppercase tracking-wider">
+                    📷 Ảnh CCCD / Giấy tờ tùy thân (2 mặt)
+                  </label>
+                  <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-100/60 px-2 py-0.5 rounded-full">Tùy chọn</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Mặt trước */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-extrabold text-gray-600 uppercase tracking-wider block">Mặt trước</span>
+                    <label className="relative block w-full aspect-[3/2] rounded-lg overflow-hidden border-2 border-dashed border-indigo-200 hover:border-indigo-400 cursor-pointer transition-all group bg-white">
+                      {formState.idPhotoFront ? (
+                        <img src={formState.idPhotoFront} alt="CCCD mặt trước" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full gap-1 text-indigo-300 group-hover:text-indigo-500 transition-colors">
+                          <span className="text-2xl">🪪</span>
+                          <span className="text-[10px] font-bold">Tải ảnh lên</span>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) resizeImage(file, (b64) => setFormState(prev => ({ ...prev, idPhotoFront: b64 })));
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    {formState.idPhotoFront && (
+                      <button type="button" onClick={() => setFormState(prev => ({ ...prev, idPhotoFront: '' }))}
+                        className="text-[10px] text-rose-500 hover:text-rose-700 font-bold cursor-pointer transition">
+                        ✕ Xóa ảnh
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Mặt sau */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-extrabold text-gray-600 uppercase tracking-wider block">Mặt sau</span>
+                    <label className="relative block w-full aspect-[3/2] rounded-lg overflow-hidden border-2 border-dashed border-indigo-200 hover:border-indigo-400 cursor-pointer transition-all group bg-white">
+                      {formState.idPhotoBack ? (
+                        <img src={formState.idPhotoBack} alt="CCCD mặt sau" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full gap-1 text-indigo-300 group-hover:text-indigo-500 transition-colors">
+                          <span className="text-2xl">🪪</span>
+                          <span className="text-[10px] font-bold">Tải ảnh lên</span>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) resizeImage(file, (b64) => setFormState(prev => ({ ...prev, idPhotoBack: b64 })));
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    {formState.idPhotoBack && (
+                      <button type="button" onClick={() => setFormState(prev => ({ ...prev, idPhotoBack: '' }))}
+                        className="text-[10px] text-rose-500 hover:text-rose-700 font-bold cursor-pointer transition">
+                        ✕ Xóa ảnh
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"
@@ -919,6 +1020,40 @@ export default function CustomerManager({
                       {selectedCustomerForHistory.notes && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-900 font-mono mt-2">
                           📝 {selectedCustomerForHistory.notes}
+                        </div>
+                      )}
+
+                      {/* CCCD Photo Viewer */}
+                      {(selectedCustomerForHistory.idPhotoFront || selectedCustomerForHistory.idPhotoBack) && (
+                        <div className="mt-2 space-y-1.5">
+                          <div className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">🪪 Ảnh CCCD / Giấy tờ
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {selectedCustomerForHistory.idPhotoFront && (
+                              <div className="space-y-0.5">
+                                <div className="text-[10px] font-bold text-gray-500 uppercase">Mặt trước</div>
+                                <a href={selectedCustomerForHistory.idPhotoFront} target="_blank" rel="noreferrer">
+                                  <img
+                                    src={selectedCustomerForHistory.idPhotoFront}
+                                    alt="CCCD mặt trước"
+                                    className="w-full rounded-lg border border-indigo-200 object-cover hover:opacity-90 transition cursor-zoom-in"
+                                  />
+                                </a>
+                              </div>
+                            )}
+                            {selectedCustomerForHistory.idPhotoBack && (
+                              <div className="space-y-0.5">
+                                <div className="text-[10px] font-bold text-gray-500 uppercase">Mặt sau</div>
+                                <a href={selectedCustomerForHistory.idPhotoBack} target="_blank" rel="noreferrer">
+                                  <img
+                                    src={selectedCustomerForHistory.idPhotoBack}
+                                    alt="CCCD mặt sau"
+                                    className="w-full rounded-lg border border-indigo-200 object-cover hover:opacity-90 transition cursor-zoom-in"
+                                  />
+                                </a>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1140,9 +1275,9 @@ export default function CustomerManager({
                   <button
                     type="button"
                     onClick={() => setSelectedCustomerForHistory(null)}
-                    className="bg-indigo-650 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-xl text-sm shadow-sm transition cursor-pointer"
+                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-2 rounded-xl text-sm shadow-sm transition cursor-pointer"
                   >
-                    Đóng hồ sơ
+                    ✕ Đóng hồ sơ
                   </button>
                 </div>
               </div>
