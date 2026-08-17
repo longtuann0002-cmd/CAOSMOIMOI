@@ -331,6 +331,19 @@ export default function App() {
     saveStoredData('customers', customers);
     if (isSupabaseConfigured) {
       syncToSupabase('customers', customers);
+      // Đồng bộ toàn bộ ảnh CCCD của khách hàng lên Supabase
+      const cccdMap: Record<string, { front?: string; back?: string }> = {};
+      customers.forEach(c => {
+        const front = localStorage.getItem(`cccd_${c.id}_front`);
+        const back = localStorage.getItem(`cccd_${c.id}_back`);
+        if (front || back) {
+          cccdMap[c.id] = {
+            ...(front ? { front } : {}),
+            ...(back ? { back } : {})
+          };
+        }
+      });
+      syncToSupabase('cccd_photos', cccdMap);
     }
   }, [loaded, customers]);
 
@@ -462,6 +475,19 @@ export default function App() {
           setCustomers(loadStoredData('customers', INITIAL_CUSTOMERS));
         }
 
+        // Tải ảnh CCCD từ Cloud Supabase nếu có
+        try {
+          const cloudCccd = await fetchFromSupabase('cccd_photos');
+          if (cloudCccd && typeof cloudCccd === 'object') {
+            Object.entries(cloudCccd).forEach(([custId, photos]: [string, any]) => {
+              if (photos?.front) localStorage.setItem(`cccd_${custId}_front`, photos.front);
+              if (photos?.back) localStorage.setItem(`cccd_${custId}_back`, photos.back);
+            });
+          }
+        } catch (e) {
+          console.warn('[Supabase] Failed to fetch cccd_photos', e);
+        }
+
         if (cloudExpenses !== null) {
           setExpenses(cloudExpenses);
         } else {
@@ -484,8 +510,21 @@ export default function App() {
   // Operations: BACKUP & RESTORE
   const handleExportBackup = () => {
     try {
+      // Gom toàn bộ ảnh CCCD của danh sách khách hàng vào file sao lưu
+      const cccdPhotos: Record<string, { front?: string; back?: string }> = {};
+      customers.forEach(c => {
+        const front = localStorage.getItem(`cccd_${c.id}_front`);
+        const back = localStorage.getItem(`cccd_${c.id}_back`);
+        if (front || back) {
+          cccdPhotos[c.id] = {
+            ...(front ? { front } : {}),
+            ...(back ? { back } : {})
+          };
+        }
+      });
+
       const backupData = {
-        version: "1.0",
+        version: "1.1",
         backupDate: new Date().toISOString(),
         systemDate,
         cameras,
@@ -497,7 +536,8 @@ export default function App() {
         logoSubtitle,
         logoIconType,
         logoIconColor,
-        logoBase64
+        logoBase64,
+        cccdPhotos
       };
       const jsonString = JSON.stringify(backupData, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
@@ -509,7 +549,7 @@ export default function App() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      addToast('Xuất tệp sao lưu thành công!', 'success', 'Tệp sao lưu .json đã được tạo và tải xuống thiết bị.');
+      addToast('Xuất tệp sao lưu thành công!', 'success', 'Tệp sao lưu .json (kèm ảnh CCCD) đã được tạo và tải xuống thiết bị.');
     } catch (err: any) {
       addToast('Lỗi xuất tệp sao lưu', 'error', err?.message || 'Có lỗi xảy ra khi tạo tệp sao lưu.');
     }
@@ -538,8 +578,16 @@ export default function App() {
       if (parsed.logoIconColor !== undefined) setLogoIconColor(parsed.logoIconColor);
       if (parsed.logoBase64 !== undefined) setLogoBase64(parsed.logoBase64);
 
+      // Khôi phục ảnh CCCD vào bộ nhớ máy
+      if (parsed.cccdPhotos && typeof parsed.cccdPhotos === 'object') {
+        Object.entries(parsed.cccdPhotos).forEach(([custId, photos]: [string, any]) => {
+          if (photos?.front) localStorage.setItem(`cccd_${custId}_front`, photos.front);
+          if (photos?.back) localStorage.setItem(`cccd_${custId}_back`, photos.back);
+        });
+      }
+
       setImportError('');
-      addToast('Nhập dữ liệu thành công!', 'success', 'Toàn bộ dữ liệu hệ thống đã được phục hồi từ tệp tin.');
+      addToast('Nhập dữ liệu thành công!', 'success', 'Toàn bộ dữ liệu hệ thống và ảnh CCCD đã được phục hồi từ tệp tin.');
       return true;
     } catch (err: any) {
       const errMsg = err?.message || 'Không thể đọc tệp tin. Vui lòng kiểm tra lại định dạng.';
@@ -553,6 +601,19 @@ export default function App() {
     const trimmedName = name.trim();
     const finalName = trimmedName || `Bản sao lưu nhanh #${snapshots.length + 1} (${new Date().toLocaleTimeString('vi-VN')} ${new Date().toLocaleDateString('vi-VN')})`;
     
+    // Gom ảnh CCCD cho snapshot
+    const cccdPhotos: Record<string, { front?: string; back?: string }> = {};
+    customers.forEach(c => {
+      const front = localStorage.getItem(`cccd_${c.id}_front`);
+      const back = localStorage.getItem(`cccd_${c.id}_back`);
+      if (front || back) {
+        cccdPhotos[c.id] = {
+          ...(front ? { front } : {}),
+          ...(back ? { back } : {})
+        };
+      }
+    });
+
     const newSnapshot = {
       id: `snap-${Date.now()}`,
       name: finalName,
@@ -568,7 +629,8 @@ export default function App() {
         logoSubtitle,
         logoIconType,
         logoIconColor,
-        logoBase64
+        logoBase64,
+        cccdPhotos
       }
     };
 
@@ -594,6 +656,13 @@ export default function App() {
       if (data.logoIconType !== undefined) setLogoIconType(data.logoIconType);
       if (data.logoIconColor !== undefined) setLogoIconColor(data.logoIconColor);
       if (data.logoBase64 !== undefined) setLogoBase64(data.logoBase64);
+
+      if (data.cccdPhotos && typeof data.cccdPhotos === 'object') {
+        Object.entries(data.cccdPhotos).forEach(([custId, photos]: [string, any]) => {
+          if (photos?.front) localStorage.setItem(`cccd_${custId}_front`, photos.front);
+          if (photos?.back) localStorage.setItem(`cccd_${custId}_back`, photos.back);
+        });
+      }
 
       addToast('Khôi phục thành công!', 'success', `Hệ thống đã phục hồi về trạng thái của điểm: "${snap.name}".`);
     } catch (err: any) {
