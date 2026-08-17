@@ -38,24 +38,38 @@ export default function CustomerManager({
     notes: ''
   });
 
-  // Resize image to max width 1200px, quality 0.65
+  // Resize image: max 800px wide, quality 0.45 (đủ nhìn, nhẹ ~60-100KB)
   const resizeImage = (file: File, callback: (base64: string) => void) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        const maxW = 1200;
+        const maxW = 800;
         const scale = img.width > maxW ? maxW / img.width : 1;
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
         const ctx = canvas.getContext('2d')!;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        callback(canvas.toDataURL('image/jpeg', 0.65));
+        callback(canvas.toDataURL('image/jpeg', 0.45));
       };
       img.src = e.target?.result as string;
     };
     reader.readAsDataURL(file);
+  };
+
+  // Lưu/tải ảnh CCCD riêng để tránh vượt quota localStorage khi lưu mảng customers
+  const saveIdPhoto = (custId: string, side: 'front' | 'back', base64: string) => {
+    try { localStorage.setItem(`cccd_${custId}_${side}`, base64); } catch { /* quota */ }
+  };
+  const loadIdPhoto = (custId: string, side: 'front' | 'back'): string => {
+    try { return localStorage.getItem(`cccd_${custId}_${side}`) || ''; } catch { return ''; }
+  };
+  const removeIdPhoto = (custId: string) => {
+    try {
+      localStorage.removeItem(`cccd_${custId}_front`);
+      localStorage.removeItem(`cccd_${custId}_back`);
+    } catch { /* noop */ }
   };
 
   // Calculate customer debt and financials helper
@@ -217,8 +231,9 @@ export default function CustomerManager({
       email: c.email || '',
       address: c.address || '',
       idNumber: c.idNumber || '',
-      idPhotoFront: c.idPhotoFront || '',
-      idPhotoBack: c.idPhotoBack || '',
+      // Tải ảnh từ localStorage riêng (không lưu trong mảng customers)
+      idPhotoFront: loadIdPhoto(c.id, 'front'),
+      idPhotoBack: loadIdPhoto(c.id, 'back'),
       trustLevel: c.trustLevel,
       notes: c.notes || ''
     });
@@ -234,16 +249,42 @@ export default function CustomerManager({
     }
 
     if (editingCustomer) {
+      // Lưu ảnh riêng, không đẻ trong object customer (tránh vượt quota localStorage)
+      if (formState.idPhotoFront) saveIdPhoto(editingCustomer.id, 'front', formState.idPhotoFront);
+      else removeIdPhoto(editingCustomer.id);
+      if (formState.idPhotoBack) saveIdPhoto(editingCustomer.id, 'back', formState.idPhotoBack);
+
       onUpdateCustomer({
         ...editingCustomer,
-        ...formState
+        name: formState.name,
+        phone: formState.phone,
+        email: formState.email,
+        address: formState.address,
+        idNumber: formState.idNumber,
+        trustLevel: formState.trustLevel,
+        notes: formState.notes,
+        // flag có ảnh (không lưu base64 trong đây)
+        idPhotoFront: formState.idPhotoFront ? '__has_photo__' : '',
+        idPhotoBack: formState.idPhotoBack ? '__has_photo__' : '',
       });
     } else {
+      const newId = `cust-${Date.now()}`;
+      if (formState.idPhotoFront) saveIdPhoto(newId, 'front', formState.idPhotoFront);
+      if (formState.idPhotoBack) saveIdPhoto(newId, 'back', formState.idPhotoBack);
+
       const newCust: Customer = {
-        id: `cust-${Date.now()}`,
+        id: newId,
         rentalCount: 0,
         createdAt: new Date().toISOString(),
-        ...formState
+        name: formState.name,
+        phone: formState.phone,
+        email: formState.email,
+        address: formState.address,
+        idNumber: formState.idNumber,
+        trustLevel: formState.trustLevel,
+        notes: formState.notes,
+        idPhotoFront: formState.idPhotoFront ? '__has_photo__' : '',
+        idPhotoBack: formState.idPhotoBack ? '__has_photo__' : '',
       };
       onAddCustomer(newCust);
     }
@@ -1023,39 +1064,45 @@ export default function CustomerManager({
                         </div>
                       )}
 
-                      {/* CCCD Photo Viewer */}
-                      {(selectedCustomerForHistory.idPhotoFront || selectedCustomerForHistory.idPhotoBack) && (
-                        <div className="mt-2 space-y-1.5">
-                          <div className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">🪪 Ảnh CCCD / Giấy tờ
+                      {/* CCCD Photo Viewer — load từ localStorage riêng */}
+                      {(() => {
+                        const photoFront = loadIdPhoto(selectedCustomerForHistory.id, 'front');
+                        const photoBack  = loadIdPhoto(selectedCustomerForHistory.id, 'back');
+                        if (!photoFront && !photoBack) return null;
+                        return (
+                          <div className="mt-2 space-y-1.5">
+                            <div className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
+                              🪪 Ảnh CCCD / Giấy tờ
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {photoFront && (
+                                <div className="space-y-0.5">
+                                  <div className="text-[10px] font-bold text-gray-500 uppercase">Mặt trước</div>
+                                  <a href={photoFront} target="_blank" rel="noreferrer">
+                                    <img
+                                      src={photoFront}
+                                      alt="CCCD mặt trước"
+                                      className="w-full rounded-lg border border-indigo-200 object-cover hover:opacity-90 transition cursor-zoom-in"
+                                    />
+                                  </a>
+                                </div>
+                              )}
+                              {photoBack && (
+                                <div className="space-y-0.5">
+                                  <div className="text-[10px] font-bold text-gray-500 uppercase">Mặt sau</div>
+                                  <a href={photoBack} target="_blank" rel="noreferrer">
+                                    <img
+                                      src={photoBack}
+                                      alt="CCCD mặt sau"
+                                      className="w-full rounded-lg border border-indigo-200 object-cover hover:opacity-90 transition cursor-zoom-in"
+                                    />
+                                  </a>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {selectedCustomerForHistory.idPhotoFront && (
-                              <div className="space-y-0.5">
-                                <div className="text-[10px] font-bold text-gray-500 uppercase">Mặt trước</div>
-                                <a href={selectedCustomerForHistory.idPhotoFront} target="_blank" rel="noreferrer">
-                                  <img
-                                    src={selectedCustomerForHistory.idPhotoFront}
-                                    alt="CCCD mặt trước"
-                                    className="w-full rounded-lg border border-indigo-200 object-cover hover:opacity-90 transition cursor-zoom-in"
-                                  />
-                                </a>
-                              </div>
-                            )}
-                            {selectedCustomerForHistory.idPhotoBack && (
-                              <div className="space-y-0.5">
-                                <div className="text-[10px] font-bold text-gray-500 uppercase">Mặt sau</div>
-                                <a href={selectedCustomerForHistory.idPhotoBack} target="_blank" rel="noreferrer">
-                                  <img
-                                    src={selectedCustomerForHistory.idPhotoBack}
-                                    alt="CCCD mặt sau"
-                                    className="w-full rounded-lg border border-indigo-200 object-cover hover:opacity-90 transition cursor-zoom-in"
-                                  />
-                                </a>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
 
