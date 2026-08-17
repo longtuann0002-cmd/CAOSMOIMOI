@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Customer, RentalContract } from '../types';
 import { Search, Plus, Trash2, Edit2, Shield, User, Heart, AlertTriangle, Phone, Globe, MapPin, ChevronLeft, ChevronRight, FileSpreadsheet, Eye, Calendar, DollarSign, FileText, CheckCircle2, Clock, X, Info } from 'lucide-react';
 
@@ -518,15 +519,15 @@ export default function CustomerManager({
                   )}
                 </div>
 
-                {/* Rental history — hidden on mobile to reduce scroll, visible on sm+ */}
-                <div className="hidden sm:block pt-2 border-t border-dashed border-gray-150 space-y-1.5">
-                  <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">
+                {/* Rental history — visible on both mobile and desktop */}
+                <div className="pt-1.5 sm:pt-2 border-t border-dashed border-gray-150 space-y-1 sm:space-y-1.5">
+                  <span className="text-[9px] sm:text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">
                     Đơn thuê gần đây ({sortedContracts.length})
                   </span>
                   {sortedContracts.length === 0 ? (
-                    <p className="text-[11px] text-gray-400 italic">Chưa phát sinh đơn thuê</p>
+                    <p className="text-[10px] sm:text-[11px] text-gray-400 italic">Chưa có đơn thuê</p>
                   ) : (
-                    <div className="space-y-1.5 max-h-[142px] overflow-y-auto pr-0.5 scrollbar-thin">
+                    <div className="space-y-1 sm:space-y-1.5 max-h-[140px] overflow-y-auto pr-0.5 scrollbar-thin">
                       {[...sortedContracts].reverse().slice(0, 2).map((contract) => {
                         const origIndex = sortedContracts.findIndex(c => c.id === contract.id);
                         const nthRental = origIndex !== -1 ? origIndex + 1 : sortedContracts.length;
@@ -540,22 +541,22 @@ export default function CustomerManager({
                           <div 
                             key={contract.id} 
                             onClick={() => setSelectedCustomerForHistory(cust)}
-                            className="bg-gray-50/75 border border-gray-200/60 rounded-lg p-2 hover:border-orange-200 hover:bg-orange-50/10 cursor-pointer transition text-[11px] space-y-1 group"
+                            className="bg-gray-50/75 border border-gray-200/60 rounded-lg p-1.5 sm:p-2 hover:border-orange-200 hover:bg-orange-50/10 cursor-pointer transition text-[10px] sm:text-[11px] space-y-0.5 sm:space-y-1 group"
                           >
                             <div className="flex justify-between items-center gap-1">
-                              <span className="font-mono font-extrabold text-orange-600 truncate group-hover:text-orange-700">{contract.contractCode}</span>
-                              <span className={`px-1 rounded text-[8.5px] font-bold border ${statusConfig.bg}`}>{statusConfig.label}</span>
+                              <span className="font-mono font-extrabold text-orange-600 truncate group-hover:text-orange-700 text-[10px] sm:text-xs">{contract.contractCode}</span>
+                              <span className={`px-1 rounded text-[8px] sm:text-[8.5px] font-bold border shrink-0 ${statusConfig.bg}`}>{statusConfig.label}</span>
                             </div>
-                            <div className="flex justify-between items-center text-xs">
+                            <div className="flex justify-between items-center text-[10px] sm:text-xs">
                               <span className="font-bold text-gray-750">Lần {nthRental}</span>
-                              <span className="font-mono text-gray-500 text-[10px]">{contract.totalPrice.toLocaleString()}đ</span>
+                              <span className="font-mono text-gray-500 text-[9.5px] sm:text-[10px]">{contract.totalPrice.toLocaleString()}đ</span>
                             </div>
                           </div>
                         );
                       })}
                       {sortedContracts.length > 2 && (
                         <button type="button" onClick={() => setSelectedCustomerForHistory(cust)}
-                          className="text-[10px] font-bold text-indigo-650 hover:text-indigo-800 transition block text-center w-full pt-1">
+                          className="text-[9.5px] sm:text-[10px] font-bold text-indigo-650 hover:text-indigo-800 transition block text-center w-full pt-0.5">
                           Xem thêm {sortedContracts.length - 2} đơn...
                         </button>
                       )}
@@ -655,9 +656,9 @@ export default function CustomerManager({
       )}
 
       {/* Customer Add/Edit Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden self-center border border-gray-100 animate-scale-up">
+      {showAddModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden self-center border border-gray-100 animate-scale-up">
             <div className="bg-orange-600 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <User className="w-5 h-5" /> {editingCustomer ? 'Sửa Hồ Sơ Khách Hàng' : 'Tạo Hồ Sơ Khách Mới'}
@@ -777,13 +778,14 @@ export default function CustomerManager({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex items-center justify-center p-4 z-55">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden animate-scale-up border border-gray-100 p-6 space-y-4">
+      {deleteConfirmId && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-scale-up border border-gray-100 p-6 space-y-4">
             <div className="flex items-center gap-3 text-red-655">
               <span className="p-2 bg-red-50 rounded-xl">
                 <Trash2 className="w-6 h-6 text-red-600" />
@@ -817,328 +819,338 @@ export default function CustomerManager({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Customer detailed order history modal */}
-      {selectedCustomerForHistory && (() => {
-        const sortedContracts = (contracts || [])
-          .filter(contract => 
-            contract.customerPhone === selectedCustomerForHistory.phone
-          )
-          .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      {selectedCustomerForHistory && typeof document !== 'undefined' && createPortal(
+        (() => {
+          const sortedContracts = (contracts || [])
+            .filter(contract => 
+              contract.customerPhone === selectedCustomerForHistory.phone
+            )
+            .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
-        // Reverse to show newest orders first
-        const displayContracts = [...sortedContracts].reverse();
+          // Reverse to show newest orders first
+          const displayContracts = [...sortedContracts].reverse();
 
-        return (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-50 animate-fade-in">
-            <div className="bg-slate-50 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col border border-gray-150 animate-scale-up">
-              {/* Modal Header */}
-              <div className="bg-indigo-600 text-white px-4 sm:px-5 py-3 sm:py-4 flex justify-between items-center shrink-0">
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <span className="p-1.5 bg-indigo-500/30 rounded-lg shrink-0">
-                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                  </span>
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-sm sm:text-lg truncate">Hồ Sơ & Lịch Sử Đơn Thuê Máy</h3>
-                    <p className="text-[10px] sm:text-xs text-indigo-100 truncate">
-                      Khách hàng: <span className="font-extrabold text-white">{selectedCustomerForHistory.name}</span>
-                    </p>
+          return (
+            <div className="fixed inset-0 bg-black/65 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] animate-fade-in">
+              <div className="bg-slate-50 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col border border-gray-150 animate-scale-up">
+                {/* Modal Header */}
+                <div className="bg-indigo-600 text-white px-4 sm:px-5 py-3 sm:py-4 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <span className="p-1.5 bg-indigo-500/30 rounded-lg shrink-0">
+                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-sm sm:text-lg truncate">Hồ Sơ & Lịch Sử Đơn Thuê Máy</h3>
+                      <p className="text-[10px] sm:text-xs text-indigo-100 truncate">
+                        Khách hàng: <span className="font-extrabold text-white">{selectedCustomerForHistory.name}</span>
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCustomerForHistory(null)}
+                    className="text-white hover:text-gray-200 font-extrabold text-2xl p-1 hover:bg-indigo-700/50 rounded-lg transition shrink-0 cursor-pointer"
+                  >
+                    <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedCustomerForHistory(null)}
-                  className="text-white hover:text-gray-200 font-extrabold text-2xl p-1 hover:bg-indigo-700/50 rounded-lg transition shrink-0 cursor-pointer"
-                >
-                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
-                </button>
-              </div>
 
-              {/* Modal Body */}
-              <div className="p-3 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1 select-none">
-                {/* Profile detail section */}
-                <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 shadow-3xs grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-extrabold text-slate-404 uppercase tracking-widest text-slate-400">Thông tin khách hàng</h4>
-                    <div className="space-y-1.5 text-sm">
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Phone className="w-4 h-4 text-gray-400" />
-                        <span className="font-mono font-bold">{selectedCustomerForHistory.phone}</span>
+                {/* Modal Body */}
+                <div className="p-3 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1 select-none">
+                  {/* Profile detail section */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 shadow-3xs grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-extrabold text-slate-404 uppercase tracking-widest text-slate-400">Thông tin khách hàng</h4>
+                      <div className="space-y-1.5 text-sm">
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          <span className="font-mono font-bold">{selectedCustomerForHistory.phone}</span>
+                        </div>
+                        {selectedCustomerForHistory.idNumber && (
+                          <div className="flex items-center gap-2 text-gray-750 font-mono">
+                            <span className="font-sans text-xs font-bold text-gray-400">CMND/CCCD:</span>
+                            <span>{selectedCustomerForHistory.idNumber}</span>
+                          </div>
+                        )}
+                        {selectedCustomerForHistory.email && (
+                          <div className="flex items-center gap-2 text-gray-700 truncate">
+                            <Globe className="w-4 h-4 text-gray-400" />
+                            <a href={selectedCustomerForHistory.email.startsWith('http') ? selectedCustomerForHistory.email : `https://${selectedCustomerForHistory.email}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline truncate">
+                              {selectedCustomerForHistory.email}
+                            </a>
+                          </div>
+                        )}
+                        {selectedCustomerForHistory.address && (
+                          <div className="text-xs text-gray-500 flex items-start gap-1.5 leading-tight">
+                            <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
+                            <span>{selectedCustomerForHistory.address}</span>
+                          </div>
+                        )}
                       </div>
-                      {selectedCustomerForHistory.idNumber && (
-                        <div className="flex items-center gap-2 text-gray-750 font-mono">
-                          <span className="font-sans text-xs font-bold text-gray-400">CMND/CCCD:</span>
-                          <span>{selectedCustomerForHistory.idNumber}</span>
+                    </div>
+
+                    <div className="space-y-2 border-t md:border-t-0 md:border-l border-gray-100 pt-3 md:pt-0 md:pl-4 flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-xs font-extrabold text-slate-404 uppercase tracking-widest text-slate-400">Xếp hạng & Thống kê</h4>
+                        <div className="flex items-center gap-2.5 mt-1.5">
+                          <span className={`inline-flex items-center gap-1.5 text-xs font-extrabold px-2.5 py-0.5 rounded-full border ${
+                            selectedCustomerForHistory.trustLevel === 'High' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                            selectedCustomerForHistory.trustLevel === 'Medium' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                            'bg-rose-50 text-rose-700 border-rose-100'
+                          }`}>
+                            <Shield className="w-3.5 h-3.5" />
+                            {selectedCustomerForHistory.trustLevel === 'High' ? 'Tin cậy cao' :
+                             selectedCustomerForHistory.trustLevel === 'Medium' ? 'Mức độ tin cậy vừa' :
+                             'Mức độ rủi ro cao'}
+                          </span>
+
+                          <span className="text-xs font-black text-gray-800 bg-gray-100 border border-gray-200 px-2.5 py-0.5 rounded-full">
+                            Tổng cộng {sortedContracts.length} đơn hàng
+                          </span>
                         </div>
-                      )}
-                      {selectedCustomerForHistory.email && (
-                        <div className="flex items-center gap-2 text-gray-700 truncate">
-                          <Globe className="w-4 h-4 text-gray-400" />
-                          <a href={selectedCustomerForHistory.email.startsWith('http') ? selectedCustomerForHistory.email : `https://${selectedCustomerForHistory.email}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline truncate">
-                            {selectedCustomerForHistory.email}
-                          </a>
-                        </div>
-                      )}
-                      {selectedCustomerForHistory.address && (
-                        <div className="text-xs text-gray-500 flex items-start gap-1.5 leading-tight">
-                          <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
-                          <span>{selectedCustomerForHistory.address}</span>
+                      </div>
+
+                      {/* Notes Box */}
+                      {selectedCustomerForHistory.notes && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-900 font-mono mt-2">
+                          📝 {selectedCustomerForHistory.notes}
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="space-y-2 border-t md:border-t-0 md:border-l border-gray-100 pt-3 md:pt-0 md:pl-4 flex flex-col justify-between">
-                    <div>
-                      <h4 className="text-xs font-extrabold text-slate-404 uppercase tracking-widest text-slate-400">Xếp hạng & Thống kê</h4>
-                      <div className="flex items-center gap-2.5 mt-1.5">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-extrabold px-2.5 py-0.5 rounded-full border ${
-                          selectedCustomerForHistory.trustLevel === 'High' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                          selectedCustomerForHistory.trustLevel === 'Medium' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                          'bg-rose-50 text-rose-700 border-rose-100'
+                  {/* Financial Overview Metrics Summary */}
+                  {(() => {
+                    const totalCustomerSpend = sortedContracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+                    const totalCustomerOriginal = sortedContracts.reduce((sum, c) => sum + (c.totalPrice || 0), 0);
+                    const pendingDepositCount = sortedContracts.filter(c => c.status === 'Pending' && ((c.paidAmount || 0) < Math.round((c.totalPrice || 0) * 0.5))).length;
+                    const pendingDepositAmount = sortedContracts
+                      .filter(c => c.status === 'Pending' && ((c.paidAmount || 0) < Math.round((c.totalPrice || 0) * 0.5)))
+                      .reduce((sum, c) => sum + Math.max(0, Math.round((c.totalPrice || 0) * 0.5) - (c.paidAmount || 0)), 0);
+                    const totalCustomerDebt = sortedContracts
+                      .filter(c => c.status !== 'Cancelled')
+                      .reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) - (c.paidAmount || 0)), 0);
+
+                    return (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <div className="bg-white border border-gray-200 rounded-xl p-2.5 sm:p-3 shadow-3xs">
+                          <span className="text-[10px] uppercase font-extrabold text-gray-400 block">Tổng giá trị đơn</span>
+                          <span className="font-mono text-sm sm:text-base font-black text-gray-900 block mt-0.5">
+                            {totalCustomerOriginal.toLocaleString()}đ
+                          </span>
+                        </div>
+
+                        <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-2.5 sm:p-3 shadow-3xs">
+                          <span className="text-[10px] uppercase font-extrabold text-emerald-800 block">Thực tế đã thu</span>
+                          <span className="font-mono text-sm sm:text-base font-black text-emerald-700 block mt-0.5">
+                            {totalCustomerSpend.toLocaleString()}đ
+                          </span>
+                        </div>
+
+                        <div className={`rounded-xl p-2.5 sm:p-3 shadow-3xs border ${
+                          pendingDepositCount > 0
+                            ? 'bg-amber-50 border-amber-200'
+                            : 'bg-white border-gray-200'
                         }`}>
-                          <Shield className="w-3 h-3" />
-                          Mức tín nhiệm: {selectedCustomerForHistory.trustLevel === 'High' ? 'Cao' : selectedCustomerForHistory.trustLevel === 'Medium' ? 'Trung bình' : 'Nguy cơ'}
-                        </span>
-                        <span className="text-xs font-bold text-indigo-750 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-full">
-                          Tổng cộng {sortedContracts.length} đơn hàng
-                        </span>
+                          <span className={`text-[10px] uppercase font-extrabold block ${
+                            pendingDepositCount > 0 ? 'text-amber-800' : 'text-gray-400'
+                          }`}>
+                            Chờ khách cọc 50%
+                          </span>
+                          <span className={`font-mono text-sm sm:text-base font-black block mt-0.5 ${
+                            pendingDepositCount > 0 ? 'text-amber-700' : 'text-gray-600'
+                          }`}>
+                            {pendingDepositAmount > 0 ? `+${pendingDepositAmount.toLocaleString()}đ` : '0đ (Không có)'}
+                          </span>
+                        </div>
+
+                        <div className={`rounded-xl p-2.5 sm:p-3 shadow-3xs border ${
+                          totalCustomerDebt > 0
+                            ? 'bg-rose-50 border-rose-200'
+                            : 'bg-emerald-50/40 border-gray-200'
+                        }`}>
+                          <span className={`text-[10px] uppercase font-extrabold block ${
+                            totalCustomerDebt > 0 ? 'text-rose-800' : 'text-gray-400'
+                          }`}>
+                            Dư nợ chưa thu
+                          </span>
+                          <span className={`font-mono text-sm sm:text-base font-black block mt-0.5 ${
+                            totalCustomerDebt > 0 ? 'text-rose-700' : 'text-emerald-700'
+                          }`}>
+                            {totalCustomerDebt > 0 ? `+${totalCustomerDebt.toLocaleString()}đ` : '0đ (Đủ)'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    {selectedCustomerForHistory.notes && (
-                      <div className="bg-amber-50 p-2.5 rounded-lg border border-amber-100 text-xs text-amber-900 font-mono mt-2 italic leading-normal">
-                        📝 Lưu ý: {selectedCustomerForHistory.notes}
+                    );
+                  })()}
+
+                  {/* List of rental contracts */}
+                  <div className="space-y-2.5">
+                    <h4 className="font-black text-gray-900 text-sm flex items-center justify-between">
+                      <span>DANH SÁCH ĐƠN THUÊ MÁY (THỜI GIAN LÙI DẦN)</span>
+                      <span className="text-xs font-mono font-normal text-gray-400">
+                        Tổng {displayContracts.length} lần thuê
+                      </span>
+                    </h4>
+
+                    {displayContracts.length === 0 ? (
+                      <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-400 font-medium italic text-xs">
+                        Khách hàng này chưa phát sinh hợp đồng thuê máy nào trong hệ thống.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {displayContracts.map((contract) => {
+                          const origIndex = sortedContracts.findIndex(c => c.id === contract.id);
+                          const nthRental = origIndex !== -1 ? origIndex + 1 : sortedContracts.length;
+                          const calculatedDays = (() => {
+                            if (!contract.startDate || !contract.endDate) return 1;
+                            const diffTime = Math.abs(new Date(contract.endDate).getTime() - new Date(contract.startDate).getTime());
+                            return Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
+                          })();
+
+                          const remainingDebt = Math.max(0, (contract.totalPrice || 0) - (contract.paidAmount || 0));
+
+                          return (
+                            <div 
+                              key={contract.id}
+                              className={`bg-white border rounded-xl p-3.5 sm:p-4 space-y-3 shadow-3xs hover:border-indigo-200 transition ${
+                                contract.status === 'Completed' ? 'border-gray-200' :
+                                contract.status === 'Active' ? 'border-indigo-300 ring-1 ring-indigo-200' :
+                                contract.status === 'Overdue' ? 'border-rose-300 ring-1 ring-rose-200' :
+                                'border-amber-200'
+                              }`}
+                            >
+                              {/* Order top bar */}
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-black text-sm bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-0.5 rounded-lg">
+                                    {contract.contractCode}
+                                  </span>
+                                  <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-lg">
+                                    ★ Lần thuê thứ {nthRental}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                                    contract.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                                    contract.status === 'Active' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                    contract.status === 'Overdue' ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse' :
+                                    contract.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                    'bg-gray-100 text-gray-500 border-gray-200'
+                                  }`}>
+                                    {contract.status === 'Completed' ? '● Hoàn thành' :
+                                     contract.status === 'Active' ? '● Đang thuê máy' :
+                                     contract.status === 'Overdue' ? '▲ Quá hạn trả' :
+                                     contract.status === 'Pending' ? '⏳ Chờ nhận máy' : '✕ Đã hủy'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Dates & duration */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                <div className="bg-slate-50 p-2 rounded-lg border border-gray-150">
+                                  <div className="text-gray-400 font-bold text-[10px] uppercase">Thời hạn thuê máy:</div>
+                                  <div className="font-mono text-gray-800 font-bold mt-0.5">
+                                    📅 {new Date(contract.startDate).toLocaleDateString('vi-VN')} {contract.is6Hours ? '' : `đến ${new Date(contract.endDate).toLocaleDateString('vi-VN')}`}
+                                  </div>
+                                </div>
+                                <div className="bg-slate-50 p-2 rounded-lg border border-gray-150">
+                                  <div className="text-gray-400 font-bold text-[10px] uppercase">Hình thức thuê:</div>
+                                  <div className="font-bold text-gray-800 mt-0.5">
+                                    {contract.is6Hours 
+                                      ? `Gói ngắn hạn 6 giờ (Trả trước ${contract.returnTime || '18:00'})` 
+                                      : `${calculatedDays} ngày (${calculatedDays} đêm)`
+                                    }
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Contract items */}
+                              <div className="space-y-1.5">
+                                <div className="text-xs font-extrabold text-gray-400 uppercase tracking-wider">Thiết bị trong đơn hàng:</div>
+                                <div className="border border-gray-150 rounded-lg overflow-hidden divide-y divide-gray-150">
+                                  {contract.items.map((item, id) => (
+                                    <div key={id} className="flex justify-between items-center p-2 text-xs hover:bg-slate-50/50">
+                                      <div className="font-extrabold text-gray-800 flex items-center gap-1.5 font-sans">
+                                        <span className="text-orange-500">📷</span>
+                                        <span>{item.cameraName}</span>
+                                      </div>
+                                      <div className="text-right font-mono text-gray-600 font-medium">
+                                        ({item.quantity} chiếc) • {Math.round(item.dailyRate).toLocaleString()}đ {contract.is6Hours ? '/gói 6h' : '/ngày'}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Financial values and deposit details */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                                <div className="bg-slate-50 border border-gray-200 p-2 rounded-xl">
+                                  <div className="text-[10px] text-gray-400 font-extrabold uppercase">Tổng giá trị</div>
+                                  <div className="font-mono text-xs sm:text-sm text-gray-800 font-extrabold">
+                                    {contract.totalPrice.toLocaleString()}đ
+                                  </div>
+                                </div>
+                                <div className="bg-emerald-50/40 border border-emerald-100 p-2 rounded-xl">
+                                  <div className="text-[10px] text-emerald-600 font-extrabold uppercase">Đã thanh toán</div>
+                                  <div className="font-mono text-xs sm:text-sm text-emerald-700 font-extrabold">
+                                    {contract.paidAmount.toLocaleString()}đ
+                                  </div>
+                                </div>
+                                <div className={`p-2 rounded-xl border ${
+                                  remainingDebt > 0 && contract.status !== 'Cancelled'
+                                    ? 'bg-rose-50 border-rose-200'
+                                    : 'bg-emerald-50/20 border-gray-200'
+                                }`}>
+                                  <div className={`text-[10px] font-extrabold uppercase ${
+                                    remainingDebt > 0 && contract.status !== 'Cancelled' ? 'text-rose-700' : 'text-gray-400'
+                                  }`}>
+                                    Dư nợ chưa thu
+                                  </div>
+                                  <div className={`font-mono text-xs sm:text-sm font-black ${
+                                    remainingDebt > 0 && contract.status !== 'Cancelled' ? 'text-rose-700' : 'text-emerald-700'
+                                  }`}>
+                                    {remainingDebt > 0 && contract.status !== 'Cancelled' ? `+${remainingDebt.toLocaleString()}đ` : '0đ (Đủ)'}
+                                  </div>
+                                </div>
+                                <div className="bg-indigo-50/40 border border-indigo-100 p-2 rounded-xl">
+                                  <div className="text-[10px] text-indigo-605 font-extrabold uppercase text-indigo-700">Thế chấp</div>
+                                  <div className="font-mono text-[11px] text-indigo-700 font-bold truncate" title={contract.customerDocNote || `${contract.customerDocType === 'CCCD_And_1M' ? 'Giữ CCCD + 1 triệu' : contract.customerDocType}: ${contract.depositAmount.toLocaleString()}đ`}>
+                                    {contract.customerDocNote || `${contract.customerDocType === 'CCCD_And_1M' ? 'CCCD + 1M' : contract.customerDocType}`}
+                                  </div>
+                                </div>
+                              </div>
+
+                              </div>
+                            );
+                          })}
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Financial Debt & Payment Summary for this customer */}
-                {(() => {
-                  const custFin = getCustomerFinancials(selectedCustomerForHistory.phone);
-                  return (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-white border border-gray-200 rounded-xl p-3 shadow-3xs">
-                      <div className="bg-slate-50 border border-gray-150 p-2.5 rounded-lg">
-                        <span className="text-[9.5px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-wider block truncate">Tổng Đơn Hàng</span>
-                        <span className="font-mono text-xs sm:text-base font-black text-gray-900 block truncate mt-0.5">
-                          {custFin.totalExpected.toLocaleString()}đ
-                        </span>
-                      </div>
-
-                      <div className="bg-emerald-50/70 border border-emerald-200 p-2.5 rounded-lg">
-                        <span className="text-[9.5px] sm:text-[10px] font-bold text-emerald-800 uppercase tracking-wider block truncate">Thực Tế Đã Thu</span>
-                        <span className="font-mono text-xs sm:text-base font-black text-emerald-700 block truncate mt-0.5">
-                          {custFin.totalSpent.toLocaleString()}đ
-                        </span>
-                      </div>
-
-                      <div className={`p-2.5 rounded-lg border ${
-                        custFin.pendingDepositCount > 0 
-                          ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-400/30' 
-                          : 'bg-slate-50 border-gray-150'
-                      }`}>
-                        <span className={`text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-wider block truncate ${
-                          custFin.pendingDepositCount > 0 ? 'text-amber-900' : 'text-gray-400'
-                        }`}>
-                          Chờ Khách Cọc
-                        </span>
-                        <span className={`font-mono text-xs sm:text-base font-black block truncate mt-0.5 ${
-                          custFin.pendingDepositCount > 0 ? 'text-amber-700' : 'text-gray-400'
-                        }`}>
-                          {custFin.pendingDepositCount > 0 ? `+${custFin.pendingDepositAmount.toLocaleString()}đ` : '0đ (Không có)'}
-                        </span>
-                      </div>
-
-                      <div className={`p-2.5 rounded-lg border ${
-                        custFin.totalDebt > 0 
-                          ? 'bg-rose-50 border-rose-300 ring-1 ring-rose-400/30' 
-                          : 'bg-emerald-50/40 border-emerald-150'
-                      }`}>
-                        <div className="flex items-center justify-between">
-                          <span className={`text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-wider block truncate ${
-                            custFin.totalDebt > 0 ? 'text-rose-800' : 'text-emerald-800'
-                          }`}>
-                            Dư Nợ Chưa Thu
-                          </span>
-                        </div>
-                        <span className={`font-mono text-xs sm:text-base font-black block truncate mt-0.5 ${
-                          custFin.totalDebt > 0 ? 'text-rose-700' : 'text-emerald-700'
-                        }`}>
-                          {custFin.totalDebt > 0 ? `+${custFin.totalDebt.toLocaleString()}đ` : '0đ (Đủ)'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Orders section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5 tracking-wider uppercase">
-                      Danh sách đơn thuê máy (Thời gian lùi dần)
-                    </h3>
-                  </div>
-
-                  {displayContracts.length === 0 ? (
-                    <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-400 italic">
-                      Chưa phát sinh bất kỳ đơn thuê nào trên hệ thống.
-                    </div>
-                  ) : (
-                    <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-                      {displayContracts.map((contract) => {
-                        const origIndex = sortedContracts.findIndex(c => c.id === contract.id);
-                        const sequenceNum = origIndex !== -1 ? origIndex + 1 : sortedContracts.length;
-                        
-                        const diffTime = Math.abs(new Date(contract.endDate).getTime() - new Date(contract.startDate).getTime());
-                        const calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
-                        const remainingDebt = Math.max(0, contract.totalPrice - contract.paidAmount);
-
-                        const statusStyles = 
-                          contract.status === 'Completed' ? { bg: 'bg-green-500/10 text-green-700 border-green-200', label: 'Hoàn thành' } :
-                          contract.status === 'Active' ? { bg: 'bg-blue-500/10 text-blue-700 border-blue-200 font-bold', label: 'Đang thuê' } :
-                          contract.status === 'Overdue' ? { bg: 'bg-rose-500/10 text-rose-700 border-rose-200 animate-pulse', label: 'Quá hạn trả' } :
-                          contract.status === 'Pending' ? { bg: 'bg-amber-500/10 text-amber-700 border-amber-200', label: 'Chờ nhận máy' } :
-                          { bg: 'bg-gray-500/10 text-gray-500 border-gray-200', label: 'Đã hủy đơn' };
-
-                        return (
-                          <div 
-                            key={contract.id} 
-                            className={`bg-white border rounded-xl p-4 shadow-2xs hover:shadow-xs transition-all space-y-3 ${
-                              remainingDebt > 0 && contract.status !== 'Cancelled'
-                                ? 'border-rose-300 ring-1 ring-rose-300/40' 
-                                : 'border-gray-200 hover:border-indigo-300'
-                            }`}
-                          >
-                            {/* Contract Card Header */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="bg-indigo-600 text-white font-extrabold text-xs px-2.5 py-1 rounded-lg">
-                                  Hợp đồng {contract.contractCode}
-                                </span>
-                                <span className="bg-orange-50 text-orange-700 border border-orange-200 text-[11px] font-bold px-2.5 py-0.5 rounded-lg flex items-center gap-1">
-                                  ⭐ Lần thuê thứ {sequenceNum}
-                                </span>
-                                {remainingDebt > 0 && contract.status !== 'Cancelled' && (
-                                  <span className="bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1">
-                                    ⚠️ Còn nợ {remainingDebt.toLocaleString()}đ
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${statusStyles.bg}`}>
-                                  ● {statusStyles.label}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Contract Time Parameter */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-50 p-2.5 rounded-lg border border-gray-150">
-                              <div className="space-y-1">
-                                <div className="text-gray-400 font-bold">Thời hạn thuê máy:</div>
-                                <div className="text-gray-800 font-medium flex items-center gap-1">
-                                  <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                                  <span>{new Date(contract.startDate).toLocaleDateString('vi-VN')}</span>
-                                  <span className="text-gray-400 font-light">đến</span>
-                                  <span>{new Date(contract.endDate).toLocaleDateString('vi-VN')}</span>
-                                </div>
-                              </div>
-                              <div className="space-y-1 text-left sm:text-right">
-                                <div className="text-gray-400 font-bold">Hình thức thuê:</div>
-                                <div className="text-gray-800 font-extrabold text-sm text-indigo-750">
-                                  {contract.is6Hours 
-                                    ? `Gói ngắn hạn 6 giờ (Trả trước ${contract.returnTime || '18:00'})` 
-                                    : `${calculatedDays} ngày (${calculatedDays} đêm)`
-                                  }
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Contract items */}
-                            <div className="space-y-1.5">
-                              <div className="text-xs font-extrabold text-gray-400 uppercase tracking-wider">Thiết bị trong đơn hàng:</div>
-                              <div className="border border-gray-150 rounded-lg overflow-hidden divide-y divide-gray-150">
-                                {contract.items.map((item, id) => (
-                                  <div key={id} className="flex justify-between items-center p-2 text-xs hover:bg-slate-50/50">
-                                    <div className="font-extrabold text-gray-800 flex items-center gap-1.5 font-sans">
-                                      <span className="text-orange-500">📷</span>
-                                      <span>{item.cameraName}</span>
-                                    </div>
-                                    <div className="text-right font-mono text-gray-600 font-medium">
-                                      ({item.quantity} chiếc) • {Math.round(item.dailyRate).toLocaleString()}đ {contract.is6Hours ? '/gói 6h' : '/ngày'}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Financial values and deposit details */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                              <div className="bg-slate-50 border border-gray-200 p-2 rounded-xl">
-                                <div className="text-[10px] text-gray-400 font-extrabold uppercase">Tổng giá trị</div>
-                                <div className="font-mono text-xs sm:text-sm text-gray-800 font-extrabold">
-                                  {contract.totalPrice.toLocaleString()}đ
-                                </div>
-                              </div>
-                              <div className="bg-emerald-50/40 border border-emerald-100 p-2 rounded-xl">
-                                <div className="text-[10px] text-emerald-600 font-extrabold uppercase">Đã thanh toán</div>
-                                <div className="font-mono text-xs sm:text-sm text-emerald-700 font-extrabold">
-                                  {contract.paidAmount.toLocaleString()}đ
-                                </div>
-                              </div>
-                              <div className={`p-2 rounded-xl border ${
-                                remainingDebt > 0 && contract.status !== 'Cancelled'
-                                  ? 'bg-rose-50 border-rose-200'
-                                  : 'bg-emerald-50/20 border-gray-200'
-                              }`}>
-                                <div className={`text-[10px] font-extrabold uppercase ${
-                                  remainingDebt > 0 && contract.status !== 'Cancelled' ? 'text-rose-700' : 'text-gray-400'
-                                }`}>
-                                  Dư nợ chưa thu
-                                </div>
-                                <div className={`font-mono text-xs sm:text-sm font-black ${
-                                  remainingDebt > 0 && contract.status !== 'Cancelled' ? 'text-rose-700' : 'text-emerald-700'
-                                }`}>
-                                  {remainingDebt > 0 && contract.status !== 'Cancelled' ? `+${remainingDebt.toLocaleString()}đ` : '0đ (Đủ)'}
-                                </div>
-                              </div>
-                              <div className="bg-indigo-50/40 border border-indigo-100 p-2 rounded-xl">
-                                <div className="text-[10px] text-indigo-605 font-extrabold uppercase text-indigo-700">Thế chấp</div>
-                                <div className="font-mono text-[11px] text-indigo-700 font-bold truncate" title={contract.customerDocNote || `${contract.customerDocType === 'CCCD_And_1M' ? 'Giữ CCCD + 1 triệu' : contract.customerDocType}: ${contract.depositAmount.toLocaleString()}đ`}>
-                                  {contract.customerDocNote || `${contract.customerDocType === 'CCCD_And_1M' ? 'CCCD + 1M' : contract.customerDocType}`}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Optional notes */}
-                            {contract.note && (
-                              <div className="bg-amber-50 border border-amber-100 text-[11px] p-2 rounded-lg text-amber-900 font-mono italic">
-                                📌 Chú thích nghiệp vụ: {contract.note}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                {/* Modal Footer */}
+                <div className="bg-white border-t border-gray-150 p-4 flex justify-end shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCustomerForHistory(null)}
+                    className="bg-indigo-650 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-xl text-sm shadow-sm transition cursor-pointer"
+                  >
+                    Đóng hồ sơ
+                  </button>
                 </div>
               </div>
-
-              {/* Modal Footer */}
-              <div className="bg-white border-t border-gray-150 p-4 flex justify-end shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setSelectedCustomerForHistory(null)}
-                  className="bg-indigo-650 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-xl text-sm shadow-sm transition cursor-pointer"
-                >
-                  Đóng hồ sơ
-                </button>
-              </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })(),
+        document.body
+      )}
     </div>
   );
 }

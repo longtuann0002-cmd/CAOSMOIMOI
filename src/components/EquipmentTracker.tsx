@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, RentalContract } from '../types';
 import { Search, Plus, Filter, Camera as CameraIcon, CheckCircle, Flame, Server, ShieldCheck, RefreshCw, Trash2, Edit2, ChevronLeft, ChevronRight, Download, FileSpreadsheet } from 'lucide-react';
 import { getInitialTieredPrices } from '../utils/pricing';
@@ -596,10 +597,10 @@ export default function EquipmentTracker({
         </div>
       )}
 
-      {/* Add / Edit Machine Popup Form */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden self-center border border-gray-100 animate-scale-up">
+      {/* Camera Add/Edit Modal */}
+      {showAddModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden self-center border border-gray-100 animate-scale-up">
             <div className="bg-orange-600 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <CameraIcon className="w-5 h-5" /> {editingCamera ? 'Cập Nhật Thiết Bị' : 'Thêm Máy Mới Vào Kho'}
@@ -659,72 +660,42 @@ export default function EquipmentTracker({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Danh mục phân loại</label>
-                  <select
-                    value={formState.category}
-                    onChange={e => setFormState({ ...formState, category: e.target.value as any })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white font-medium text-gray-750"
-                  >
-                    <option value="Body">Thân máy (Body)</option>
-                    <option value="Lens">Ống kính (Lens)</option>
-                    <option value="Combo">Combo Trọn bộ</option>
-                    <option value="Accessory">Phụ kiện khác</option>
-                  </select>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Dòng máy / Phân loại</label>
+                  <input
+                    type="text"
+                    value={formState.type}
+                    onChange={e => setFormState({ ...formState, type: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    placeholder="VD: Mirrorless APS-C"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Báo giá thuê gốc / Ngày (VND) *</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Hãng sản xuất</label>
                   <input
-                    type="number"
-                    required
-                    value={formState.dailyRate}
-                    onChange={e => {
-                      const val = parseInt(e.target.value) || 0;
-                      setFormState(prev => ({
-                        ...prev,
-                        dailyRate: val,
-                        price6Hours: Math.round(val * 0.6),
-                        price1Day: val,
-                        price2Days: Math.round(val * 0.9) * 2,
-                        price3Days: Math.round(val * 0.8) * 3,
-                        price4DaysPlus: Math.round(val * 0.7)
-                      }));
-                    }}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
-                    placeholder="Nhập giá thuê cơ bản"
+                    type="text"
+                    value={formState.brand}
+                    onChange={e => setFormState({ ...formState, brand: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    placeholder="VD: Canon, Sony, Fujifilm"
                   />
                 </div>
               </div>
 
-              {/* Tiered pricing block */}
-              <div className="border border-orange-100 rounded-xl p-3 bg-orange-50/20 space-y-3">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-bold text-orange-850 uppercase tracking-wider">Cấu hình giá thuê theo số ngày</h4>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const base = formState.price1Day || formState.dailyRate;
-                      setFormState(prev => ({
-                        ...prev,
-                        price6Hours: Math.round(base * 0.6),
-                        price1Day: base,
-                        price2Days: Math.round(base * 0.9) * 2,
-                        price3Days: Math.round(base * 0.8) * 3,
-                        price4DaysPlus: Math.round(base * 0.7)
-                      }));
-                    }}
-                    className="text-[10px] text-orange-655 hover:text-orange-855 font-bold flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded border border-orange-200 shadow-3xs"
-                  >
-                    ⚙️ Tự động giảm dần (60% - 100% - 90% - 80% - 70%)
-                  </button>
+              {/* Tiered Pricing Section */}
+              <div className="bg-orange-50/40 p-3.5 rounded-xl border border-orange-150 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-extrabold text-orange-950">
+                    BẢNG GIÁ THEO NGÀY (CHÍNH XÁC THEO TỪNG MỐC)
+                  </label>
+                  <span className="text-[10px] text-orange-850 font-bold bg-orange-100/70 px-2 py-0.5 rounded-full">
+                    Tính giá lũy tiến
+                  </span>
                 </div>
-                <p className="text-[10.5px] text-gray-500 leading-normal font-medium">
-                  Hệ thống tự động tính tổng tiền thuê đơn hàng bằng cách tra cứu các mức giá/ngày dưới đây tương ứng với tổng số ngày thuê:
-                </p>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="sm:col-span-2 bg-amber-55/40 p-2.5 rounded-xl border border-amber-200/50">
-                    <label className="block text-[11px] font-bold text-amber-900 mb-1">🔥 Giá thuê ngắn hạn (6 tiếng)</label>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  <div className="col-span-2 sm:col-span-3 bg-amber-50/80 p-2 rounded-lg border border-amber-200">
+                    <label className="block text-[11px] font-extrabold text-amber-900 mb-0.5">⚡ Giá thuê gói 6 tiếng (VND)</label>
                     <input
                       type="number"
                       value={formState.price6Hours}
@@ -732,10 +703,9 @@ export default function EquipmentTracker({
                         const val = parseInt(e.target.value) || 0;
                         setFormState(prev => ({ ...prev, price6Hours: val }));
                       }}
-                      className="w-full border border-amber-300 bg-white rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono text-amber-950 font-bold"
+                      className="w-full border border-amber-300 bg-white rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
                     />
                   </div>
-
                   <div>
                     <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá thuê 1 ngày (mốc chuẩn)</label>
                     <input
@@ -773,13 +743,49 @@ export default function EquipmentTracker({
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá từ ngày thứ 4 (VND/ngày)</label>
+                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá thuê 4 ngày (VND)</label>
                     <input
                       type="number"
-                      value={formState.price4DaysPlus}
+                      value={formState.price4Days}
                       onChange={e => {
                         const val = parseInt(e.target.value) || 0;
-                        setFormState(prev => ({ ...prev, price4DaysPlus: val }));
+                        setFormState(prev => ({ ...prev, price4Days: val }));
+                      }}
+                      className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá thuê 5 ngày (VND)</label>
+                    <input
+                      type="number"
+                      value={formState.price5Days}
+                      onChange={e => {
+                        const val = parseInt(e.target.value) || 0;
+                        setFormState(prev => ({ ...prev, price5Days: val }));
+                      }}
+                      className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá thuê 6 ngày (VND)</label>
+                    <input
+                      type="number"
+                      value={formState.price6Days}
+                      onChange={e => {
+                        const val = parseInt(e.target.value) || 0;
+                        setFormState(prev => ({ ...prev, price6Days: val }));
+                      }}
+                      className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
+                    />
+                  </div>
+                  <div className="col-span-2 sm:col-span-3">
+                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá từ ngày thứ 7 trở đi (VND/ngày)</label>
+                    <input
+                      type="number"
+                      value={formState.priceFrom7thDay}
+                      onChange={e => {
+                        const val = parseInt(e.target.value) || 0;
+                        setFormState(prev => ({ ...prev, priceFrom7thDay: val }));
                       }}
                       className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
                     />
@@ -787,39 +793,43 @@ export default function EquipmentTracker({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Tình trạng phục vụ</label>
-                  <select
-                    value={formState.status}
-                    onChange={e => setFormState({ ...formState, status: e.target.value as any })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white text-gray-750 font-medium"
-                  >
-                    <option value="Available">Sẵn sàng (Available)</option>
-                    <option value="Rented">Đang được khách thuê (Rented)</option>
-                    <option value="Maintenance">Bảo dưỡng bảo trì (Maintenance)</option>
-                  </select>
+              {/* Deposit Money Option */}
+              <div className="bg-amber-50/50 p-3.5 rounded-xl border border-amber-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-amber-950">
+                    Trị giá cọc máy quy định (VNĐ)
+                  </label>
+                  <span className="text-[10px] text-amber-800 font-semibold">Tự động điền khi tạo đơn</span>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Đường dẫn ảnh mô tả (URL)</label>
-                  <input
-                    type="text"
-                    value={formState.image}
-                    onChange={e => setFormState({ ...formState, image: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    placeholder="Link Unsplash hoặc bỏ trống"
-                  />
-                </div>
+                <input
+                  type="number"
+                  value={formState.depositAmount || ''}
+                  onChange={e => setFormState({ ...formState, depositAmount: parseInt(e.target.value) || 0 })}
+                  className="w-full border border-amber-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono bg-white text-gray-800"
+                  placeholder="VD: 5000000"
+                />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Mô tả thông số chi tiết sản phẩm</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Trạng thái thiết bị</label>
+                <select
+                  value={formState.status}
+                  onChange={e => setFormState({ ...formState, status: e.target.value as any })}
+                  className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white font-medium text-gray-750"
+                >
+                  <option value="Available">Sẵn sàng cho thuê (Available)</option>
+                  <option value="Rented">Đang được khách thuê (Rented)</option>
+                  <option value="Maintenance">Bảo trì / Vệ sinh cảm biến (Maintenance)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Ghi chú tình trạng / Phụ kiện kèm theo</label>
                 <textarea
-                  value={formState.description}
-                  onChange={e => setFormState({ ...formState, description: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                  placeholder="Viết cấu hình máy, độ cảm biến, số shot..."
+                  value={formState.conditionNotes}
+                  onChange={e => setFormState({ ...formState, conditionNotes: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono text-xs"
+                  placeholder="VD: Bao gồm 2 pin, 1 sạc đôi, thẻ nhớ Sandisk 64GB, filter UV..."
                   rows={3}
                 />
               </div>
@@ -841,13 +851,14 @@ export default function EquipmentTracker({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Custom Delete Confirmation Modal */}
-      {cameraToDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden border border-gray-100 animate-scale-up">
+      {cameraToDelete && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100 animate-scale-up">
             <div className="bg-rose-600 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-bold text-base flex items-center gap-2">
                 ⚠️ Xác nhận xóa thiết bị
@@ -914,8 +925,10 @@ export default function EquipmentTracker({
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
 }
+

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, RentalContract, BankConfig } from '../types';
 import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy } from 'lucide-react';
 import { getCameraRateForDuration, checkBookingConflict } from '../utils/pricing';
@@ -876,10 +877,9 @@ export default function BookingCalendar({
         )}
       </div>
 
-      {/* Quick Booking Modal */}
-      {showAddQuickModal && (
-        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 max-w-lg w-full overflow-hidden self-center animate-scale-up">
+      {showAddQuickModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-lg w-full overflow-hidden self-center animate-scale-up">
             <div className="bg-orange-600 px-6 py-4 text-white flex justify-between items-center">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5" /> Đặt Lịch & Tạo Đơn Nhanh
@@ -1265,13 +1265,14 @@ export default function BookingCalendar({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 bg-black/55 backdrop-blur-xs flex items-center justify-center p-4 z-55">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden animate-scale-up border border-gray-100 p-6 space-y-4">
+      {deleteConfirmId && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-scale-up border border-gray-100 p-6 space-y-4">
             <div className="flex items-center gap-3 text-red-650">
               <span className="p-2 bg-red-50 rounded-xl">
                 <Trash2 className="w-6 h-6 text-red-600" />
@@ -1305,13 +1306,14 @@ export default function BookingCalendar({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Custom Alert Modal */}
-      {customAlertMessage && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-60">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full overflow-hidden animate-scale-up border border-gray-100 p-6 space-y-4">
+      {customAlertMessage && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-scale-up border border-gray-100 p-6 space-y-4">
             <div className="flex items-center gap-2.5 text-amber-600">
               <span className="p-2 bg-amber-50 rounded-xl">
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
@@ -1329,7 +1331,8 @@ export default function BookingCalendar({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

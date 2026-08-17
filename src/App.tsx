@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, RentalContract, Customer, Expense, ContractStatus } from './types';
 import {
   loadStoredData,
@@ -1990,7 +1991,7 @@ export default function App() {
       <div className="flex-grow flex flex-col min-w-0 h-screen overflow-hidden">
         
         {/* TOP PATH HEADER BAR */}
-        <header className="bg-white/85 backdrop-blur-md border-b border-gray-150/75 sticky top-0 z-30 px-3 py-2 md:px-6 md:py-3.5 flex items-center justify-between select-none">
+        <header className="bg-white/85 backdrop-blur-md border-b border-gray-150/75 sticky top-0 z-20 px-3 py-2 md:px-6 md:py-3.5 flex items-center justify-between select-none">
           
           {/* Breadcrumb path */}
           <div className="flex items-center gap-1 sm:gap-2 text-xs text-gray-500 font-bold">
@@ -2094,7 +2095,7 @@ export default function App() {
         </header>
 
         {/* MOBILE NAVIGATION BAR - iOS Style with safe area padding */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-200/80 shadow-[0_-4px_24px_rgba(0,0,0,0.04)] pb-[calc(11px+env(safe-area-inset-bottom))] pt-2 px-1 flex justify-around items-center select-none">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/95 backdrop-blur-xl border-t border-gray-200/80 shadow-[0_-4px_24px_rgba(0,0,0,0.04)] pb-[calc(11px+env(safe-area-inset-bottom))] pt-2 px-1 flex justify-around items-center select-none">
           {/* Lịch máy */}
           <button
             type="button"
@@ -2191,7 +2192,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="transition-all duration-200">
+          <div className="w-full">
             {activeTab === 'calendar' && (
               <TabErrorBoundary tabName="Lịch Đặt Máy">
                 <BookingCalendar
@@ -2288,8 +2289,8 @@ export default function App() {
       </div>
 
       {/* Modern Logo Customization Modal */}
-      {showLogoModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+      {showLogoModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh]">
             
             {/* Modal Header */}
@@ -2658,12 +2659,13 @@ export default function App() {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Change Password Modal */}
-      {showChangePasswordModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in text-left">
+      {showChangePasswordModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in text-left">
           <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col">
             
             {/* Header */}
@@ -2761,12 +2763,13 @@ export default function App() {
             </form>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Change Avatar Modal */}
-      {showChangeAvatarModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in text-left">
+      {showChangeAvatarModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in text-left">
           <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col">
             
             {/* Header */}
@@ -2907,14 +2910,13 @@ export default function App() {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-
-
       {/* Admin User / Account Management Modal */}
-      {showManageUsersModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in text-left">
+      {showManageUsersModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in text-left">
           <div className="bg-white rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[85vh]">
             
             {/* Header */}
@@ -3124,12 +3126,13 @@ export default function App() {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Sao lưu & Khôi phục Dữ liệu Modal */}
-      {showBackupModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in text-left">
+      {showBackupModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in text-left">
           <div className="bg-white rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh]">
             
             {/* Header */}
@@ -3330,7 +3333,8 @@ export default function App() {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Global Toast Notifications Container */}
