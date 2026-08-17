@@ -276,21 +276,20 @@ export default function App() {
   const [showLogoModal, setShowLogoModal] = useState<boolean>(false);
   const [loaded, setLoaded] = useState(false);
 
-  // simulated system date for operations & notifications
-  const [systemDate, setSystemDate] = useState<string>(() => {
-    const todayStr = new Date().toLocaleDateString('sv'); // Format YYYY-MM-DD
-    return loadStoredData('systemDate', todayStr);
-  });
+  // System date always tracks the real-time international calendar
+  const [systemDate, setSystemDate] = useState<string>(
+    () => new Date().toLocaleDateString('sv') // YYYY-MM-DD real-time today
+  );
 
-  // Currently focused date highlights (Default to the nearest booking/schedule date relative to systemDate!)
+  // Currently focused date highlights (Default to today's real-time date)
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const loadedContracts = loadStoredData('contracts', INITIAL_CONTRACTS) as RentalContract[];
+    const todayStr = new Date().toLocaleDateString('sv'); // real-time YYYY-MM-DD
     if (!loadedContracts || loadedContracts.length === 0) {
-      return '2026-06-17';
+      return todayStr;
     }
-    const currentSystemDate = loadStoredData('systemDate', '2026-06-17');
-    const systemTime = new Date(currentSystemDate).getTime();
-    let closestDate = currentSystemDate;
+    const systemTime = new Date(todayStr).getTime();
+    let closestDate = todayStr;
     let minDiff = Infinity;
 
     loadedContracts.forEach((c: RentalContract) => {
@@ -346,6 +345,34 @@ export default function App() {
     if (!loaded) return;
     saveStoredData('systemDate', systemDate);
   }, [loaded, systemDate]);
+
+  // Auto-sync systemDate to real-time international clock
+  // Updates immediately on mount and then precisely at each midnight rollover
+  useEffect(() => {
+    const getRealToday = () => new Date().toLocaleDateString('sv'); // YYYY-MM-DD
+
+    // Always sync to today on mount
+    setSystemDate(getRealToday());
+
+    // Schedule next tick precisely at midnight
+    const scheduleNextMidnight = () => {
+      const now = new Date();
+      const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+      const msUntilMidnight = tomorrow.getTime() - now.getTime();
+
+      return setTimeout(() => {
+        setSystemDate(getRealToday());
+        // After first midnight, re-schedule daily
+        const dailyInterval = setInterval(() => {
+          setSystemDate(getRealToday());
+        }, 24 * 60 * 60 * 1000);
+        return () => clearInterval(dailyInterval);
+      }, msUntilMidnight);
+    };
+
+    const timeoutId = scheduleNextMidnight();
+    return () => clearTimeout(timeoutId);
+  }, []); // Run once on mount
 
   useEffect(() => {
     if (!loaded) return;

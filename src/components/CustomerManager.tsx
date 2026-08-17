@@ -423,8 +423,8 @@ export default function CustomerManager({
         </div>
       </div>
 
-      {/* Grid List */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* Grid List - 2 columns on mobile, scales up on larger screens */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
         {paginatedCustomers.map(cust => {
           const sortedContracts = (contracts || [])
             .filter(contract => 
@@ -435,91 +435,70 @@ export default function CustomerManager({
           const financials = getCustomerFinancials(cust.phone);
 
           return (
-            <div key={cust.id} className={`bg-white border rounded-xl p-4 shadow-2xs space-y-3 flex flex-col justify-between hover:shadow-sm transition-all ${
+            <div key={cust.id} className={`bg-white border rounded-xl p-2.5 sm:p-4 shadow-2xs space-y-2 sm:space-y-3 flex flex-col justify-between hover:shadow-sm transition-all ${
               financials.pendingDepositCount > 0
                 ? 'border-amber-300 ring-1 ring-amber-400/30'
                 : financials.totalDebt > 0 
                   ? 'border-rose-300 ring-1 ring-rose-400/20' 
                   : 'border-gray-150/70 hover:border-gray-300'
             }`}>
-              <div className="space-y-2.5">
+              <div className="space-y-2 sm:space-y-2.5">
+                {/* Header: Name + rental count */}
                 <div className="flex justify-between items-start gap-1">
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-gray-900 text-sm flex items-center gap-1.5 truncate" title={cust.name}>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-gray-900 text-xs sm:text-sm truncate leading-snug" title={cust.name}>
                       {cust.name}
                     </h3>
-                    
-                    {/* Trust Level Indicator badge */}
-                    <span className={`inline-flex items-center gap-1 text-[9.5px] font-bold px-1.5 py-0.5 rounded-full mt-1 border ${
+                    {/* Trust badge — full text on sm+, icon only on mobile */}
+                    <span className={`inline-flex items-center gap-1 text-[9px] sm:text-[9.5px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full mt-0.5 sm:mt-1 border ${
                       cust.trustLevel === 'High' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                       cust.trustLevel === 'Medium' ? 'bg-blue-50 text-blue-700 border-blue-100' :
                       'bg-rose-50 text-rose-700 border-rose-100'
                     }`}>
-                      <Shield className="w-2.5 h-2.5" />
-                      {cust.trustLevel === 'High' ? '★ Tin cậy cao' : cust.trustLevel === 'Medium' ? '● Tin cậy vừa' : '▲ Cần thận trọng'}
+                      <Shield className="w-2 h-2 sm:w-2.5 sm:h-2.5 shrink-0" />
+                      <span className="hidden sm:inline">{cust.trustLevel === 'High' ? '★ Tin cậy cao' : cust.trustLevel === 'Medium' ? '● Vừa' : '▲ Cẩn thận'}</span>
+                      <span className="sm:hidden">{cust.trustLevel === 'High' ? '★' : cust.trustLevel === 'Medium' ? '●' : '▲'}</span>
                     </span>
                   </div>
-
-                  <div className="text-right shrink-0">
-                    <span className="text-[10px] font-bold text-indigo-750 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-lg inline-block">
-                      ⏱ {sortedContracts.length || cust.rentalCount} Đơn thuê
-                    </span>
-                  </div>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-md shrink-0 whitespace-nowrap">
+                    {sortedContracts.length || cust.rentalCount} đơn
+                  </span>
                 </div>
 
-                {/* Dư nợ chưa thu & Chưa cọc 50% indicator boxes */}
+                {/* Debt / deposit alerts - compact on mobile */}
                 {financials.pendingDepositCount > 0 && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-extrabold text-amber-900 flex items-center gap-1">
-                        ⏳ Chưa cọc 50% giữ máy:
-                      </span>
-                      <span className="font-mono font-black text-amber-700 text-sm">
-                        +{financials.pendingDepositAmount.toLocaleString()}đ
-                      </span>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 sm:p-2.5 space-y-0.5 sm:space-y-1">
+                    <div className="flex items-center justify-between text-[10px] sm:text-xs gap-1">
+                      <span className="font-extrabold text-amber-900 truncate">⏳ Chưa cọc 50%</span>
+                      <span className="font-mono font-black text-amber-700 shrink-0 text-[10px] sm:text-sm">+{financials.pendingDepositAmount.toLocaleString()}đ</span>
                     </div>
-                    <div className="flex items-center justify-between text-[10px] text-amber-700 font-medium">
-                      <span>Tiền cọc giữ máy</span>
-                      <span>({financials.pendingDepositCount} đơn chờ cọc)</span>
-                    </div>
+                    <div className="text-[9px] sm:text-[10px] text-amber-700 font-medium">({financials.pendingDepositCount} đơn chờ)</div>
                   </div>
                 )}
 
                 {financials.totalDebt > 0 ? (
-                  <div className="bg-rose-50 border border-rose-200/90 rounded-lg p-2.5 space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-extrabold text-rose-800 flex items-center gap-1">
-                        ⚠️ Dư nợ chưa thu:
-                      </span>
-                      <span className="font-mono font-black text-rose-700 text-sm">
-                        +{financials.totalDebt.toLocaleString()}đ
-                      </span>
+                  <div className="bg-rose-50 border border-rose-200/90 rounded-lg px-2 py-1.5 sm:p-2.5 space-y-0.5 sm:space-y-1">
+                    <div className="flex items-center justify-between text-[10px] sm:text-xs gap-1">
+                      <span className="font-extrabold text-rose-800 truncate">⚠️ Dư nợ</span>
+                      <span className="font-mono font-black text-rose-700 shrink-0 text-[10px] sm:text-sm">+{financials.totalDebt.toLocaleString()}đ</span>
                     </div>
-                    <div className="flex items-center justify-between text-[10px] text-rose-600 font-medium">
-                      <span>Đã thanh toán: {financials.totalSpent.toLocaleString()}đ</span>
-                      <span>({financials.debtContractsCount} đơn nợ)</span>
-                    </div>
+                    <div className="text-[9px] sm:text-[10px] text-rose-600 font-medium">({financials.debtContractsCount} đơn nợ)</div>
                   </div>
                 ) : financials.pendingDepositCount === 0 ? (
-                  <div className="bg-emerald-50/60 border border-emerald-150 rounded-lg px-2.5 py-1.5 flex items-center justify-between text-xs">
-                    <span className="text-emerald-800 font-bold flex items-center gap-1 text-[11px]">
-                      ✓ Dư nợ chưa thu:
-                    </span>
-                    <span className="font-mono text-emerald-700 font-bold text-xs">
-                      0đ (Đủ)
-                    </span>
+                  <div className="bg-emerald-50/60 border border-emerald-150 rounded-lg px-2 py-1 flex items-center justify-between text-[10px] sm:text-xs">
+                    <span className="text-emerald-800 font-bold">✓ Đủ tiền</span>
+                    <span className="font-mono text-emerald-700 font-bold">0đ</span>
                   </div>
                 ) : null}
 
-                {/* Personal contact parameters list */}
-                <div className="space-y-1.5 text-xs text-gray-655 border-t border-gray-100 pt-2.5">
-                  <div className="flex items-center gap-1.5 font-mono">
-                    <Phone className="w-3 h-3 text-gray-400 shrink-0" />
-                    <span className="text-gray-800 font-bold">{cust.phone}</span>
+                {/* Contact info - compact */}
+                <div className="border-t border-gray-100 pt-1.5 sm:pt-2.5 space-y-1 sm:space-y-1.5 text-[10px] sm:text-xs">
+                  <div className="flex items-center gap-1 font-mono">
+                    <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 shrink-0" />
+                    <span className="text-gray-800 font-bold truncate">{cust.phone}</span>
                   </div>
-
                   {cust.email && (
-                    <div className="flex items-center gap-1.5 truncate" title={cust.email}>
+                    <div className="flex items-center gap-1 truncate hidden sm:flex" title={cust.email}>
                       <Globe className="w-3 h-3 text-gray-400 shrink-0" />
                       <a 
                         href={cust.email.startsWith('http://') || cust.email.startsWith('https://') ? cust.email : `https://${cust.email}`} 
@@ -531,30 +510,16 @@ export default function CustomerManager({
                       </a>
                     </div>
                   )}
-
-                  {cust.idNumber && (
-                    <div className="flex items-center gap-1.5 font-mono text-[11px] truncate">
-                      <span className="font-sans font-bold text-gray-400">CCCD:</span>
-                      <span className="truncate">{cust.idNumber}</span>
-                    </div>
-                  )}
-
                   {cust.address && (
-                    <div className="flex items-start gap-1.5 text-[11px]">
+                    <div className="hidden sm:flex items-start gap-1 text-[11px]">
                       <MapPin className="w-3 h-3 text-gray-400 shrink-0 mt-0.5" />
                       <span className="truncate" title={cust.address}>{cust.address}</span>
                     </div>
                   )}
                 </div>
 
-                {cust.notes && (
-                  <div className="bg-amber-50/50 p-2 rounded-lg border border-amber-155/50 text-[11px] text-amber-900 font-mono leading-relaxed max-h-[60px] overflow-y-auto" title={cust.notes}>
-                    ✏️ {cust.notes}
-                  </div>
-                )}
-
-                {/* Lịch sử đơn thuê trực quan theo lần */}
-                <div className="pt-2.5 border-t border-dashed border-gray-150 space-y-2">
+                {/* Rental history — hidden on mobile to reduce scroll, visible on sm+ */}
+                <div className="hidden sm:block pt-2 border-t border-dashed border-gray-150 space-y-1.5">
                   <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">
                     Đơn thuê gần đây ({sortedContracts.length})
                   </span>
@@ -565,14 +530,12 @@ export default function CustomerManager({
                       {[...sortedContracts].reverse().slice(0, 2).map((contract) => {
                         const origIndex = sortedContracts.findIndex(c => c.id === contract.id);
                         const nthRental = origIndex !== -1 ? origIndex + 1 : sortedContracts.length;
-                        
                         const statusConfig = 
                           contract.status === 'Completed' ? { bg: 'bg-green-50 border-green-150 text-green-700', label: 'Xong' } :
                           contract.status === 'Active' ? { bg: 'bg-blue-50 border-blue-150 text-blue-700 font-bold', label: 'Đang thuê' } :
                           contract.status === 'Overdue' ? { bg: 'bg-rose-50 border-rose-150 text-rose-700 animate-pulse', label: 'Trễ hạn' } :
                           contract.status === 'Pending' ? { bg: 'bg-amber-50 border-amber-150 text-amber-700', label: 'Chờ' } :
                           { bg: 'bg-gray-50 border-gray-150 text-gray-500', label: 'Hủy' };
-
                         return (
                           <div 
                             key={contract.id} 
@@ -580,37 +543,20 @@ export default function CustomerManager({
                             className="bg-gray-50/75 border border-gray-200/60 rounded-lg p-2 hover:border-orange-200 hover:bg-orange-50/10 cursor-pointer transition text-[11px] space-y-1 group"
                           >
                             <div className="flex justify-between items-center gap-1">
-                              <span className="font-mono font-extrabold text-orange-600 truncate group-hover:text-orange-700">
-                                {contract.contractCode}
-                              </span>
-                              <span className={`px-1 rounded text-[8.5px] font-bold border ${statusConfig.bg}`}>
-                                {statusConfig.label}
-                              </span>
+                              <span className="font-mono font-extrabold text-orange-600 truncate group-hover:text-orange-700">{contract.contractCode}</span>
+                              <span className={`px-1 rounded text-[8.5px] font-bold border ${statusConfig.bg}`}>{statusConfig.label}</span>
                             </div>
                             <div className="flex justify-between items-center text-xs">
-                              <span className="font-bold text-gray-750 font-sans">
-                                Lần thuê {nthRental}
-                              </span>
-                              <span className="font-mono text-gray-500 text-[10px]">
-                                {contract.totalPrice.toLocaleString()}đ
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-gray-400 font-mono flex justify-between items-center">
-                              <span>{new Date(contract.startDate).toLocaleDateString('vi-VN')}</span>
-                              <span className="text-[9px] text-indigo-500 bg-indigo-50 px-1 py-0.2 rounded font-sans font-medium">
-                                {contract.items.length} thiết bị
-                              </span>
+                              <span className="font-bold text-gray-750">Lần {nthRental}</span>
+                              <span className="font-mono text-gray-500 text-[10px]">{contract.totalPrice.toLocaleString()}đ</span>
                             </div>
                           </div>
                         );
                       })}
                       {sortedContracts.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCustomerForHistory(cust)}
-                          className="text-[10px] font-bold text-indigo-650 hover:text-indigo-800 transition block text-center w-full pt-1"
-                        >
-                          Xem thêm {sortedContracts.length - 2} đơn khác...
+                        <button type="button" onClick={() => setSelectedCustomerForHistory(cust)}
+                          className="text-[10px] font-bold text-indigo-650 hover:text-indigo-800 transition block text-center w-full pt-1">
+                          Xem thêm {sortedContracts.length - 2} đơn...
                         </button>
                       )}
                     </div>
@@ -618,34 +564,31 @@ export default function CustomerManager({
                 </div>
               </div>
 
-              {/* Actions panel */}
-              <div className="border-t border-gray-100 pt-2.5 flex items-center justify-between gap-1.5 text-[11px]">
+              {/* Actions */}
+              <div className="border-t border-gray-100 pt-2 flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px]">
                 <button
                   type="button"
                   onClick={() => setSelectedCustomerForHistory(cust)}
-                  className="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-150 px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center justify-center gap-1 flex-1 text-center"
-                  title="Xem toàn bộ lịch sử đơn hàng và lần thuê"
+                  className="bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-150 px-1.5 sm:px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center justify-center gap-1 flex-1 min-w-0"
+                  title="Xem toàn bộ lịch sử"
                 >
-                  <Eye className="w-3.5 h-3.5 shrink-0" />
-                  <span>Chi tiết ({sortedContracts.length} đơn)</span>
+                  <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                  <span className="truncate hidden sm:inline">Chi tiết ({sortedContracts.length})</span>
+                  <span className="sm:hidden">{sortedContracts.length} đơn</span>
                 </button>
-
                 <button
                   onClick={() => handleOpenEditModal(cust)}
-                  className="text-orange-600 hover:text-white border border-orange-200 hover:bg-orange-600 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer text-center shrink-0"
+                  className="text-orange-600 hover:text-white border border-orange-200 hover:bg-orange-600 px-2 sm:px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer shrink-0"
                 >
                   Sửa
                 </button>
-
                 {onDeleteCustomer && (
                   <button
-                    onClick={() => {
-                      setDeleteConfirmId(cust.id);
-                    }}
-                    className="text-gray-400 hover:text-rose-650 p-2 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0 border border-transparent hover:border-rose-100"
+                    onClick={() => setDeleteConfirmId(cust.id)}
+                    className="text-gray-400 hover:text-rose-650 p-1.5 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0 border border-transparent hover:border-rose-100"
                     title="Xóa khách hàng"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </button>
                 )}
               </div>
@@ -653,17 +596,17 @@ export default function CustomerManager({
           );
         })}
         {filteredCustomers.length === 0 && (
-          <div className="col-span-full bg-white border border-gray-150 p-12 text-center rounded-2xl text-gray-400 italic font-medium">
-            Không tìm thấy hồ sơ khách hàng nào phù hợp với từ khóa này.
+          <div className="col-span-full bg-white border border-gray-150 p-8 sm:p-12 text-center rounded-2xl text-gray-400 italic font-medium text-sm">
+            Không tìm thấy hồ sơ khách hàng nào phù hợp.
           </div>
         )}
       </div>
 
-      {/* Pagination controls for customers */}
+      {/* Pagination controls — compact on mobile */}
       {totalPages > 1 && (
-        <div className="bg-white border border-gray-150 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xs select-none">
-          <span className="text-xs text-gray-500 font-medium">
-            Hiển thị từ <span className="font-bold text-gray-800">{(currentPage - 1) * itemsPerPage + 1}</span> tới <span className="font-bold text-gray-800">{Math.min(currentPage * itemsPerPage, filteredCustomers.length)}</span> trong tổng số <span className="font-bold text-gray-800">{filteredCustomers.length}</span> hồ sơ khách hàng
+        <div className="bg-white border border-gray-150 px-3 py-2.5 sm:p-4 rounded-xl sm:rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 shadow-2xs select-none">
+          <span className="text-[10px] sm:text-xs text-gray-500 font-medium text-center sm:text-left">
+            <span className="font-bold text-gray-800">{(currentPage - 1) * itemsPerPage + 1}</span>–<span className="font-bold text-gray-800">{Math.min(currentPage * itemsPerPage, filteredCustomers.length)}</span> / <span className="font-bold text-gray-800">{filteredCustomers.length}</span> khách hàng
           </span>
           <div className="flex items-center gap-1">
             <button
@@ -671,34 +614,41 @@ export default function CustomerManager({
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
-              title="Trang trước"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
-            
-            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(page => (
-              <button
-                key={page}
-                type="button"
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                  currentPage === page
-                    ? 'bg-orange-600 border border-orange-600 text-white shadow-xs'
-                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-
+            {Array.from({ length: totalPages }, (_, idx) => idx + 1)
+              .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+              .reduce<(number | 'dot')[]>((acc, page, i, arr) => {
+                if (i > 0 && (page as number) - (arr[i - 1] as number) > 1) acc.push('dot');
+                acc.push(page);
+                return acc;
+              }, [])
+              .map((item, i) =>
+                item === 'dot' ? (
+                  <span key={`dot-${i}`} className="px-1 text-gray-400 text-xs">…</span>
+                ) : (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setCurrentPage(item as number)}
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      currentPage === item
+                        ? 'bg-orange-600 border border-orange-600 text-white shadow-xs'
+                        : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
             <button
               type="button"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
-              title="Trang sau"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>
