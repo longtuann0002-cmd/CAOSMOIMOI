@@ -51,8 +51,6 @@ export interface Customer {
   email?: string;
   address?: string;
   idNumber?: string; // CCCD / Passport number
-  idPhotoFront?: string; // Base64 ảnh mặt trước CCCD
-  idPhotoBack?: string;  // Base64 ảnh mặt sau CCCD
   trustLevel: 'High' | 'Medium' | 'Low';
   rentalCount: number;
   notes?: string;
