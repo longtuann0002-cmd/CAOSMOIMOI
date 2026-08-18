@@ -632,6 +632,39 @@ export default function EquipmentTracker({
                 />
               </div>
 
+              {/* Category Selector */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Mục thiết bị / Phân loại chính *
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: 'Body', label: 'Thân máy', sub: 'Body', icon: '📷' },
+                    { id: 'Lens', label: 'Ống kính', sub: 'Lens', icon: '🔍' },
+                    { id: 'Combo', label: 'Combo bộ máy', sub: 'Combo', icon: '🎒' },
+                    { id: 'Accessory', label: 'Phụ kiện kèm', sub: 'Phụ kiện', icon: '⚡' },
+                  ].map(cat => {
+                    const isSelected = formState.category === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setFormState(prev => ({ ...prev, category: cat.id as any }))}
+                        className={`p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                          isSelected
+                            ? 'bg-orange-50 border-orange-500 text-orange-700 font-bold ring-2 ring-orange-200 shadow-3xs'
+                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 font-medium'
+                        }`}
+                      >
+                        <span className="text-base">{cat.icon}</span>
+                        <span className="text-xs leading-tight font-bold">{cat.label}</span>
+                        <span className="text-[9.5px] text-gray-400 font-normal">{cat.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Tên viết tắt (Shorthand) *</label>
