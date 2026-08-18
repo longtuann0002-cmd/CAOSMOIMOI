@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract } from '../types';
-import { Search, Plus, Filter, Camera as CameraIcon, CheckCircle, Flame, Server, ShieldCheck, RefreshCw, Trash2, Edit2, ChevronLeft, ChevronRight, Download, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Filter, Camera as CameraIcon, CheckCircle, Flame, Server, ShieldCheck, RefreshCw, Trash2, Edit2, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Image as ImageIcon, Upload, Link as LinkIcon, Sparkles } from 'lucide-react';
 import { getInitialTieredPrices } from '../utils/pricing';
 import RentalFrequencyChart from './RentalFrequencyChart';
 
@@ -682,19 +682,121 @@ export default function EquipmentTracker({
                 </div>
               </div>
 
-              {/* Tiered Pricing Section */}
-              <div className="bg-orange-50/40 p-3.5 rounded-xl border border-orange-150 space-y-3">
+              {/* Product Cover Image Link / Upload */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-extrabold text-orange-950">
-                    BẢNG GIÁ THEO NGÀY (CHÍNH XÁC THEO TỪNG MỐC)
+                  <label className="block text-xs font-bold text-gray-700">
+                    Ảnh bìa thiết bị (Link URL hoặc Tải ảnh)
                   </label>
-                  <span className="text-[10px] text-orange-850 font-bold bg-orange-100/70 px-2 py-0.5 rounded-full">
-                    Tính giá lũy tiến
-                  </span>
+                  {formState.image && (
+                    <button
+                      type="button"
+                      onClick={() => setFormState(prev => ({ ...prev, image: '' }))}
+                      className="text-[10px] text-rose-500 hover:text-rose-700 font-bold cursor-pointer transition"
+                    >
+                      ✕ Xóa ảnh
+                    </button>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  <div className="col-span-2 sm:col-span-3 bg-amber-50/80 p-2 rounded-lg border border-amber-200">
+                <div className="flex gap-3 items-center">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl border-2 border-dashed border-gray-300 bg-white overflow-hidden shrink-0 flex items-center justify-center relative shadow-3xs">
+                    {formState.image ? (
+                      <img
+                        src={formState.image}
+                        alt="Xem trước ảnh bìa"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=400';
+                        }}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-gray-400 gap-1 p-2 text-center">
+                        <ImageIcon className="w-6 h-6 text-gray-300" />
+                        <span className="text-[9px] font-semibold">Chưa có ảnh</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <div>
+                      <input
+                        type="url"
+                        value={formState.image}
+                        onChange={e => setFormState(prev => ({ ...prev, image: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
+                        placeholder="Dán link ảnh URL (VD: https://...)"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 rounded-lg text-xs font-bold transition cursor-pointer">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Tải ảnh từ máy</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                const img = new Image();
+                                img.onload = () => {
+                                  const maxW = 600;
+                                  const scale = img.width > maxW ? maxW / img.width : 1;
+                                  const canvas = document.createElement('canvas');
+                                  canvas.width = Math.round(img.width * scale);
+                                  canvas.height = Math.round(img.height * scale);
+                                  const ctx = canvas.getContext('2d')!;
+                                  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                  setFormState(prev => ({ ...prev, image: canvas.toDataURL('image/jpeg', 0.7) }));
+                                };
+                                img.src = ev.target?.result as string;
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                      <span className="text-[10px] text-gray-400">hoặc dán đường dẫn ảnh trực tiếp</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tiered Pricing Section */}
+              <div className="bg-orange-50/40 p-3.5 rounded-xl border border-orange-150 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="block text-xs font-extrabold text-orange-950 truncate">
+                    BẢNG GIÁ THEO NGÀY (CHÍNH XÁC THEO TỪNG MỐC)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const p1 = formState.price1Day || formState.dailyRate || 150000;
+                      setFormState(prev => ({
+                        ...prev,
+                        price6Hours: Math.round(p1 * 0.6),
+                        price1Day: p1,
+                        dailyRate: p1,
+                        price2Days: Math.round(p1 * 0.9 * 2),
+                        price3Days: Math.round(p1 * 0.8 * 3),
+                        price4DaysPlus: Math.round(p1 * 0.7)
+                      }));
+                    }}
+                    className="text-[10px] text-orange-850 font-bold bg-orange-100 hover:bg-orange-200 border border-orange-200 px-2 py-0.5 rounded-full transition cursor-pointer shrink-0 flex items-center gap-1"
+                    title="Tự động tính các mốc giá theo giá 1 ngày"
+                  >
+                    <Sparkles className="w-3 h-3 text-orange-600" />
+                    <span>Tính giá lũy tiến</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2.5">
+                  <div className="bg-amber-50/80 p-2 rounded-lg border border-amber-200">
                     <label className="block text-[11px] font-extrabold text-amber-900 mb-0.5">⚡ Giá thuê gói 6 tiếng (VND)</label>
                     <input
                       type="number"
@@ -706,44 +808,48 @@ export default function EquipmentTracker({
                       className="w-full border border-amber-300 bg-white rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá thuê 1 ngày (mốc chuẩn)</label>
-                    <input
-                      type="number"
-                      value={formState.price1Day}
-                      onChange={e => {
-                        const val = parseInt(e.target.value) || 0;
-                        setFormState(prev => ({ ...prev, price1Day: val, dailyRate: val }));
-                      }}
-                      className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
-                    />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 1 ngày (Chuẩn)</label>
+                      <input
+                        type="number"
+                        value={formState.price1Day}
+                        onChange={e => {
+                          const val = parseInt(e.target.value) || 0;
+                          setFormState(prev => ({ ...prev, price1Day: val, dailyRate: val }));
+                        }}
+                        className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 2 ngày (VND)</label>
+                      <input
+                        type="number"
+                        value={formState.price2Days}
+                        onChange={e => {
+                          const val = parseInt(e.target.value) || 0;
+                          setFormState(prev => ({ ...prev, price2Days: val }));
+                        }}
+                        className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 3 ngày (VND)</label>
+                      <input
+                        type="number"
+                        value={formState.price3Days}
+                        onChange={e => {
+                          const val = parseInt(e.target.value) || 0;
+                          setFormState(prev => ({ ...prev, price3Days: val }));
+                        }}
+                        className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
+                      />
+                    </div>
                   </div>
+
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá thuê 2 ngày (VND)</label>
-                    <input
-                      type="number"
-                      value={formState.price2Days}
-                      onChange={e => {
-                        const val = parseInt(e.target.value) || 0;
-                        setFormState(prev => ({ ...prev, price2Days: val }));
-                      }}
-                      className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá thuê 3 ngày (VND)</label>
-                    <input
-                      type="number"
-                      value={formState.price3Days}
-                      onChange={e => {
-                        const val = parseInt(e.target.value) || 0;
-                        setFormState(prev => ({ ...prev, price3Days: val }));
-                      }}
-                      className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
-                    />
-                  </div>
-                  <div className="col-span-2 sm:col-span-3">
-                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá từ ngày thứ 4 trở đi (VND/ngày)</label>
+                    <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá từ ngày thứ 4 trở đi (VND/ngày)</label>
                     <input
                       type="number"
                       value={formState.price4DaysPlus}
