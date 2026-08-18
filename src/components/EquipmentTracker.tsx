@@ -742,50 +742,14 @@ export default function EquipmentTracker({
                       className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá thuê 4 ngày (VND)</label>
-                    <input
-                      type="number"
-                      value={formState.price4Days}
-                      onChange={e => {
-                        const val = parseInt(e.target.value) || 0;
-                        setFormState(prev => ({ ...prev, price4Days: val }));
-                      }}
-                      className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá thuê 5 ngày (VND)</label>
-                    <input
-                      type="number"
-                      value={formState.price5Days}
-                      onChange={e => {
-                        const val = parseInt(e.target.value) || 0;
-                        setFormState(prev => ({ ...prev, price5Days: val }));
-                      }}
-                      className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá thuê 6 ngày (VND)</label>
-                    <input
-                      type="number"
-                      value={formState.price6Days}
-                      onChange={e => {
-                        const val = parseInt(e.target.value) || 0;
-                        setFormState(prev => ({ ...prev, price6Days: val }));
-                      }}
-                      className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
-                    />
-                  </div>
                   <div className="col-span-2 sm:col-span-3">
-                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá từ ngày thứ 7 trở đi (VND/ngày)</label>
+                    <label className="block text-[11px] font-bold text-gray-650 mb-0.5">Giá từ ngày thứ 4 trở đi (VND/ngày)</label>
                     <input
                       type="number"
-                      value={formState.priceFrom7thDay}
+                      value={formState.price4DaysPlus}
                       onChange={e => {
                         const val = parseInt(e.target.value) || 0;
-                        setFormState(prev => ({ ...prev, priceFrom7thDay: val }));
+                        setFormState(prev => ({ ...prev, price4DaysPlus: val }));
                       }}
                       className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
                     />
