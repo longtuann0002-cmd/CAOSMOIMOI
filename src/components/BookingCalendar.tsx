@@ -539,11 +539,12 @@ export default function BookingCalendar({
       {/* Main Calendar Section */}
       <div className="bg-white border border-gray-150/70 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
         {/* Calendar Header with Navigation */}
-        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 mb-3 sm:mb-4 border-b border-gray-100 pb-3.5 sm:pb-4">
-          <div className="flex items-center justify-between lg:justify-start gap-3">
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3.5 mb-3 sm:mb-4 border-b border-gray-100 pb-3.5 sm:pb-4">
+          {/* Title & Today on Mobile */}
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 bg-orange-500 text-white rounded-xl shadow-2xs">
-                <CalendarIcon className="w-5 h-5" />
+              <span className="p-2 sm:p-2.5 bg-orange-600 text-white rounded-xl shadow-2xs">
+                <CalendarIcon className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
               </span>
               <div>
                 <h2 className="text-base sm:text-xl font-black text-gray-900 tracking-tight select-none">
@@ -555,79 +556,76 @@ export default function BookingCalendar({
               </div>
             </div>
 
-            {/* Today Jump Button on Mobile */}
+            {/* Today Jump Button */}
             <button
               type="button"
               onClick={goToToday}
-              className="sm:hidden px-2.5 py-1 text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200 rounded-lg active:scale-95 transition"
+              className="px-3 py-1.5 text-xs font-bold bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 rounded-xl transition cursor-pointer active:scale-95 flex items-center gap-1 shadow-3xs"
+              title="Về ngày hôm nay"
             >
-              Hôm nay
+              <Sparkles className="w-3.5 h-3.5 text-orange-600" />
+              <span>Hôm nay</span>
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-            {/* View Switcher: Tháng / Tuần */}
-            <div className="flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-200/80 text-xs font-bold shrink-0">
-              <button
-                type="button"
-                onClick={() => setViewMode('month')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                  viewMode === 'month'
-                    ? 'bg-white text-orange-600 shadow-3xs font-extrabold'
-                    : 'text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                Tháng
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('week')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                  viewMode === 'week'
-                    ? 'bg-white text-orange-600 shadow-3xs font-extrabold'
-                    : 'text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                Tuần
-              </button>
+          {/* Controls: Navigator + Switcher + Prominent CTA */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+              {/* View Switcher: Tháng / Tuần */}
+              <div className="flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-200/80 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('month')}
+                  className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap text-center ${
+                    viewMode === 'month'
+                      ? 'bg-white text-orange-600 shadow-3xs font-black'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  Tháng
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('week')}
+                  className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap text-center ${
+                    viewMode === 'week'
+                      ? 'bg-white text-orange-600 shadow-3xs font-black'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  Tuần
+                </button>
+              </div>
+
+              {/* Timeframe Navigator (Prev, Next) */}
+              <div className="flex items-center justify-between border border-gray-200 rounded-xl bg-gray-50/80 p-0.5 gap-1">
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  className="p-1.5 text-gray-650 hover:bg-white hover:text-gray-900 rounded-lg transition-all cursor-pointer shrink-0"
+                  title={viewMode === 'month' ? "Tháng trước" : "Tuần trước"}
+                >
+                  <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                </button>
+
+                <span className="px-1.5 font-black text-gray-800 text-xs text-center select-none font-mono truncate flex-1 sm:min-w-[80px]">
+                  {viewMode === 'month' ? `${String(currentMonth).padStart(2, '0')}/${currentYear}` : 'Tuần này'}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="p-1.5 text-gray-650 hover:bg-white hover:text-gray-900 rounded-lg transition-all cursor-pointer shrink-0"
+                  title={viewMode === 'month' ? "Tháng sau" : "Tuần sau"}
+                >
+                  <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </div>
             </div>
 
-            {/* Timeframe Navigator (Prev, Today, Next) */}
-            <div className="flex items-center border border-gray-200 rounded-xl bg-gray-50/80 p-0.5 gap-1 shrink-0">
-              <button
-                type="button"
-                onClick={handlePrev}
-                className="p-1.5 text-gray-650 hover:bg-white hover:text-gray-900 rounded-lg transition-all cursor-pointer shrink-0"
-                title={viewMode === 'month' ? "Tháng trước" : "Tuần trước"}
-              >
-                <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-              </button>
-
-              <button
-                type="button"
-                onClick={goToToday}
-                className="hidden sm:inline px-2 py-1 text-[11px] font-bold text-gray-700 hover:text-orange-600 hover:bg-white rounded-lg transition cursor-pointer"
-                title="Về ngày hôm nay"
-              >
-                Hôm nay
-              </button>
-
-              <span className="px-2 font-black text-gray-800 text-xs text-center select-none font-mono min-w-[75px] sm:min-w-[85px]">
-                {viewMode === 'month' ? `${String(currentMonth).padStart(2, '0')}/${currentYear}` : 'Tuần này'}
-              </span>
-
-              <button
-                type="button"
-                onClick={handleNext}
-                className="p-1.5 text-gray-650 hover:bg-white hover:text-gray-900 rounded-lg transition-all cursor-pointer shrink-0"
-                title={viewMode === 'month' ? "Tháng sau" : "Tuần sau"}
-              >
-                <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-              </button>
-            </div>
-
-            {/* Quick Booking Button */}
+            {/* Quick Booking Button - Prominent & Full Width on Mobile */}
             <button
+              type="button"
               onClick={() => {
                 setFormData(prev => ({
                   ...prev,
@@ -636,10 +634,10 @@ export default function BookingCalendar({
                 }));
                 setShowAddQuickModal(true);
               }}
-              className="flex-1 sm:flex-none px-4 py-2 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-2xs transition-all active:scale-[0.98] bg-orange-600 text-white hover:bg-orange-700 cursor-pointer uppercase tracking-wider"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 active:scale-[0.98] bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white cursor-pointer uppercase tracking-wider whitespace-nowrap transition-all"
               title="Đặt lịch nhanh"
             >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <Plus className="w-4 h-4 stroke-[3]" />
               <span>Đặt lịch nhanh</span>
             </button>
           </div>
