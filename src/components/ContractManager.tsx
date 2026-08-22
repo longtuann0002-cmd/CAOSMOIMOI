@@ -88,6 +88,15 @@ export default function ContractManager({
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState<string>('');
 
+  // States for editing customer info in modal
+  const [editingCustomer, setEditingCustomer] = useState(false);
+  const [customerDraft, setCustomerDraft] = useState({
+    name: '',
+    phone: '',
+    docType: 'CCCD' as RentalContract['customerDocType'],
+    docNote: ''
+  });
+
   const handleSaveNote = (id: string) => {
     if (onUpdateContractNote) {
       onUpdateContractNote(id, noteDraft.trim());
@@ -123,11 +132,18 @@ export default function ContractManager({
     }
     
     setIsExporting(true);
+    setEditingCustomer(false);
     
     setTimeout(() => {
       toPng(element, {
         backgroundColor: '#ffffff',
         cacheBust: true,
+        filter: (node) => {
+          if (node instanceof HTMLElement && (node.dataset.noExport === 'true' || node.classList.contains('no-export-item'))) {
+            return false;
+          }
+          return true;
+        },
         style: {
           margin: '0',
           borderRadius: '12px',
@@ -1244,19 +1260,126 @@ export default function ContractManager({
                 {/* Grid 1: Customer details */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 bg-gray-50/50 p-3 sm:p-4 border border-gray-100 rounded-xl">
                   <div className="space-y-1.5">
-                    <div className="mb-1">
+                    <div className="flex items-center justify-between mb-1">
                       <h4 className="text-[10px] sm:text-xs uppercase font-bold text-gray-400">Thông tin khách thuê</h4>
+                      {onUpdateContractCustomer && !editingCustomer && !isExporting && (
+                        <button
+                          type="button"
+                          data-no-export="true"
+                          onClick={() => {
+                            setEditingCustomer(true);
+                            setCustomerDraft({
+                              name: selectedContract.customerName,
+                              phone: selectedContract.customerPhone,
+                              docType: selectedContract.customerDocType,
+                              docNote: selectedContract.customerDocNote || ''
+                            });
+                          }}
+                          className="no-export-item flex items-center gap-1 text-[10px] font-bold text-orange-600 hover:bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-lg transition cursor-pointer"
+                          title="Sửa thông tin khách thuê"
+                        >
+                          <Edit2 className="w-3 h-3" /> Sửa
+                        </button>
+                      )}
                     </div>
 
-                    <p className="font-extrabold text-gray-900 text-sm sm:text-base">{selectedContract.customerName}</p>
-                    <p className="text-xs text-gray-500 font-mono">SĐT: {selectedContract.customerPhone}</p>
-                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1.5 flex-wrap">
-                      Thế chấp: <span className="bg-white px-2 py-0.5 rounded text-gray-800 border border-gray-200 font-bold text-[10px] sm:text-xs shadow-3xs">{renderDocTypeLabel(selectedContract.customerDocType)}</span>
-                    </p>
-                    {selectedContract.customerDocNote && (
-                      <p className="text-xs text-amber-900 bg-amber-50/70 border border-amber-100 p-2 rounded mt-1 font-mono leading-relaxed max-w-full break-words">
-                        {selectedContract.customerDocNote}
-                      </p>
+                    {editingCustomer ? (
+                      <div className="space-y-2 bg-orange-50/60 border border-orange-200 p-2.5 rounded-xl">
+                        <div>
+                          <label className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Họ tên *</label>
+                          <input
+                            type="text"
+                            value={customerDraft.name}
+                            onChange={e => setCustomerDraft(d => ({ ...d, name: e.target.value }))}
+                            className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white text-gray-900"
+                            placeholder="Nguyễn Văn A"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Số điện thoại *</label>
+                          <input
+                            type="tel"
+                            value={customerDraft.phone}
+                            onChange={e => setCustomerDraft(d => ({ ...d, phone: e.target.value }))}
+                            className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white text-gray-900"
+                            placeholder="09xxxxxxxx"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Loại thế chấp</label>
+                          <select
+                            value={customerDraft.docType}
+                            onChange={e => setCustomerDraft(d => ({ ...d, docType: e.target.value as RentalContract['customerDocType'] }))}
+                            className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white text-gray-800"
+                          >
+                            <option value="CCCD">Giữ căn cước (CCCD)</option>
+                            <option value="CCCD_And_1M">Giữ CCCD + 1 triệu</option>
+                            <option value="GPLX">Giữ bằng lái (GPLX)</option>
+                            <option value="Passport">Giữ hộ chiếu (Passport)</option>
+                            <option value="CashDeposit">Đặt cọc tiền mặt</option>
+                            <option value="Other">Xe máy / Tài sản khác</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Mô tả thế chấp</label>
+                          <input
+                            type="text"
+                            value={customerDraft.docNote}
+                            onChange={e => setCustomerDraft(d => ({ ...d, docNote: e.target.value }))}
+                            className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white text-gray-900"
+                            placeholder="VD: CCCD gốc + xe Wave đỏ"
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!customerDraft.name.trim() || !customerDraft.phone.trim()) {
+                                setCustomAlertMessage('Vui lòng nhập đầy đủ tên và số điện thoại!');
+                                return;
+                              }
+                              onUpdateContractCustomer!(
+                                selectedContract.id,
+                                customerDraft.name.trim(),
+                                customerDraft.phone.trim(),
+                                customerDraft.docType,
+                                customerDraft.docNote.trim()
+                              );
+                              setSelectedContract(prev => prev ? {
+                                ...prev,
+                                customerName: customerDraft.name.trim(),
+                                customerPhone: customerDraft.phone.trim(),
+                                customerDocType: customerDraft.docType,
+                                customerDocNote: customerDraft.docNote.trim()
+                              } : null);
+                              setEditingCustomer(false);
+                            }}
+                            className="flex-1 flex items-center justify-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-black py-1.5 rounded-lg transition cursor-pointer"
+                          >
+                            <Save className="w-3.5 h-3.5" /> Lưu thay đổi
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingCustomer(false)}
+                            className="px-3 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+                          >
+                            Hủy
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="font-extrabold text-gray-900 text-sm sm:text-base">{selectedContract.customerName}</p>
+                        <p className="text-xs text-gray-500 font-mono">SĐT: {selectedContract.customerPhone}</p>
+                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1.5 flex-wrap">
+                          Thế chấp: <span className="bg-white px-2 py-0.5 rounded text-gray-800 border border-gray-200 font-bold text-[10px] sm:text-xs shadow-3xs">{renderDocTypeLabel(selectedContract.customerDocType)}</span>
+                        </p>
+                        {selectedContract.customerDocNote && (
+                          <p className="text-xs text-amber-900 bg-amber-50/70 border border-amber-100 p-2 rounded mt-1 font-mono leading-relaxed max-w-full break-words">
+                            {selectedContract.customerDocNote}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
 
