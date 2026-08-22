@@ -140,15 +140,13 @@ export default function ContractManager({
       toPng(element, {
         backgroundColor: '#ffffff',
         cacheBust: true,
-        filter: (node) => {
-          if (node instanceof HTMLElement && (node.dataset.noExport === 'true' || node.classList.contains('no-export-item'))) {
-            return false;
-          }
-          return true;
-        },
+        pixelRatio: 2,
         style: {
           margin: '0',
-          borderRadius: '12px',
+          padding: '24px',
+          borderRadius: '16px',
+          boxSizing: 'border-box',
+          width: '560px',
         }
       })
         .then((dataUrl) => {
@@ -1252,18 +1250,31 @@ export default function ContractManager({
                 </div>
               )}
 
-              <div id="contract-receipt-capture" className="bg-white p-3.5 sm:p-5 rounded-2xl border border-gray-150/60 shadow-3xs space-y-4 sm:space-y-6">
-                {/* Visual Invoice Title for image export */}
-                <div className="text-center border-b border-gray-150 pb-3 sm:pb-4">
-                  <span className="text-[9px] sm:text-[10px] bg-orange-100 text-orange-850 font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider">Hóa đơn bàn giao / Thanh toán</span>
-                  <p className="text-[11px] sm:text-xs text-gray-500 font-mono mt-1.5">Mã HĐ: <span className="font-bold text-gray-800">{selectedContract.contractCode}</span> | Ngày lập: {new Date(selectedContract.createdAt).toLocaleString('vi-VN')}</p>
+              <div id="contract-receipt-capture" className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4 font-sans text-gray-900">
+                {/* Store Header & Invoice Title */}
+                <div className="text-center space-y-2 border-b border-gray-200 pb-4">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="bg-orange-600 text-white font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-lg uppercase tracking-wider">
+                      TIỆM ẢNH NHÀ CAOS
+                    </span>
+                    <span className="text-xs font-bold text-gray-500">• CHO THUÊ MÁY ẢNH GIÁ RẺ</span>
+                  </div>
+                  <h3 className="text-sm sm:text-base font-black text-gray-900 uppercase tracking-wide">
+                    HÓA ĐƠN BÀN GIAO & THANH TOÁN
+                  </h3>
+                  <div className="flex items-center justify-center gap-2 text-[11px] sm:text-xs text-gray-500 font-mono flex-wrap">
+                    <span>Mã HĐ: <strong className="text-orange-600 font-bold">{selectedContract.contractCode}</strong></span>
+                    <span>|</span>
+                    <span>Ngày lập: {new Date(selectedContract.createdAt).toLocaleString('vi-VN')}</span>
+                  </div>
                 </div>
 
-                {/* Grid 1: Customer details */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 bg-gray-50/50 p-3 sm:p-4 border border-gray-100 rounded-xl">
-                  <div className="space-y-1.5">
+                {/* Grid 1: Customer details & Timings */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 bg-slate-50/80 p-3.5 sm:p-4 border border-slate-200/80 rounded-xl">
+                  {/* Customer Info */}
+                  <div className="space-y-1.5 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-[10px] sm:text-xs uppercase font-bold text-gray-400">Thông tin khách thuê</h4>
+                      <h4 className="text-[10.5px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
                       {onUpdateContractCustomer && !editingCustomer && !isExporting && (
                         <button
                           type="button"
@@ -1370,105 +1381,115 @@ export default function ContractManager({
                         </div>
                       </div>
                     ) : (
-                      <>
-                        <p className="font-extrabold text-gray-900 text-sm sm:text-base">{selectedContract.customerName}</p>
-                        <p className="text-xs text-gray-500 font-mono">SĐT: {selectedContract.customerPhone}</p>
-                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1.5 flex-wrap">
-                          Thế chấp: <span className="bg-white px-2 py-0.5 rounded text-gray-800 border border-gray-200 font-bold text-[10px] sm:text-xs shadow-3xs">{renderDocTypeLabel(selectedContract.customerDocType)}</span>
-                        </p>
+                      <div className="space-y-1">
+                        <p className="font-black text-gray-900 text-sm sm:text-base">{selectedContract.customerName}</p>
+                        <p className="text-xs text-gray-600 font-mono font-bold">SĐT: {selectedContract.customerPhone}</p>
+                        <div className="pt-1">
+                          <span className="text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md inline-block">
+                            Thế chấp: {renderDocTypeLabel(selectedContract.customerDocType)}
+                          </span>
+                        </div>
                         {selectedContract.customerDocNote && (
-                          <p className="text-xs text-amber-900 bg-amber-50/70 border border-amber-100 p-2 rounded mt-1 font-mono leading-relaxed max-w-full break-words">
+                          <p className="text-xs text-amber-950 bg-amber-50 border border-amber-200 p-2 rounded-lg font-mono leading-relaxed mt-1">
                             {selectedContract.customerDocNote}
                           </p>
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
 
-                  <div className="space-y-1">
-                    <h4 className="text-[10px] sm:text-xs uppercase font-bold text-gray-400 mb-1">Thông tin thời hạn</h4>
-                    <div className="space-y-1.5 text-xs sm:text-sm text-gray-750">
-                      <p className="flex justify-between items-center gap-2">
-                        <span className="text-gray-500">Bắt đầu:</span>
-                        <strong className="text-gray-800 text-right font-medium">{formatDMY(selectedContract.startDate)}</strong>
-                      </p>
-                      <p className="flex justify-between items-start gap-2">
-                        <span className="text-gray-500 shrink-0">Trả máy dự kiến:</span>
-                        <strong className="text-gray-800 text-right font-medium">{selectedContract.is6Hours ? 'Gói 6 tiếng trong ngày' : formatDMY(selectedContract.endDate)}</strong>
-                      </p>
+                  {/* Timing Info */}
+                  <div className="space-y-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-gray-200 sm:pl-4">
+                    <h4 className="text-[10.5px] uppercase font-bold text-gray-400 tracking-wider mb-1">THÔNG TIN THỜI HẠN</h4>
+                    <div className="space-y-2 text-xs sm:text-sm">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-gray-500 font-medium">Bắt đầu:</span>
+                        <strong className="text-gray-900 font-bold font-mono">{formatDMY(selectedContract.startDate)}</strong>
+                      </div>
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-gray-500 font-medium">Trả máy dự kiến:</span>
+                        <strong className="text-gray-900 font-bold font-mono">{selectedContract.is6Hours ? `Gói 6h (Trả ${selectedContract.returnTime || '18:00'})` : formatDMY(selectedContract.endDate)}</strong>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Rental Items detail */}
-                <div>
-                  <h4 className="text-[10px] sm:text-xs uppercase font-bold text-gray-400 mb-1.5">Danh sách thiết bị thuê</h4>
-                  <div className="border border-gray-155 rounded-xl overflow-hidden divide-y divide-gray-100 shadow-4xs font-sans">
+                {/* Rental Items Detail */}
+                <div className="space-y-1.5">
+                  <h4 className="text-[10.5px] uppercase font-bold text-gray-400 tracking-wider">DANH SÁCH THIẾT BỊ THUÊ</h4>
+                  <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
                     {selectedContract.items.map((i, idx) => (
-                      <div key={idx} className="p-2.5 sm:p-3 bg-white flex justify-between items-center text-xs sm:text-sm gap-2">
-                        <div className="font-semibold text-gray-800 truncate flex-1 min-w-0" title={i.cameraName}>{i.cameraName}</div>
-                        <div className="text-right font-bold text-gray-700 shrink-0 font-sans">
-                          {Math.round(i.dailyRate).toLocaleString()}đ <span className="text-[10px] text-gray-450 font-normal">{selectedContract.is6Hours ? '/6h' : '/ngày'}</span>
+                      <div key={idx} className="p-3 flex justify-between items-center text-xs sm:text-sm gap-2">
+                        <div className="font-bold text-gray-900 truncate flex-1 min-w-0">{i.cameraName}</div>
+                        <div className="text-right font-black text-gray-800 font-mono shrink-0">
+                          {Math.round(i.dailyRate).toLocaleString()}đ <span className="text-[10px] text-gray-400 font-normal font-sans">{selectedContract.is6Hours ? '/6h' : '/ngày'}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Pricing Summary Block */}
-                <div className="bg-orange-50/45 border border-orange-100 p-3 sm:p-4 rounded-xl space-y-2">
+                {/* Financial Summary Block */}
+                <div className="bg-gradient-to-br from-orange-50/60 to-amber-50/40 border border-orange-200/80 p-4 rounded-xl space-y-2.5">
                   {selectedContract.discountPercent ? (
                     <div className="flex justify-between items-center text-xs sm:text-sm">
-                      <span className="text-gray-500 font-medium leading-tight">Giảm giá tự động:</span>
-                      <span className="font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded text-xs shrink-0 whitespace-nowrap">-{selectedContract.discountPercent}%</span>
+                      <span className="text-gray-600 font-medium">Giảm giá tự động:</span>
+                      <span className="font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded text-xs shrink-0">-{selectedContract.discountPercent}%</span>
                     </div>
                   ) : null}
-                  <div className="flex justify-between items-start sm:items-center text-xs sm:text-sm gap-2">
-                    <span className="text-gray-600 font-medium leading-tight">Tổng tiền thuê dự kiến:</span>
-                    <span className="font-bold text-gray-900 text-sm sm:text-base font-sans shrink-0 whitespace-nowrap">{selectedContract.totalPrice.toLocaleString()}đ</span>
+
+                  <div className="flex justify-between items-center text-xs sm:text-sm gap-2">
+                    <span className="text-gray-700 font-semibold">Tổng tiền thuê dự kiến:</span>
+                    <span className="font-black text-gray-900 text-sm sm:text-base font-mono shrink-0">{selectedContract.totalPrice.toLocaleString()}đ</span>
                   </div>
-                  <div className="flex justify-between items-start sm:items-center text-xs sm:text-sm border-t border-orange-100/40 pt-2 text-gray-650 gap-2">
-                    <span className="leading-tight">Trị giá cọc thế chấp (VNĐ cọc):</span>
-                    <span className="font-semibold text-gray-800 font-sans shrink-0 whitespace-nowrap">{selectedContract.depositAmount.toLocaleString()}đ</span>
+
+                  <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
+                    <span>Trị giá cọc thế chấp (VNĐ cọc):</span>
+                    <span className="font-bold text-gray-800 font-mono shrink-0">{selectedContract.depositAmount.toLocaleString()}đ</span>
                   </div>
                   
                   {selectedContract.status === 'Pending' ? (
                     <>
-                      <div className="flex justify-between items-start sm:items-center text-xs sm:text-sm border-t border-orange-100/40 pt-2 text-gray-650 gap-2">
-                        <span className="leading-tight font-medium text-amber-850 bg-amber-50 px-1 rounded-sm">Số tiền khách cần cọc để giữ máy ({selectedContract.totalPrice > 0 ? Math.round((selectedContract.paidAmount / selectedContract.totalPrice) * 100) : 0}%):</span>
-                        <span className="font-bold text-amber-700 font-sans shrink-0 whitespace-nowrap">{selectedContract.paidAmount.toLocaleString()}đ</span>
+                      <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
+                        <span className="font-medium text-amber-900">Khách cọc đặt giữ máy trước ({selectedContract.totalPrice > 0 ? Math.round((selectedContract.paidAmount / selectedContract.totalPrice) * 100) : 0}%):</span>
+                        <span className="font-bold text-amber-700 font-mono shrink-0">{selectedContract.paidAmount.toLocaleString()}đ</span>
                       </div>
-                      <div className="flex justify-between items-start sm:items-center text-xs sm:text-sm border-t border-orange-100/40 pt-2 text-gray-650 gap-2">
-                        <span className="leading-tight">Thực tế khách đã thanh toán:</span>
-                        <span className="font-semibold text-gray-400 font-sans shrink-0 whitespace-nowrap">0đ <span className="text-[10px]">(Chưa cọc)</span></span>
+                      <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
+                        <span>Thực tế khách đã thanh toán:</span>
+                        <span className="font-bold text-gray-400 font-mono shrink-0">0đ <span className="text-[10px] font-normal">(Chưa cọc)</span></span>
                       </div>
-                      <div className="flex justify-between items-start sm:items-center text-xs sm:text-sm border-t border-orange-200 pt-2 font-bold text-gray-900 gap-2">
-                        <span className="leading-tight">Còn lại cần thanh toán khi nhận máy:</span>
-                        <span className="text-rose-600 text-sm sm:text-base font-extrabold font-sans shrink-0 whitespace-nowrap">{(selectedContract.totalPrice - selectedContract.paidAmount).toLocaleString()}đ</span>
+                      <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-300 pt-2 font-bold text-gray-900 gap-2">
+                        <span>Còn lại cần thanh toán khi nhận máy:</span>
+                        <span className="text-rose-600 text-sm sm:text-base font-black font-mono shrink-0">{(selectedContract.totalPrice - selectedContract.paidAmount).toLocaleString()}đ</span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="flex justify-between items-start sm:items-center text-xs sm:text-sm border-t border-orange-100/40 pt-2 text-gray-650 gap-2">
-                        <span className="leading-tight">Khách cọc đặt giữ máy trước ({selectedContract.totalPrice > 0 ? Math.round((selectedContract.paidAmount / selectedContract.totalPrice) * 100) : 0}%):</span>
-                        <span className="font-bold text-emerald-700 font-sans shrink-0 whitespace-nowrap">{selectedContract.paidAmount.toLocaleString()}đ</span>
+                      <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
+                        <span>Khách cọc đặt giữ máy trước ({selectedContract.totalPrice > 0 ? Math.round((selectedContract.paidAmount / selectedContract.totalPrice) * 100) : 0}%):</span>
+                        <span className="font-bold text-emerald-700 font-mono shrink-0">{selectedContract.paidAmount.toLocaleString()}đ</span>
                       </div>
-                      <div className="flex justify-between items-start sm:items-center text-xs sm:text-sm border-t border-orange-200 pt-2 font-bold text-gray-900 gap-2">
-                        <span className="leading-tight">Dư nợ còn lại đã thu / cần thu:</span>
-                        <span className="text-rose-600 text-sm sm:text-base font-extrabold font-sans shrink-0 whitespace-nowrap">{(selectedContract.totalPrice - selectedContract.paidAmount).toLocaleString()}đ</span>
+                      <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-300 pt-2 font-bold text-gray-900 gap-2">
+                        <span>Dư nợ còn lại đã thu / cần thu:</span>
+                        <span className="text-rose-600 text-sm sm:text-base font-black font-mono shrink-0">{(selectedContract.totalPrice - selectedContract.paidAmount).toLocaleString()}đ</span>
                       </div>
                     </>
                   )}
                 </div>
 
-                </div>
+                {selectedContract.note && (
+                  <div className="text-xs sm:text-sm bg-amber-50/80 border border-amber-200 p-3 rounded-xl">
+                    <span className="font-bold text-amber-900 block mb-0.5">Yêu cầu đặc biệt bổ sung:</span>
+                    <p className="text-gray-700 italic font-sans">{selectedContract.note}</p>
+                  </div>
+                )}
 
-              {selectedContract.note && (
-                <div className="text-xs sm:text-sm">
-                  <span className="font-bold text-gray-700">Yêu cầu đặc biệt bổ sung:</span>
-                  <p className="bg-amber-50/40 p-2.5 rounded border border-amber-100 text-xs text-gray-600 mt-1 italic font-sans">{selectedContract.note}</p>
+                {/* Footer Banner */}
+                <div className="text-center pt-2 border-t border-gray-200 text-[11px] text-gray-500 space-y-0.5">
+                  <p className="font-bold text-gray-700">Cảm ơn quý khách đã tin tưởng Tiệm Ảnh Nhà Caos!</p>
+                  <p className="font-mono text-[10px] text-gray-400">Hotline/Zalo: 0387.532.321 • Địa chỉ: Tiệm Ảnh Nhà Caos</p>
                 </div>
-              )}
+              </div>
 
               {/* Status Update Quick Controls */}
               <div className="border-t border-gray-150 pt-4 space-y-3 shrink-0">
