@@ -147,19 +147,31 @@ export default function BookingCalendar({
   }, [formData.selectedCameraIds, calculatedDays, formData.is6Hours, formData.discountPercent, cameras]);
 
   const getCameraRecommendedDeposit = (id: string): number => {
-    switch (id) {
-      case 'cam-1': return 2000000; // Canon EOS R50
-      case 'cam-2': return 5000000; // Fujifilm X-S15
-      case 'cam-3': return 10000000; // Sony A7M4
-      case 'cam-4': return 5000000; // Sony FE 24-70mm GM II
-      case 'cam-5': return 1000000; // Sigma 56mm f/1.4
-      default: return 2000000;
+    const cam = cameras.find(c => c.id === id);
+    if (cam && typeof cam.depositAmount === 'number') {
+      return cam.depositAmount;
     }
+    return 0;
   };
 
   const calculatedRecommendedDeposit = useMemo(() => {
     return formData.selectedCameraIds.reduce((sum, id) => sum + getCameraRecommendedDeposit(id), 0);
-  }, [formData.selectedCameraIds]);
+  }, [formData.selectedCameraIds, cameras]);
+
+  const [prevRecommendedDeposit, setPrevRecommendedDeposit] = useState(0);
+
+  // Auto-fill deposit amount when selecting equipment or switching to CashDeposit
+  useEffect(() => {
+    if (calculatedRecommendedDeposit !== prevRecommendedDeposit) {
+      if (formData.depositAmount === 0 || formData.depositAmount === prevRecommendedDeposit || formData.customerDocType === 'CashDeposit') {
+        setFormData(prev => ({
+          ...prev,
+          depositAmount: calculatedRecommendedDeposit
+        }));
+      }
+      setPrevRecommendedDeposit(calculatedRecommendedDeposit);
+    }
+  }, [calculatedRecommendedDeposit, prevRecommendedDeposit, formData.depositAmount, formData.customerDocType]);
 
   // Synchronize dynamic reservation deposit value, defaulting to exactly 50% of calculated total price
   useEffect(() => {

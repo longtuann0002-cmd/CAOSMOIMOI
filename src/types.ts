@@ -9,6 +9,7 @@ export interface Camera {
   price2Days?: number; // Giá thuê 2 ngày
   price3Days?: number; // Giá thuê 3 ngày
   price4DaysPlus?: number; // Giá thuê từ ngày thứ 4
+  depositAmount?: number; // Trị giá cọc máy quy định (VNĐ)
   status: 'Available' | 'Rented' | 'Maintenance';
   serialNumber: string;
   image?: string;
