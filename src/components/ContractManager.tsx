@@ -1243,7 +1243,7 @@ export default function ContractManager({
                 </div>
               )}
 
-              <div id="contract-receipt-capture" className="bg-white p-5 sm:p-7 rounded-2xl border border-gray-200 shadow-sm space-y-4 font-sans text-gray-900 w-full max-w-xl mx-auto box-border">
+              <div id="contract-receipt-capture" className="bg-white p-5 sm:p-7 rounded-2xl space-y-4 font-sans text-gray-900 w-full max-w-xl mx-auto box-border">
                 {/* Visual Invoice Title for image export */}
                 <div className="text-center space-y-1.5 border-b border-gray-200 pb-3.5">
                   <h3 className="text-base sm:text-lg font-black text-gray-900 uppercase tracking-wide">
@@ -1464,11 +1464,6 @@ export default function ContractManager({
                   )}
                 </div>
 
-                {/* Footer Banner */}
-                <div className="text-center pt-3 border-t border-gray-200 text-xs text-gray-500 space-y-0.5">
-                  <p className="font-bold text-gray-800">Cảm ơn quý khách đã tin tưởng Tiệm Ảnh Nhà Caos!</p>
-                  <p className="font-mono text-[11px] text-gray-400">Hotline/Zalo: 0387.532.321 • Địa chỉ: Tiệm Ảnh Nhà Caos</p>
-                </div>
               </div>
 
               {/* Status Update Quick Controls */}
