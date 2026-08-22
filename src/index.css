@@ -25,6 +25,21 @@ div[role="button"] {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Prevent iOS & Mobile Safari from automatically zooming into inputs when focused (Apple triggers auto-zoom when font-size < 16px) */
+@media screen and (max-width: 768px) {
+  input,
+  select,
+  textarea,
+  input[type="text"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="password"],
+  input[type="search"] {
+    font-size: 16px !important;
+  }
+}
+
 /* Fluid Native Inertial Scroll on iOS */
 .overflow-y-auto {
   -webkit-overflow-scrolling: touch;
