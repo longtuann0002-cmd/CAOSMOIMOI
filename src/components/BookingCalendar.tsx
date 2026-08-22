@@ -1368,36 +1368,66 @@ export default function BookingCalendar({
                     <div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy">
+                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy (HH:MM 24h)">
                             Giờ lấy máy *
                           </label>
                           <input
-                            type="time"
+                            type="text"
+                            inputMode="numeric"
                             required
+                            maxLength={5}
+                            placeholder="08:00"
+                            pattern="^([01]\d|2[0-3]):[0-5]\d$"
                             value={formData.startTime || '08:00'}
                             onChange={e => {
-                              const t = e.target.value;
+                              let t = e.target.value;
+                              // Tự thêm dấu ":" khi nhập đủ 2 ký tự giờ
+                              if (/^\d{2}$/.test(t) && (formData.startTime || '').length === 1) {
+                                t = t + ':';
+                              }
                               setFormData(prev => ({
                                 ...prev,
                                 startTime: t,
-                                returnTime: add6Hours(t)
+                                returnTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? add6Hours(t) : prev.returnTime
                               }));
                             }}
-                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                            title="Khung giờ khách nhận máy"
+                            onBlur={e => {
+                              const t = e.target.value;
+                              if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) {
+                                setFormData(prev => ({ ...prev, startTime: '08:00', returnTime: add6Hours('08:00') }));
+                              }
+                            }}
+                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-widest"
+                            title="Nhập giờ lấy máy theo định dạng 24h (VD: 08:00, 13:30)"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h)">
+                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h, định dạng 24h)">
                             Giờ trả (+6h) *
                           </label>
                           <input
-                            type="time"
+                            type="text"
+                            inputMode="numeric"
                             required
+                            maxLength={5}
+                            placeholder="14:00"
+                            pattern="^([01]\d|2[0-3]):[0-5]\d$"
                             value={formData.returnTime || '14:00'}
-                            onChange={e => setFormData({ ...formData, returnTime: e.target.value })}
-                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                            title="Khung giờ khách trả máy (tự động cộng 6 tiếng)"
+                            onChange={e => {
+                              let t = e.target.value;
+                              if (/^\d{2}$/.test(t) && (formData.returnTime || '').length === 1) {
+                                t = t + ':';
+                              }
+                              setFormData(prev => ({ ...prev, returnTime: t }));
+                            }}
+                            onBlur={e => {
+                              const t = e.target.value;
+                              if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) {
+                                setFormData(prev => ({ ...prev, returnTime: add6Hours(prev.startTime || '08:00') }));
+                              }
+                            }}
+                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-widest"
+                            title="Giờ trả máy (định dạng 24h, tự động cộng 6 tiếng từ giờ lấy)"
                           />
                         </div>
                       </div>

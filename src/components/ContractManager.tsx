@@ -1549,21 +1549,11 @@ export default function ContractManager({
                       <button
                         onClick={() => {
                           onUpdateContractStatus(selectedContract.id, 'Active', 'Bàn giao thiết bị và chụp ảnh lưu hồ sơ cọc.');
-                          setSelectedContract(null);
+                          setSelectedContract(prev => prev ? ({ ...prev, status: 'Active' }) : null);
                         }}
                         className="bg-blue-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                       >
                         <Check className="w-4 h-4 text-white" /> Bàn giao máy (Bắt đầu thuê)
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          onUpdateContractStatus(selectedContract.id, 'Cancelled', 'Khách hàng hủy đặt lịch do thay đổi kế hoạch.');
-                          setSelectedContract(null);
-                        }}
-                        className="bg-gray-100 border border-gray-200 text-gray-750 font-bold px-3.5 py-2 rounded-xl text-xs hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
-                      >
-                        <X className="w-4 h-4 text-gray-450" /> Hủy đặt lịch (Cancel)
                       </button>
                     </>
                   )}
@@ -1573,7 +1563,7 @@ export default function ContractManager({
                       <button
                         onClick={() => {
                           onUpdateContractStatus(selectedContract.id, 'Completed', 'Mọi thiết bị được thu hồi đầy đủ và thanh toán tất toán toàn bộ.', selectedContract.totalPrice);
-                          setSelectedContract(null);
+                          setSelectedContract(prev => prev ? ({ ...prev, status: 'Completed' }) : null);
                         }}
                         className="bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-xs hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                       >
@@ -1582,7 +1572,7 @@ export default function ContractManager({
                       <button
                         onClick={() => {
                           onUpdateContractStatus(selectedContract.id, 'Overdue', 'Hợp đồng trễ hạn chưa trả, liên hệ chưa phản hồi.');
-                          setSelectedContract(null);
+                          setSelectedContract(prev => prev ? ({ ...prev, status: 'Overdue' }) : null);
                         }}
                         className="bg-rose-100 text-rose-700 font-bold px-4 py-2 rounded-xl text-xs hover:bg-rose-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                       >
@@ -1595,7 +1585,7 @@ export default function ContractManager({
                     <button
                       onClick={() => {
                         onUpdateContractStatus(selectedContract.id, 'Completed', 'Đã thu hồi thành công sau thời gian trễ hạn. Thu thêm phụ thu.', selectedContract.totalPrice);
-                        setSelectedContract(null);
+                        setSelectedContract(prev => prev ? ({ ...prev, status: 'Completed' }) : null);
                       }}
                       className="bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-xs hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                     >
@@ -1610,9 +1600,35 @@ export default function ContractManager({
                   )}
 
                   {selectedContract.status === 'Cancelled' && (
-                    <p className="text-gray-400 text-xs italic flex items-center justify-center gap-2 py-1">
-                      <X className="w-4 h-4 text-gray-450 shrink-0" /> Hợp đồng này đã bị hủy bỏ.
-                    </p>
+                    <div className="w-full space-y-2 flex flex-col items-center">
+                      <p className="text-gray-500 text-xs italic flex items-center justify-center gap-1.5 py-0.5 font-medium">
+                        <X className="w-4 h-4 text-rose-500 shrink-0" /> Hợp đồng này đang ở trạng thái <strong className="text-rose-600">ĐÃ HỦY</strong>.
+                      </p>
+                      <div className="flex flex-wrap gap-2 justify-center items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onUpdateContractStatus(selectedContract.id, 'Pending', 'Khách hàng có nhu cầu đặt lại thiết bị, đã khôi phục hợp đồng.');
+                            setSelectedContract(prev => prev ? ({ ...prev, status: 'Pending' }) : null);
+                          }}
+                          className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
+                          title="Khôi phục trạng thái về Chờ nhận máy"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" /> Khôi phục đặt lịch (Chờ nhận)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onUpdateContractStatus(selectedContract.id, 'Active', 'Bàn giao thiết bị và chụp ảnh lưu hồ sơ cọc.');
+                            setSelectedContract(prev => prev ? ({ ...prev, status: 'Active' }) : null);
+                          }}
+                          className="bg-blue-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 whitespace-nowrap"
+                          title="Bàn giao máy và bắt đầu tính thời gian thuê"
+                        >
+                          <Check className="w-3.5 h-3.5" /> Bàn giao máy ngay (Bắt đầu thuê)
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1622,7 +1638,7 @@ export default function ContractManager({
             <div className="bg-gray-50 px-4 sm:px-5 py-3.5 flex flex-wrap gap-2.5 justify-center items-center border-t border-gray-150 shrink-0">
               <button
                 type="button"
-                className="bg-white hover:bg-gray-100 border border-gray-250 text-gray-750 font-bold text-xs px-3.5 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs min-h-[38px]"
+                className="bg-white hover:bg-gray-100 border border-gray-250 text-gray-750 font-bold text-xs px-3.5 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs min-h-[38px] whitespace-nowrap"
                 onClick={() => setCustomAlertMessage(`Đang chuẩn bị in hợp đồng ${selectedContract.contractCode}... Vui lòng kết nối máy in để in bản cứng kèm chữ ký.`)}
               >
                 In Hợp Đồng (Bản cứng)
@@ -1632,10 +1648,24 @@ export default function ContractManager({
                 type="button"
                 disabled={isExporting}
                 onClick={() => handleExportImage('contract-receipt-capture', `${selectedContract.contractCode}_thong_tin_thue.png`)}
-                className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs border border-transparent min-h-[38px]"
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs border border-transparent min-h-[38px] whitespace-nowrap"
               >
                 <ImageIcon className="w-4 h-4" /> {isExporting ? 'Đang tạo...' : 'Xuất ảnh Hợp đồng'}
               </button>
+
+              {selectedContract.status !== 'Cancelled' && selectedContract.status !== 'Completed' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUpdateContractStatus(selectedContract.id, 'Cancelled', 'Khách hàng hủy đặt lịch do thay đổi kế hoạch.');
+                    setSelectedContract(prev => prev ? ({ ...prev, status: 'Cancelled' }) : null);
+                  }}
+                  className="bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs min-h-[38px] whitespace-nowrap"
+                  title="Hủy lịch đặt hợp đồng này"
+                >
+                  <X className="w-3.5 h-3.5 text-gray-500" /> Hủy đặt lịch
+                </button>
+              )}
 
               {onDeleteContract && (
                 <button
@@ -1643,16 +1673,17 @@ export default function ContractManager({
                   onClick={() => {
                     setDeleteConfirmId(selectedContract.id);
                   }}
-                  className="text-red-600 hover:text-red-850 hover:bg-red-500/10 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer border border-transparent hover:border-red-100 px-3.5 py-2 rounded-xl transition-all min-h-[38px]"
+                  className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer px-3.5 py-2 rounded-xl transition-all min-h-[38px] shadow-4xs whitespace-nowrap"
+                  title="Xóa vĩnh viễn hợp đồng này"
                 >
-                  Xóa Hợp Đồng
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600" /> Xóa Hợp Đồng
                 </button>
               )}
 
               <button
                 type="button"
                 onClick={() => setSelectedContract(null)}
-                className="bg-gray-800 text-white hover:bg-gray-900 border border-transparent font-bold text-xs px-5 py-2 rounded-xl transition-colors cursor-pointer text-center min-h-[38px]"
+                className="bg-gray-800 text-white hover:bg-gray-900 border border-transparent font-bold text-xs px-5 py-2 rounded-xl transition-colors cursor-pointer text-center min-h-[38px] whitespace-nowrap"
               >
                 Đóng
               </button>
@@ -1944,36 +1975,65 @@ export default function ContractManager({
                     <div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy">
+                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy (HH:MM 24h)">
                             Giờ lấy máy *
                           </label>
                           <input
-                            type="time"
+                            type="text"
+                            inputMode="numeric"
                             required
+                            maxLength={5}
+                            placeholder="08:00"
+                            pattern="^([01]\d|2[0-3]):[0-5]\d$"
                             value={newContractForm.startTime || '08:00'}
                             onChange={e => {
-                              const t = e.target.value;
+                              let t = e.target.value;
+                              if (/^\d{2}$/.test(t) && (newContractForm.startTime || '').length === 1) {
+                                t = t + ':';
+                              }
                               setNewContractForm(prev => ({
                                 ...prev,
                                 startTime: t,
-                                returnTime: add6Hours(t)
+                                returnTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? add6Hours(t) : prev.returnTime
                               }));
                             }}
-                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                            title="Khung giờ khách nhận máy"
+                            onBlur={e => {
+                              const t = e.target.value;
+                              if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) {
+                                setNewContractForm(prev => ({ ...prev, startTime: '08:00', returnTime: add6Hours('08:00') }));
+                              }
+                            }}
+                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-widest"
+                            title="Nhập giờ lấy máy theo định dạng 24h (VD: 08:00, 13:30)"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h)">
+                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h, định dạng 24h)">
                             Giờ trả (+6h) *
                           </label>
                           <input
-                            type="time"
+                            type="text"
+                            inputMode="numeric"
                             required
+                            maxLength={5}
+                            placeholder="14:00"
+                            pattern="^([01]\d|2[0-3]):[0-5]\d$"
                             value={newContractForm.returnTime || '14:00'}
-                            onChange={e => setNewContractForm({ ...newContractForm, returnTime: e.target.value })}
-                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                            title="Khung giờ khách trả máy (tự động cộng 6 tiếng)"
+                            onChange={e => {
+                              let t = e.target.value;
+                              if (/^\d{2}$/.test(t) && (newContractForm.returnTime || '').length === 1) {
+                                t = t + ':';
+                              }
+                              setNewContractForm(prev => ({ ...prev, returnTime: t }));
+                            }}
+                            onBlur={e => {
+                              const t = e.target.value;
+                              if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) {
+                                setNewContractForm(prev => ({ ...prev, returnTime: add6Hours(prev.startTime || '08:00') }));
+                              }
+                            }}
+                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-widest"
+                            title="Giờ trả máy (định dạng 24h, tự động cộng 6 tiếng từ giờ lấy)"
                           />
                         </div>
                       </div>
