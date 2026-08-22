@@ -834,67 +834,92 @@ export default function EquipmentTracker({
                 <div className="space-y-2.5">
                   <div className="bg-amber-50/80 p-2 rounded-lg border border-amber-200">
                     <label className="block text-[11px] font-extrabold text-amber-900 mb-0.5">⚡ Giá thuê gói 6 tiếng (VND)</label>
-                    <input
-                      type="number"
-                      value={formState.price6Hours}
-                      onChange={e => {
-                        const val = parseInt(e.target.value) || 0;
-                        setFormState(prev => ({ ...prev, price6Hours: val }));
-                      }}
-                      className="w-full border border-amber-300 bg-white rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
-                    />
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={formState.price6Hours}
+                        onChange={e => {
+                          const val = parseInt(e.target.value) || 0;
+                          setFormState(prev => ({ ...prev, price6Hours: val }));
+                        }}
+                        className="w-full border border-amber-300 bg-white rounded-lg p-2 pr-8 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none font-mono"
+                      />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-amber-700 font-bold text-xs font-mono select-none">
+                        đ
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
                       <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 1 ngày (Chuẩn)</label>
-                      <input
-                        type="number"
-                        value={formState.price1Day}
-                        onChange={e => {
-                          const val = parseInt(e.target.value) || 0;
-                          setFormState(prev => ({ ...prev, price1Day: val, dailyRate: val }));
-                        }}
-                        className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
-                      />
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={formState.price1Day}
+                          onChange={e => {
+                            const val = parseInt(e.target.value) || 0;
+                            setFormState(prev => ({ ...prev, price1Day: val, dailyRate: val }));
+                          }}
+                          className="w-full border border-gray-200 rounded-lg p-2 pr-8 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
+                          đ
+                        </div>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 2 ngày (VND)</label>
-                      <input
-                        type="number"
-                        value={formState.price2Days}
-                        onChange={e => {
-                          const val = parseInt(e.target.value) || 0;
-                          setFormState(prev => ({ ...prev, price2Days: val }));
-                        }}
-                        className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
-                      />
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={formState.price2Days}
+                          onChange={e => {
+                            const val = parseInt(e.target.value) || 0;
+                            setFormState(prev => ({ ...prev, price2Days: val }));
+                          }}
+                          className="w-full border border-gray-200 rounded-lg p-2 pr-8 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
+                          đ
+                        </div>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 3 ngày (VND)</label>
-                      <input
-                        type="number"
-                        value={formState.price3Days}
-                        onChange={e => {
-                          const val = parseInt(e.target.value) || 0;
-                          setFormState(prev => ({ ...prev, price3Days: val }));
-                        }}
-                        className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
-                      />
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={formState.price3Days}
+                          onChange={e => {
+                            const val = parseInt(e.target.value) || 0;
+                            setFormState(prev => ({ ...prev, price3Days: val }));
+                          }}
+                          className="w-full border border-gray-200 rounded-lg p-2 pr-8 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
+                          đ
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá từ ngày thứ 4 trở đi (VND/ngày)</label>
-                    <input
-                      type="number"
-                      value={formState.price4DaysPlus}
-                      onChange={e => {
-                        const val = parseInt(e.target.value) || 0;
-                        setFormState(prev => ({ ...prev, price4DaysPlus: val }));
-                      }}
-                      className="w-full border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
-                    />
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={formState.price4DaysPlus}
+                        onChange={e => {
+                          const val = parseInt(e.target.value) || 0;
+                          setFormState(prev => ({ ...prev, price4DaysPlus: val }));
+                        }}
+                        className="w-full border border-gray-200 rounded-lg p-2 pr-8 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none font-mono"
+                      />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
+                        đ
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -907,13 +932,18 @@ export default function EquipmentTracker({
                   </label>
                   <span className="text-[10px] text-amber-800 font-semibold">Tự động điền khi tạo đơn</span>
                 </div>
-                <input
-                  type="number"
-                  value={formState.depositAmount || ''}
-                  onChange={e => setFormState({ ...formState, depositAmount: parseInt(e.target.value) || 0 })}
-                  className="w-full border border-amber-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono bg-white text-gray-800"
-                  placeholder="VD: 5000000"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formState.depositAmount || ''}
+                    onChange={e => setFormState({ ...formState, depositAmount: parseInt(e.target.value) || 0 })}
+                    className="w-full border border-amber-200 rounded-lg p-2 pr-8 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono bg-white text-gray-800"
+                    placeholder="VD: 5000000"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-amber-800 font-bold text-xs font-mono select-none">
+                    đ
+                  </div>
+                </div>
               </div>
 
               <div>

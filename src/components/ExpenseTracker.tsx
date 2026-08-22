@@ -426,14 +426,19 @@ export default function ExpenseTracker({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Số tiền chi tiêu (VND) *</label>
-                  <input
-                    type="number"
-                    required
-                    value={formState.amount}
-                    onChange={e => setFormState({ ...formState, amount: parseInt(e.target.value) || 0 })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
-                    placeholder="VD: 1500000"
-                  />
+                  <div className="relative">
+                    <input
+                      type="number"
+                      required
+                      value={formState.amount || ''}
+                      onChange={e => setFormState({ ...formState, amount: parseInt(e.target.value) || 0 })}
+                      className="w-full border border-gray-200 rounded-lg p-2 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
+                      placeholder="VD: 1500000"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
+                      đ
+                    </div>
+                  </div>
                 </div>
 
                 <div>

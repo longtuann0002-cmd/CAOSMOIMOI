@@ -1839,13 +1839,18 @@ export default function ContractManager({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Giá trị cọc quy đổi (VND)</label>
-                  <input
-                    type="number"
-                    value={newContractForm.depositAmount || ''}
-                    onChange={e => setNewContractForm({ ...newContractForm, depositAmount: parseInt(e.target.value) || 0 })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
-                    placeholder="VD: 5000000"
-                  />
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={newContractForm.depositAmount || ''}
+                      onChange={e => setNewContractForm({ ...newContractForm, depositAmount: parseInt(e.target.value) || 0 })}
+                      className="w-full border border-gray-200 rounded-lg p-2 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
+                      placeholder="VD: 5000000"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
+                      đ
+                    </div>
+                  </div>
                   {calculatedRecommendedDeposit > 0 && (
                     <div className="mt-1">
                       <button
@@ -1853,20 +1858,25 @@ export default function ContractManager({
                         onClick={() => setNewContractForm({ ...newContractForm, depositAmount: calculatedRecommendedDeposit })}
                         className="text-[10px] text-amber-700 hover:text-amber-800 bg-amber-50/55 hover:bg-amber-100 border border-amber-200/50 px-1.5 py-0.5 rounded-md font-bold transition-all cursor-pointer inline-block text-left"
                       >
-                        💡 Cọc đề xuất: {calculatedRecommendedDeposit.toLocaleString()}đ
+                        💡 Cọc máy quy định: {calculatedRecommendedDeposit.toLocaleString()}đ
                       </button>
                     </div>
                   )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Cọc giữ máy trước (VND)</label>
-                  <input
-                    type="number"
-                    value={newContractForm.paidAmount || ''}
-                    onChange={e => setNewContractForm({ ...newContractForm, paidAmount: parseInt(e.target.value) || 0 })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
-                    placeholder="VD: 500000"
-                  />
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={newContractForm.paidAmount || ''}
+                      onChange={e => setNewContractForm({ ...newContractForm, paidAmount: parseInt(e.target.value) || 0 })}
+                      className="w-full border border-gray-200 rounded-lg p-2 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
+                      placeholder="VD: 500000"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
+                      đ
+                    </div>
+                  </div>
                   <div className="flex gap-2 mt-1.5">
                     <button
                       type="button"

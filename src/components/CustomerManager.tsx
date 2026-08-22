@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Customer, RentalContract } from '../types';
-import { Search, Plus, Trash2, Edit2, Shield, User, Heart, AlertTriangle, Phone, Globe, MapPin, ChevronLeft, ChevronRight, FileSpreadsheet, Eye, Calendar, DollarSign, FileText, CheckCircle2, Clock, X, Info } from 'lucide-react';
+import { Search, Plus, Trash2, Edit2, Shield, User, Heart, AlertTriangle, Phone, Globe, MapPin, ChevronLeft, ChevronRight, FileSpreadsheet, Eye, Calendar, DollarSign, FileText, CheckCircle2, Clock, X, Info, ArrowUpDown, Filter, SortDesc, Sparkles } from 'lucide-react';
 
 interface CustomerManagerProps {
   customers: Customer[];
@@ -10,6 +10,17 @@ interface CustomerManagerProps {
   onUpdateCustomer: (customer: Customer) => void;
   onDeleteCustomer?: (id: string) => void;
 }
+
+export type CustomerSortOption =
+  | 'RENTAL_DESC'
+  | 'RENTAL_ASC'
+  | 'SPENT_DESC'
+  | 'LATEST_CONTRACT'
+  | 'DEBT_DESC'
+  | 'PENDING_DEPOSIT'
+  | 'NAME_ASC'
+  | 'NAME_DESC'
+  | 'TRUST_HIGH_FIRST';
 
 export default function CustomerManager({
   customers,
@@ -20,6 +31,8 @@ export default function CustomerManager({
 }: CustomerManagerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [debtFilter, setDebtFilter] = useState<'ALL' | 'UNPAID_DEPOSIT' | 'HAS_DEBT' | 'NO_DEBT'>('ALL');
+  const [trustFilter, setTrustFilter] = useState<'ALL' | 'High' | 'Medium' | 'Low'>('ALL');
+  const [sortBy, setSortBy] = useState<CustomerSortOption>('RENTAL_DESC');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -121,6 +134,12 @@ export default function CustomerManager({
 
         if (!matchesSearch) return false;
 
+        // Filter by trust level
+        if (trustFilter !== 'ALL' && c.trustLevel !== trustFilter) {
+          return false;
+        }
+
+        // Filter by financial status
         if (debtFilter === 'UNPAID_DEPOSIT') {
           const { pendingDepositCount } = getCustomerFinancials(c.phone);
           return pendingDepositCount > 0;
@@ -137,34 +156,90 @@ export default function CustomerManager({
         return true;
       })
       .sort((a, b) => {
-        // 1. Sắp xếp khách hàng có nhiều lượt thuê nhất lên trang đầu
-        const countA = (contracts || []).filter(c => c && c.customerPhone === a.phone && c.status !== 'Cancelled').length || (a.rentalCount || 0);
-        const countB = (contracts || []).filter(c => c && c.customerPhone === b.phone && c.status !== 'Cancelled').length || (b.rentalCount || 0);
+        const contractsA = (contracts || []).filter(c => c && c.customerPhone === a.phone && c.status !== 'Cancelled');
+        const contractsB = (contracts || []).filter(c => c && c.customerPhone === b.phone && c.status !== 'Cancelled');
 
-        if (countB !== countA) {
+        const countA = contractsA.length || (a.rentalCount || 0);
+        const countB = contractsB.length || (b.rentalCount || 0);
+
+        const spentA = contractsA.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+        const spentB = contractsB.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+
+        const financialsA = getCustomerFinancials(a.phone);
+        const financialsB = getCustomerFinancials(b.phone);
+
+        if (sortBy === 'RENTAL_DESC') {
+          if (countB !== countA) return countB - countA;
+          if (spentB !== spentA) return spentB - spentA;
+          return (a.name || '').localeCompare(b.name || '', 'vi');
+        }
+
+        if (sortBy === 'RENTAL_ASC') {
+          if (countA !== countB) return countA - countB;
+          return (a.name || '').localeCompare(b.name || '', 'vi');
+        }
+
+        if (sortBy === 'SPENT_DESC') {
+          if (spentB !== spentA) return spentB - spentA;
+          if (countB !== countA) return countB - countA;
+          return (a.name || '').localeCompare(b.name || '', 'vi');
+        }
+
+        if (sortBy === 'DEBT_DESC') {
+          if (financialsB.totalDebt !== financialsA.totalDebt) {
+            return financialsB.totalDebt - financialsA.totalDebt;
+          }
           return countB - countA;
         }
 
-        // 2. Nếu cùng lượt thuê, ưu tiên người có tổng tiền thuê (chi tiêu) cao hơn
-        const spentA = (contracts || []).filter(c => c && c.customerPhone === a.phone && c.status !== 'Cancelled').reduce((sum, c) => sum + (c.paidAmount || 0), 0);
-        const spentB = (contracts || []).filter(c => c && c.customerPhone === b.phone && c.status !== 'Cancelled').reduce((sum, c) => sum + (c.paidAmount || 0), 0);
-        if (spentB !== spentA) {
-          return spentB - spentA;
+        if (sortBy === 'PENDING_DEPOSIT') {
+          if (financialsB.pendingDepositAmount !== financialsA.pendingDepositAmount) {
+            return financialsB.pendingDepositAmount - financialsA.pendingDepositAmount;
+          }
+          return countB - countA;
         }
 
-        // 3. Xếp theo thứ tự bảng chữ cái tên
-        return (a.name || '').localeCompare(b.name || '', 'vi');
+        if (sortBy === 'LATEST_CONTRACT') {
+          const latestA = contractsA.reduce((max, c) => {
+            const time = new Date(c.startDate).getTime();
+            return time > max ? time : max;
+          }, 0);
+          const latestB = contractsB.reduce((max, c) => {
+            const time = new Date(c.startDate).getTime();
+            return time > max ? time : max;
+          }, 0);
+          if (latestB !== latestA) return latestB - latestA;
+          return countB - countA;
+        }
+
+        if (sortBy === 'NAME_ASC') {
+          return (a.name || '').localeCompare(b.name || '', 'vi');
+        }
+
+        if (sortBy === 'NAME_DESC') {
+          return (b.name || '').localeCompare(a.name || '', 'vi');
+        }
+
+        if (sortBy === 'TRUST_HIGH_FIRST') {
+          const score = (lvl?: string) => (lvl === 'High' ? 3 : lvl === 'Medium' ? 2 : 1);
+          const scoreA = score(a.trustLevel);
+          const scoreB = score(b.trustLevel);
+          if (scoreB !== scoreA) return scoreB - scoreA;
+          return countB - countA;
+        }
+
+        return 0;
       });
-  }, [customers, searchQuery, debtFilter, contracts]);
+  }, [customers, searchQuery, debtFilter, trustFilter, sortBy, contracts]);
 
   // Pagination Configuration
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Reset page when filtering
+  // Reset page when filtering or sorting
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, debtFilter]);
+  }, [searchQuery, debtFilter, trustFilter, sortBy]);
 
   const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage) || 1;
   const paginatedCustomers = useMemo(() => {
@@ -353,74 +428,158 @@ export default function CustomerManager({
           </div>
         </div>
 
-        {/* Search Bar & Debt Filters */}
+        {/* Search Bar, Sorting & Filters */}
         <div className="space-y-2.5">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 sm:top-3 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Tìm theo tên, SĐT, số CCCD, trang liên kết..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pl-8.5 pr-4 py-1.5 sm:py-2.5 text-xs sm:text-sm w-full border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none placeholder-gray-400/80"
-            />
+          <div className="flex flex-col md:flex-row items-stretch gap-2">
+            {/* Search Box */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 sm:top-3 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Tìm theo tên, SĐT, số CCCD, trang liên kết..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-8.5 pr-8 py-2 text-xs sm:text-sm w-full border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none placeholder-gray-400"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                  title="Xóa tìm kiếm"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Sort & Filter Controls */}
+            <div className="flex items-center gap-2">
+              {/* Sort Dropdown */}
+              <div className="relative flex-1 md:w-56">
+                <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-orange-600">
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                </div>
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as CustomerSortOption)}
+                  className="w-full pl-8 pr-7 py-2 text-xs font-bold border border-gray-200 rounded-xl bg-gray-50/80 hover:bg-white focus:ring-2 focus:ring-orange-500 focus:outline-none text-gray-800 cursor-pointer appearance-none truncate"
+                  title="Sắp xếp danh sách khách hàng từ trên xuống"
+                >
+                  <option value="RENTAL_DESC">🔽 Thuê nhiều đơn nhất</option>
+                  <option value="RENTAL_ASC">🔼 Thuê ít đơn nhất</option>
+                  <option value="SPENT_DESC">💰 Chi tiêu cao nhất</option>
+                  <option value="LATEST_CONTRACT">⏰ Thuê mới nhất gần đây</option>
+                  <option value="DEBT_DESC">⚠️ Dư nợ chưa thu cao nhất</option>
+                  <option value="PENDING_DEPOSIT">⏳ Chưa cọc 50% nhiều nhất</option>
+                  <option value="NAME_ASC">🔤 Tên A ➔ Z</option>
+                  <option value="NAME_DESC">🔤 Tên Z ➔ A</option>
+                  <option value="TRUST_HIGH_FIRST">🛡️ Độ tin cậy (Cao ➔ Thấp)</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-[10px]">
+                  ▼
+                </div>
+              </div>
+
+              {/* Trust Filter */}
+              <div className="relative flex-1 md:w-44">
+                <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-emerald-600">
+                  <Shield className="w-3.5 h-3.5" />
+                </div>
+                <select
+                  value={trustFilter}
+                  onChange={e => setTrustFilter(e.target.value as any)}
+                  className="w-full pl-8 pr-7 py-2 text-xs font-bold border border-gray-200 rounded-xl bg-gray-50/80 hover:bg-white focus:ring-2 focus:ring-orange-500 focus:outline-none text-gray-800 cursor-pointer appearance-none truncate"
+                  title="Lọc theo mức độ tin cậy"
+                >
+                  <option value="ALL">Tất cả mức độ</option>
+                  <option value="High">★ Tin cậy cao</option>
+                  <option value="Medium">● Vừa (Chuẩn)</option>
+                  <option value="Low">▲ Cần cẩn thận</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-gray-400 text-[10px]">
+                  ▼
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Quick Filter Tabs for Debt & Pending Deposit Status */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none select-none">
-            <button
-              type="button"
-              onClick={() => setDebtFilter('ALL')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border ${
-                debtFilter === 'ALL'
-                  ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
-                  : 'bg-gray-50 text-gray-650 border-gray-200 hover:bg-gray-100'
-              }`}
-            >
-              Tất cả ({customers.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setDebtFilter('UNPAID_DEPOSIT')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border flex items-center gap-1.5 ${
-                debtFilter === 'UNPAID_DEPOSIT'
-                  ? 'bg-amber-600 text-white border-amber-600 shadow-3xs'
-                  : 'bg-amber-50 text-amber-800 border-amber-250 hover:bg-amber-100'
-              }`}
-            >
-              <span>Chưa thanh toán cọc 50% giữ máy</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${debtFilter === 'UNPAID_DEPOSIT' ? 'bg-white/20 text-white' : 'bg-amber-200/80 text-amber-900'}`}>
-                {pendingDepositCustomerCount}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setDebtFilter('HAS_DEBT')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border flex items-center gap-1.5 ${
-                debtFilter === 'HAS_DEBT'
-                  ? 'bg-rose-600 text-white border-rose-600 shadow-3xs'
-                  : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-              }`}
-            >
-              <span>Còn dư nợ chưa thu</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${debtFilter === 'HAS_DEBT' ? 'bg-white/20 text-white' : 'bg-rose-200/80 text-rose-800'}`}>
-                {debtorCount}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setDebtFilter('NO_DEBT')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border flex items-center gap-1.5 ${
-                debtFilter === 'NO_DEBT'
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-3xs'
-                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-              }`}
-            >
-              <span>Đã thanh toán đủ</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${debtFilter === 'NO_DEBT' ? 'bg-white/20 text-white' : 'bg-emerald-200/80 text-emerald-800'}`}>
-                {customers.length - debtorCount - pendingDepositCustomerCount > 0 ? customers.length - debtorCount - pendingDepositCustomerCount : 0}
-              </span>
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-gray-100">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none select-none">
+              <button
+                type="button"
+                onClick={() => setDebtFilter('ALL')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border ${
+                  debtFilter === 'ALL'
+                    ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
+                    : 'bg-gray-50 text-gray-650 border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                Tất cả ({customers.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setDebtFilter('UNPAID_DEPOSIT')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border flex items-center gap-1.5 ${
+                  debtFilter === 'UNPAID_DEPOSIT'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-3xs'
+                    : 'bg-amber-50 text-amber-800 border-amber-250 hover:bg-amber-100'
+                }`}
+              >
+                <span>Chưa cọc 50%</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${debtFilter === 'UNPAID_DEPOSIT' ? 'bg-white/20 text-white' : 'bg-amber-200/80 text-amber-900'}`}>
+                  {pendingDepositCustomerCount}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDebtFilter('HAS_DEBT')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border flex items-center gap-1.5 ${
+                  debtFilter === 'HAS_DEBT'
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-3xs'
+                    : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                }`}
+              >
+                <span>Còn nợ</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${debtFilter === 'HAS_DEBT' ? 'bg-white/20 text-white' : 'bg-rose-200/80 text-rose-800'}`}>
+                  {debtorCount}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDebtFilter('NO_DEBT')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap border flex items-center gap-1.5 ${
+                  debtFilter === 'NO_DEBT'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-3xs'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                }`}
+              >
+                <span>Đã thanh toán đủ</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${debtFilter === 'NO_DEBT' ? 'bg-white/20 text-white' : 'bg-emerald-200/80 text-emerald-800'}`}>
+                  {customers.length - debtorCount - pendingDepositCustomerCount > 0 ? customers.length - debtorCount - pendingDepositCustomerCount : 0}
+                </span>
+              </button>
+            </div>
+
+            {/* Filter Summary & Reset */}
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-500 select-none">
+              <span>Hiển thị <b className="text-orange-600 font-mono">{filteredCustomers.length}</b>/{customers.length} khách</span>
+              {(searchQuery || debtFilter !== 'ALL' || trustFilter !== 'ALL' || sortBy !== 'RENTAL_DESC') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setDebtFilter('ALL');
+                    setTrustFilter('ALL');
+                    setSortBy('RENTAL_DESC');
+                  }}
+                  className="text-[10px] text-orange-600 hover:text-orange-800 underline cursor-pointer"
+                >
+                  Xóa lọc
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
