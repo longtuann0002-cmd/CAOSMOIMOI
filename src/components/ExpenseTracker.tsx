@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Expense } from '../types';
+import MoneyInput from './MoneyInput';
 import { Search, Plus, Trash2, Tag, Calendar, User, DollarSign, ListCollapse, ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react';
 
 interface ExpenseTrackerProps {
@@ -426,19 +427,14 @@ export default function ExpenseTracker({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Số tiền chi tiêu (VND) *</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      required
-                      value={formState.amount || ''}
-                      onChange={e => setFormState({ ...formState, amount: parseInt(e.target.value) || 0 })}
-                      className="w-full border border-gray-200 rounded-lg p-2 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
-                      placeholder="VD: 1500000"
-                    />
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
-                      đ
-                    </div>
-                  </div>
+                  <MoneyInput
+                    value={formState.amount || 0}
+                    onChange={v => setFormState({ ...formState, amount: v })}
+                    placeholder="VD: 1.500.000"
+                    className="border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    required
+                    suffixColor="gray"
+                  />
                 </div>
 
                 <div>

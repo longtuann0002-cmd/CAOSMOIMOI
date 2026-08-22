@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { RentalContract, Camera, ContractStatus, BankConfig, ContractTemplate } from '../types';
+import MoneyInput from './MoneyInput';
 import { 
   Search, Plus, Filter, Calendar, FileText, Check, AlertCircle, RefreshCw, X, 
   ShieldAlert, Phone, Briefcase, Trash2, CreditCard, Settings, Download, 
@@ -1839,18 +1840,13 @@ export default function ContractManager({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Giá trị cọc quy đổi (VND)</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={newContractForm.depositAmount || ''}
-                      onChange={e => setNewContractForm({ ...newContractForm, depositAmount: parseInt(e.target.value) || 0 })}
-                      className="w-full border border-gray-200 rounded-lg p-2 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
-                      placeholder="VD: 5000000"
-                    />
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
-                      đ
-                    </div>
-                  </div>
+                  <MoneyInput
+                    value={newContractForm.depositAmount || 0}
+                    onChange={v => setNewContractForm({ ...newContractForm, depositAmount: v })}
+                    placeholder="VD: 5.000.000"
+                    className="border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    suffixColor="gray"
+                  />
                   {calculatedRecommendedDeposit > 0 && (
                     <div className="mt-1">
                       <button
@@ -1865,23 +1861,18 @@ export default function ContractManager({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Cọc giữ máy trước (VND)</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={newContractForm.paidAmount || ''}
-                      onChange={e => setNewContractForm({ ...newContractForm, paidAmount: parseInt(e.target.value) || 0 })}
-                      className="w-full border border-gray-200 rounded-lg p-2 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
-                      placeholder="VD: 500000"
-                    />
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
-                      đ
-                    </div>
-                  </div>
+                  <MoneyInput
+                    value={newContractForm.paidAmount || 0}
+                    onChange={v => setNewContractForm({ ...newContractForm, paidAmount: v })}
+                    placeholder="VD: 500.000"
+                    className="border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    suffixColor="gray"
+                  />
                   <div className="flex gap-2 mt-1.5">
                     <button
                       type="button"
                       onClick={() => setNewContractForm({ ...newContractForm, paidAmount: Math.round(calculatedTotal * 0.5) })}
-                      className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center ${
+                      className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center whitespace-nowrap ${
                         newContractForm.paidAmount === Math.round(calculatedTotal * 0.5)
                           ? 'bg-amber-100 border-amber-300 text-amber-900 shadow-xs font-extrabold'
                           : 'bg-amber-50/50 hover:bg-amber-100/70 text-amber-800 border-amber-200'
@@ -1893,7 +1884,7 @@ export default function ContractManager({
                     <button
                       type="button"
                       onClick={() => setNewContractForm({ ...newContractForm, paidAmount: 0 })}
-                      className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center ${
+                      className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center whitespace-nowrap ${
                         newContractForm.paidAmount === 0
                           ? 'bg-gray-200 border-gray-400 text-gray-800 shadow-xs font-extrabold'
                           : 'bg-gray-50 hover:bg-gray-150 text-gray-700 border-gray-200'
@@ -1921,15 +1912,15 @@ export default function ContractManager({
                     }}
                     className="w-5 h-5 text-amber-600 rounded border-amber-400 focus:ring-amber-500 mt-0.5 shrink-0 cursor-pointer accent-amber-600"
                   />
-                  <div className="flex-1">
-                    <span className="font-extrabold text-amber-950 text-xs sm:text-sm flex items-center gap-1.5 flex-wrap">
-                      <span>⏳ Khách chưa thanh toán tiền cọc 50% để giữ máy</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-amber-950 text-xs sm:text-sm leading-snug">⏳ Khách chưa thanh toán tiền cọc 50% để giữ máy</span>
                       {newContractForm.paidAmount === 0 && (
-                        <span className="bg-amber-600 text-white text-[10px] px-2 py-0.2 rounded-full font-black">
+                        <span className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black whitespace-nowrap shrink-0">
                           ✓ Đang tích chọn
                         </span>
                       )}
-                    </span>
+                    </div>
                     <p className="text-[11px] text-amber-850 mt-1 leading-relaxed">
                       {newContractForm.paidAmount === 0
                         ? `⚠️ Đơn sẽ được ghi nhận là "Chưa cọc 50% giữ máy" với số tiền cần thu là ${(Math.round(calculatedTotal * 0.5)).toLocaleString()}đ.`

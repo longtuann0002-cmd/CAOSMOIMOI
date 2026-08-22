@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract, BankConfig } from '../types';
+import MoneyInput from './MoneyInput';
 import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye } from 'lucide-react';
 import { getCameraRateForDuration, checkBookingConflict } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
@@ -1222,18 +1223,13 @@ export default function BookingCalendar({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Tiền cọc thế chấp (VND)</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={formData.depositAmount || ''}
-                      onChange={e => setFormData({ ...formData, depositAmount: parseInt(e.target.value) || 0 })}
-                      className="w-full border border-gray-300 rounded-lg p-2 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
-                      placeholder="VD: 5000000"
-                    />
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
-                      đ
-                    </div>
-                  </div>
+                  <MoneyInput
+                    value={formData.depositAmount || 0}
+                    onChange={v => setFormData({ ...formData, depositAmount: v })}
+                    placeholder="VD: 5.000.000"
+                    className="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    suffixColor="gray"
+                  />
                   {calculatedRecommendedDeposit > 0 && (
                     <div className="mt-1">
                       <button
@@ -1248,23 +1244,18 @@ export default function BookingCalendar({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Cọc giữ máy trước (VND)</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={formData.paidAmount || ''}
-                      onChange={e => setFormData({ ...formData, paidAmount: parseInt(e.target.value) || 0 })}
-                      className="w-full border border-gray-300 rounded-lg p-2 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
-                      placeholder="VD: 500000"
-                    />
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500 font-bold text-xs font-mono select-none">
-                      đ
-                    </div>
-                  </div>
+                  <MoneyInput
+                    value={formData.paidAmount || 0}
+                    onChange={v => setFormData({ ...formData, paidAmount: v })}
+                    placeholder="VD: 500.000"
+                    className="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    suffixColor="gray"
+                  />
                   <div className="flex gap-2 mt-1.5">
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, paidAmount: Math.round(calculatedTotal * 0.5) })}
-                      className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center ${
+                      className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center whitespace-nowrap ${
                         formData.paidAmount === Math.round(calculatedTotal * 0.5)
                           ? 'bg-amber-100 border-amber-300 text-amber-900 shadow-xs font-extrabold'
                           : 'bg-amber-50/50 hover:bg-amber-100/70 text-amber-800 border-amber-200'
@@ -1276,7 +1267,7 @@ export default function BookingCalendar({
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, paidAmount: 0 })}
-                      className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center ${
+                      className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center whitespace-nowrap ${
                         formData.paidAmount === 0
                           ? 'bg-gray-200 border-gray-400 text-gray-800 shadow-xs font-extrabold'
                           : 'bg-gray-50 hover:bg-gray-150 text-gray-700 border-gray-200'
@@ -1304,15 +1295,15 @@ export default function BookingCalendar({
                     }}
                     className="w-5 h-5 text-amber-600 rounded border-amber-400 focus:ring-amber-500 mt-0.5 shrink-0 cursor-pointer accent-amber-600"
                   />
-                  <div className="flex-1">
-                    <span className="font-extrabold text-amber-950 text-xs sm:text-sm flex items-center gap-1.5 flex-wrap">
-                      <span>⏳ Khách chưa thanh toán tiền cọc 50% để giữ máy</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-amber-950 text-xs sm:text-sm leading-snug">⏳ Khách chưa thanh toán tiền cọc 50% để giữ máy</span>
                       {formData.paidAmount === 0 && (
-                        <span className="bg-amber-600 text-white text-[10px] px-2 py-0.2 rounded-full font-black">
+                        <span className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black whitespace-nowrap shrink-0">
                           ✓ Đang tích chọn
                         </span>
                       )}
-                    </span>
+                    </div>
                     <p className="text-[11px] text-amber-850 mt-1 leading-relaxed">
                       {formData.paidAmount === 0
                         ? `⚠️ Đơn sẽ được ghi nhận là "Chưa cọc 50% giữ máy" với số tiền cần thu là ${(Math.round(calculatedTotal * 0.5)).toLocaleString()}đ.`
