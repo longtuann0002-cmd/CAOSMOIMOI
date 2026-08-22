@@ -137,10 +137,23 @@ export default function ContractManager({
     setEditingCustomer(false);
     
     setTimeout(() => {
+      const targetWidth = 420;
       toPng(element, {
         backgroundColor: '#ffffff',
         cacheBust: true,
         pixelRatio: 2,
+        width: targetWidth,
+        style: {
+          margin: '0',
+          marginLeft: '0',
+          marginRight: '0',
+          marginTop: '0',
+          marginBottom: '0',
+          width: `${targetWidth}px`,
+          maxWidth: `${targetWidth}px`,
+          minWidth: `${targetWidth}px`,
+          boxSizing: 'border-box'
+        }
       })
         .then((dataUrl) => {
           const link = document.createElement('a');
@@ -1245,13 +1258,13 @@ export default function ContractManager({
 
               <div id="contract-receipt-capture" className="bg-white p-4 sm:p-5 rounded-2xl space-y-3.5 font-sans text-gray-900 w-full max-w-[420px] mx-auto box-border">
                 {/* Visual Invoice Title for image export */}
-                <div className="text-center space-y-1 border-b border-gray-200 pb-3">
+                <div className="text-center space-y-1 border-b border-gray-200 pb-2.5">
                   <h3 className="text-base sm:text-lg font-black text-gray-900 uppercase tracking-wide">
                     HÓA ĐƠN BÀN GIAO & THANH TOÁN
                   </h3>
-                  <div className="flex items-center justify-center gap-2 text-xs text-gray-600 font-mono whitespace-nowrap">
+                  <div className="flex items-center justify-center gap-2 text-[10.5px] sm:text-[11px] text-gray-500 font-mono whitespace-nowrap">
                     <span>Mã HĐ: <strong className="text-orange-600 font-bold">{selectedContract.contractCode}</strong></span>
-                    <span className="text-gray-400 font-normal">•</span>
+                    <span className="text-gray-300 font-normal">•</span>
                     <span>Ngày lập: {new Date(selectedContract.createdAt).toLocaleString('vi-VN')}</span>
                   </div>
                 </div>
