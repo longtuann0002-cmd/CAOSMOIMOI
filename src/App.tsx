@@ -1898,7 +1898,7 @@ export default function App() {
       <div className="flex-grow flex flex-col min-w-0 h-[100dvh] overflow-hidden">
         
         {/* TOP PATH HEADER BAR */}
-        <header className="bg-white/95 backdrop-blur-xl border-b border-gray-200/80 sticky top-0 z-30 pt-[max(8px,env(safe-area-inset-top,8px))] pb-2.5 px-3.5 sm:px-6 sm:py-3 flex items-center justify-between select-none shadow-xs shrink-0">
+        <header className="bg-white border-b border-gray-150 sticky top-0 z-30 pt-[max(8px,env(safe-area-inset-top,8px))] pb-2.5 px-3.5 sm:px-6 sm:py-3 flex items-center justify-between select-none shrink-0">
           {/* Breadcrumb path (Desktop) / Section Icon & Tab Title (Mobile) */}
           <div className="flex items-center gap-2 min-w-0">
             {/* Mobile Header Title (Compact) */}

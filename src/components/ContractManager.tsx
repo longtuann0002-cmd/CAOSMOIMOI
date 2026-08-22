@@ -141,13 +141,6 @@ export default function ContractManager({
         backgroundColor: '#ffffff',
         cacheBust: true,
         pixelRatio: 2,
-        style: {
-          width: '580px',
-          maxWidth: '580px',
-          margin: '0',
-          padding: '28px',
-          boxSizing: 'border-box'
-        }
       })
         .then((dataUrl) => {
           const link = document.createElement('a');
@@ -1393,16 +1386,18 @@ export default function ContractManager({
                   </div>
 
                   {/* Timing Info */}
-                  <div className="space-y-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-gray-200 sm:pl-4">
+                  <div className="space-y-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-gray-200 sm:pl-4 flex flex-col justify-between">
                     <h4 className="text-[10.5px] uppercase font-bold text-gray-400 tracking-wider mb-1">THÔNG TIN THỜI HẠN</h4>
-                    <div className="space-y-2 text-xs sm:text-sm">
-                      <div className="flex justify-between items-center gap-2">
-                        <span className="text-gray-500 font-medium">Bắt đầu:</span>
-                        <strong className="text-gray-900 font-bold font-mono">{formatDMY(selectedContract.startDate)}</strong>
+                    <div className="space-y-2 text-xs sm:text-[13px]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-gray-500 font-medium whitespace-nowrap">Bắt đầu:</span>
+                        <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">{formatDMY(selectedContract.startDate)}</strong>
                       </div>
-                      <div className="flex justify-between items-center gap-2">
-                        <span className="text-gray-500 font-medium">Trả máy dự kiến:</span>
-                        <strong className="text-gray-900 font-bold font-mono">{selectedContract.is6Hours ? `Gói 6h (Trả ${selectedContract.returnTime || '18:00'})` : formatDMY(selectedContract.endDate)}</strong>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-gray-500 font-medium whitespace-nowrap">Hạn trả máy:</span>
+                        <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">
+                          {selectedContract.is6Hours ? `Gói 6h (Trả ${selectedContract.returnTime || '18:00'})` : formatDMY(selectedContract.endDate)}
+                        </strong>
                       </div>
                     </div>
                   </div>
