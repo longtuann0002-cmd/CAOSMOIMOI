@@ -226,18 +226,18 @@ export default function NotificationCenter({
       <button
         id="notification-bell-btn"
         onClick={() => setIsOpen(true)}
-        className={`relative p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border transition-all cursor-pointer ${
+        className={`relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl border transition-all cursor-pointer shadow-3xs active:scale-95 ${
           stats.total > 0
-            ? 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100 hover:border-amber-300 animate-pulse'
-            : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-900 shadow-3xs'
+            ? 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100 hover:border-amber-300'
+            : 'bg-white border-gray-200/80 text-gray-500 hover:bg-gray-50 hover:text-gray-900'
         }`}
         title="Thông báo nhắc nhở vận hành hôm nay"
       >
-        <Bell className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+        <Bell className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" />
         {/* Floating count badge */}
         {stats.total > 0 && (
-          <span className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 bg-rose-600 text-white font-mono text-[8px] sm:text-[9px] font-extrabold w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center rounded-full border border-white sm:border-2 animate-scale-up">
-            {stats.total}
+          <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-mono text-[9px] font-extrabold min-w-4 h-4 px-1 flex items-center justify-center rounded-full border-2 border-white shadow-xs animate-pulse">
+            {stats.total > 9 ? '9+' : stats.total}
           </span>
         )}
       </button>

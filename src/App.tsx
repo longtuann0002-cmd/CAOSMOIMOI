@@ -1898,21 +1898,21 @@ export default function App() {
       <div className="flex-grow flex flex-col min-w-0 h-screen overflow-hidden">
         
         {/* TOP PATH HEADER BAR */}
-        <header className="bg-white/85 backdrop-blur-xl border-b border-gray-200/70 sticky top-0 z-30 px-3.5 py-2 sm:px-6 sm:py-3.5 flex items-center justify-between select-none shadow-[0_1px_6px_rgba(0,0,0,0.02)]">
+        <header className="bg-white/85 backdrop-blur-xl border-b border-gray-200/70 sticky top-0 z-30 px-3.5 py-2.5 sm:px-6 sm:py-3.5 flex items-center justify-between select-none shadow-[0_1px_6px_rgba(0,0,0,0.02)]">
           {/* Breadcrumb path (Desktop) / Section Icon & Tab Title (Mobile) */}
-          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
             {/* Mobile Header Title */}
-            <div className="md:hidden flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-xs shrink-0 ring-2 ring-orange-200/40">
-                {activeTab === 'calendar' && <Calendar className="w-4.5 h-4.5 stroke-[2.2]" />}
-                {activeTab === 'contracts' && <FileText className="w-4.5 h-4.5 stroke-[2.2]" />}
-                {activeTab === 'equipment' && <CameraIcon className="w-4.5 h-4.5 stroke-[2.2]" />}
-                {activeTab === 'revenue' && <TrendingUp className="w-4.5 h-4.5 stroke-[2.2]" />}
-                {activeTab === 'customers' && <Users className="w-4.5 h-4.5 stroke-[2.2]" />}
-                {activeTab === 'expenses' && <DollarSign className="w-4.5 h-4.5 stroke-[2.2]" />}
+            <div className="md:hidden flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-sm shrink-0 ring-2 ring-orange-200/50">
+                {activeTab === 'calendar' && <Calendar className="w-5.5 h-5.5 stroke-[2.2]" />}
+                {activeTab === 'contracts' && <FileText className="w-5.5 h-5.5 stroke-[2.2]" />}
+                {activeTab === 'equipment' && <CameraIcon className="w-5.5 h-5.5 stroke-[2.2]" />}
+                {activeTab === 'revenue' && <TrendingUp className="w-5.5 h-5.5 stroke-[2.2]" />}
+                {activeTab === 'customers' && <Users className="w-5.5 h-5.5 stroke-[2.2]" />}
+                {activeTab === 'expenses' && <DollarSign className="w-5.5 h-5.5 stroke-[2.2]" />}
               </div>
               <div className="min-w-0">
-                <h1 className="text-[14px] font-black text-gray-900 tracking-tight truncate leading-tight">
+                <h1 className="text-[15.5px] font-black text-gray-950 tracking-tight truncate leading-tight">
                   {activeTab === 'calendar' && 'Lịch máy'}
                   {activeTab === 'contracts' && 'Đơn thuê'}
                   {activeTab === 'equipment' && 'Kho thiết bị'}
@@ -1920,8 +1920,8 @@ export default function App() {
                   {activeTab === 'customers' && 'Khách hàng'}
                   {activeTab === 'expenses' && 'Khoản chi'}
                 </h1>
-                <span className="text-[9.5px] font-bold text-gray-400 block leading-tight truncate">
-                  {logoText || 'TIỆM ẢNH NHÀ CAO'}
+                <span className="text-[10px] font-bold text-gray-400 block leading-tight truncate mt-0.5">
+                  {logoText || 'TIỆM ẢNH NHÀ CAOS'}
                 </span>
               </div>
             </div>
@@ -1930,7 +1930,7 @@ export default function App() {
             <div className="hidden md:flex items-center gap-2 text-xs font-bold text-gray-500">
               <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Hệ thống</span>
               <span className="text-slate-300">›</span>
-              <span className="text-gray-900 font-black uppercase tracking-wider text-[10.5px] bg-gray-100/90 px-2 py-0.5 rounded-lg border border-gray-200/60">
+              <span className="text-gray-900 font-black uppercase tracking-wider text-[10.5px] bg-gray-100/90 px-2.5 py-1 rounded-lg border border-gray-200/60">
                 {activeTab === 'calendar' && 'Lịch máy'}
                 {activeTab === 'contracts' && 'Hợp đồng & Đơn thuê'}
                 {activeTab === 'equipment' && 'Kho thiết bị'}
@@ -1941,10 +1941,10 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* System Date Badge */}
             <div 
-              className="bg-orange-50/90 border border-orange-200/70 text-orange-950 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl flex items-center gap-1.5 text-[10px] sm:text-xs font-extrabold shrink-0 select-none shadow-3xs"
+              className="bg-orange-50 border border-orange-200/80 text-orange-950 px-2.5 sm:px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-[11px] sm:text-xs font-black shrink-0 select-none shadow-3xs"
               title="Ngày hoạt động của hệ thống"
             >
               <Calendar className="w-3.5 h-3.5 text-orange-600 shrink-0" />
@@ -1965,7 +1965,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="w-7.5 h-7.5 sm:w-8.5 sm:h-8.5 rounded-xl overflow-hidden border border-gray-200/80 bg-white flex items-center justify-center cursor-pointer shadow-3xs active:scale-95 transition-transform"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden border border-gray-200/80 bg-white flex items-center justify-center cursor-pointer shadow-3xs active:scale-95 transition-transform"
               >
                 <img 
                   src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'} 
@@ -2029,8 +2029,8 @@ export default function App() {
           </div>
         </header>
 
-        {/* MOBILE NAVIGATION BAR - Modern Apple/iOS Compact Glassmorphic Tab Bar */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-gray-200/70 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[max(4px,env(safe-area-inset-bottom,0px))] pt-1 px-1 flex justify-around items-center select-none">
+        {/* MOBILE NAVIGATION BAR - Modern Apple/iOS Balanced Glassmorphic Tab Bar */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-gray-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] pb-[max(8px,env(safe-area-inset-bottom,4px))] pt-2 px-2 flex justify-between items-center select-none">
           {[
             { id: 'calendar', label: 'Lịch máy', icon: Calendar },
             { 
@@ -2050,30 +2050,30 @@ export default function App() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`relative flex flex-col items-center justify-center flex-1 py-0.5 px-0.5 transition-all duration-150 cursor-pointer active:scale-90 ${
+                className={`relative flex flex-col items-center justify-center flex-1 py-0.5 px-0.5 transition-all duration-150 cursor-pointer active:scale-92 ${
                   isActive ? 'text-orange-600' : 'text-gray-400 active:text-gray-700'
                 }`}
               >
                 {/* Active Indicator Background Pill */}
-                <div className={`relative px-2.5 py-0.5 rounded-xl transition-all duration-150 flex items-center justify-center ${
-                  isActive 
-                    ? 'bg-orange-50 text-orange-600 shadow-3xs ring-1 ring-orange-200/60' 
-                    : 'bg-transparent text-gray-400'
-                }`}>
-                  <tab.icon className={`w-4.5 h-4.5 transition-transform duration-150 ${
-                    isActive ? 'scale-110 stroke-[2.4] text-orange-600' : 'stroke-[1.8]'
-                  }`} />
+                <div className="relative flex items-center justify-center">
+                  <div className={`p-1.5 rounded-xl transition-all duration-200 ${
+                    isActive 
+                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25 scale-105' 
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}>
+                    <tab.icon className="w-5 h-5 stroke-[2.2]" />
+                  </div>
 
                   {/* Notification Dot / Badge */}
                   {tab.badge && tab.badge > 0 ? (
-                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8px] font-black min-w-3.5 h-3.5 px-0.5 rounded-full flex items-center justify-center shadow-xs animate-pulse">
+                    <span className="absolute -top-1 -right-1.5 bg-rose-600 text-white text-[8.5px] font-black min-w-4 h-4 px-1 rounded-full flex items-center justify-center shadow-xs border-2 border-white animate-pulse">
                       {tab.badge > 9 ? '9+' : tab.badge}
                     </span>
                   ) : null}
                 </div>
 
-                <span className={`text-[9.5px] tracking-tight mt-0.5 transition-all leading-none ${
-                  isActive ? 'font-black text-orange-600' : 'font-semibold text-gray-400'
+                <span className={`text-[10px] tracking-tight mt-1 transition-all leading-none ${
+                  isActive ? 'font-black text-orange-600' : 'font-semibold text-gray-500'
                 }`}>
                   {tab.label}
                 </span>
