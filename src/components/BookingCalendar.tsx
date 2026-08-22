@@ -572,11 +572,11 @@ export default function BookingCalendar({
               </div>
             </div>
 
-            {/* Today Jump Button */}
+            {/* Today Jump Button (Mobile only) */}
             <button
               type="button"
               onClick={goToToday}
-              className="px-3 py-1.5 text-xs font-bold bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 rounded-xl transition cursor-pointer active:scale-95 flex items-center gap-1 shadow-3xs"
+              className="lg:hidden px-3 py-1.5 text-xs font-bold bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 rounded-xl transition cursor-pointer active:scale-95 flex items-center gap-1 shadow-3xs"
               title="Về ngày hôm nay"
             >
               <Sparkles className="w-3.5 h-3.5 text-orange-600" />
@@ -586,6 +586,17 @@ export default function BookingCalendar({
 
           {/* Controls: Navigator + Switcher + Prominent CTA */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
+            {/* Today Jump Button (Desktop / Web - Placed next to Tháng / Tuần) */}
+            <button
+              type="button"
+              onClick={goToToday}
+              className="hidden lg:flex px-3 py-2 text-xs font-bold bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 rounded-xl transition cursor-pointer active:scale-95 items-center gap-1.5 shadow-3xs shrink-0"
+              title="Về ngày hôm nay"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-orange-600" />
+              <span>Hôm nay</span>
+            </button>
+
             <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
               {/* View Switcher: Tháng / Tuần */}
               <div className="flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-200/80 text-xs font-bold">

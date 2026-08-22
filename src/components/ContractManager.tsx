@@ -136,43 +136,30 @@ export default function ContractManager({
     setIsExporting(true);
     setEditingCustomer(false);
     
+    // Wait for isExporting state to remove edit buttons from DOM
+    await new Promise(resolve => setTimeout(resolve, 250));
+    
+    // Temporarily override inline styles to neutralize margin offset
+    // caused by mx-auto on large screens (web), then restore after capture
+    const prevMarginLeft = element.style.marginLeft;
+    const prevMarginRight = element.style.marginRight;
+    const prevWidth = element.style.width;
+    const prevMinWidth = element.style.minWidth;
+    const prevMaxWidth = element.style.maxWidth;
+    
+    element.style.marginLeft = '0';
+    element.style.marginRight = '0';
+    element.style.width = '420px';
+    element.style.minWidth = '420px';
+    element.style.maxWidth = '420px';
+    
     try {
-      // Create off-screen clone with exact fixed 420px width and clean symmetric padding
-      const clone = element.cloneNode(true) as HTMLElement;
-      
-      // Remove any non-export elements
-      clone.querySelectorAll('[data-no-export="true"]').forEach(el => el.remove());
-      
-      // Reset any margins or inherited transforms that could cause skewing
-      clone.style.position = 'fixed';
-      clone.style.left = '-99999px';
-      clone.style.top = '0';
-      clone.style.width = '420px';
-      clone.style.maxWidth = '420px';
-      clone.style.minWidth = '420px';
-      clone.style.margin = '0';
-      clone.style.marginLeft = '0';
-      clone.style.marginRight = '0';
-      clone.style.padding = '20px';
-      clone.style.boxSizing = 'border-box';
-      clone.style.backgroundColor = '#ffffff';
-      clone.style.borderRadius = '0';
-      clone.style.zIndex = '-9999';
-      clone.style.transform = 'none';
-      
-      document.body.appendChild(clone);
-      
-      // Allow DOM rendering cycle to compute fonts and styles
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      const dataUrl = await toPng(clone, {
+      const dataUrl = await toPng(element, {
         backgroundColor: '#ffffff',
         cacheBust: true,
         pixelRatio: 2,
         width: 420,
       });
-      
-      document.body.removeChild(clone);
       
       const link = document.createElement('a');
       link.download = filename;
@@ -182,6 +169,12 @@ export default function ContractManager({
       console.error('Lỗi khi xuất ảnh:', err);
       setCustomAlertMessage('Không thể tạo file ảnh. Vui lòng thử lại!');
     } finally {
+      // Restore original styles
+      element.style.marginLeft = prevMarginLeft;
+      element.style.marginRight = prevMarginRight;
+      element.style.width = prevWidth;
+      element.style.minWidth = prevMinWidth;
+      element.style.maxWidth = prevMaxWidth;
       setIsExporting(false);
     }
   };
