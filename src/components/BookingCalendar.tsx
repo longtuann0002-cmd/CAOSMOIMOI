@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract, BankConfig, Customer } from '../types';
 import MoneyInput from './MoneyInput';
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText } from 'lucide-react';
+import { toPng } from 'html-to-image';
 import { getCameraRateForDuration, checkBookingConflict } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
 import { formatDMY } from '../utils/dateUtils';
@@ -44,6 +45,18 @@ const getCameraColorProps = (shortName: string) => {
     bgClass: 'bg-orange-50/90 text-orange-800 hover:bg-orange-100/90',
     tagColor: 'bg-orange-100 text-orange-805'
   };
+};
+
+const renderDocTypeLabel = (docType: string) => {
+  switch (docType) {
+    case 'CCCD': return 'Giữ căn cước (CCCD)';
+    case 'CCCD_And_1M': return 'Giữ CCCD + 1 triệu';
+    case 'GPLX': return 'Giữ bằng lái (GPLX)';
+    case 'Passport': return 'Giữ hộ chiếu (Passport)';
+    case 'CashDeposit': return 'Đặt cọc tiền mặt';
+    case 'Other': return 'Xe máy / Tài sản khác';
+    default: return docType;
+  }
 };
 
 interface BookingCalendarProps {
@@ -398,8 +411,58 @@ export default function BookingCalendar({
     }
   };
 
-  const handleQuickBookingSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const [quickReceiptContract, setQuickReceiptContract] = useState<RentalContract | null>(null);
+  const [isExportingReceipt, setIsExportingReceipt] = useState<boolean>(false);
+
+  const handleExportReceiptImage = async (elementId: string, filename: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      setCustomAlertMessage('Không tìm thấy dữ liệu để xuất ảnh!');
+      return;
+    }
+    
+    setIsExportingReceipt(true);
+    await new Promise(resolve => setTimeout(resolve, 250));
+    
+    const prevMarginLeft = element.style.marginLeft;
+    const prevMarginRight = element.style.marginRight;
+    const prevWidth = element.style.width;
+    const prevMinWidth = element.style.minWidth;
+    const prevMaxWidth = element.style.maxWidth;
+    
+    element.style.marginLeft = '0';
+    element.style.marginRight = '0';
+    element.style.width = '420px';
+    element.style.minWidth = '420px';
+    element.style.maxWidth = '420px';
+    
+    try {
+      const dataUrl = await toPng(element, {
+        backgroundColor: '#ffffff',
+        cacheBust: true,
+        pixelRatio: 2,
+        width: 420,
+      });
+      
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Lỗi khi xuất ảnh:', err);
+      setCustomAlertMessage('Không thể tạo file ảnh. Vui lòng thử lại!');
+    } finally {
+      element.style.marginLeft = prevMarginLeft;
+      element.style.marginRight = prevMarginRight;
+      element.style.width = prevWidth;
+      element.style.minWidth = prevMinWidth;
+      element.style.maxWidth = prevMaxWidth;
+      setIsExportingReceipt(false);
+    }
+  };
+
+  const handleQuickBookingSubmit = (e?: React.FormEvent, exportReceiptAfterSave = false) => {
+    if (e) e.preventDefault();
     if (formData.selectedCameraIds.length === 0) {
       setCustomAlertMessage('Vui lòng chọn ít nhất một thiết bị!');
       return;
@@ -468,6 +531,11 @@ export default function BookingCalendar({
 
     onAddContract(newContract);
     setShowAddQuickModal(false);
+
+    if (exportReceiptAfterSave) {
+      setQuickReceiptContract(newContract);
+    }
+
     // Reset form
     setFormData({
       customerId: '',
@@ -1468,22 +1536,184 @@ export default function BookingCalendar({
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex flex-col sm:flex-row justify-end gap-2.5 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowAddQuickModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                  className="px-4 py-2 text-sm font-medium text-gray-650 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer text-center order-3 sm:order-1"
                 >
                   Hủy bỏ
                 </button>
                 <button
+                  type="button"
+                  onClick={() => handleQuickBookingSubmit(undefined, true)}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer order-2 sm:order-2"
+                >
+                  <ImageIcon className="w-4 h-4" /> Lưu & Xuất hóa đơn nhanh
+                </button>
+                <button
                   type="submit"
-                  className="bg-orange-600 text-white px-5 py-2 rounded-lg hover:bg-orange-700 transition-colors font-medium text-sm cursor-pointer"
+                  className="bg-orange-600 text-white font-bold px-5 py-2 rounded-xl text-sm hover:bg-orange-700 transition-all cursor-pointer text-center order-1 sm:order-3"
                 >
                   Xác nhận đặt lịch
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Quick Invoice Receipt Modal for BookingCalendar */}
+      {quickReceiptContract && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-[480px] w-full overflow-hidden self-center animate-scale-up border border-gray-100 flex flex-col max-h-[92vh] sm:max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-orange-600 text-white px-4 sm:px-5 py-3 sm:py-3.5 flex justify-between items-center shrink-0">
+              <div className="min-w-0 flex-1 pr-2">
+                <h3 className="font-extrabold text-sm sm:text-base flex items-center gap-1.5 truncate">
+                  <FileText className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" /> <span className="truncate">Hợp đồng {quickReceiptContract.contractCode}</span>
+                </h3>
+                <p className="text-[10px] sm:text-xs text-white/80 mt-0.5 truncate">Lập lúc: {new Date(quickReceiptContract.createdAt).toLocaleString('vi-VN')}</p>
+              </div>
+              <button
+                onClick={() => setQuickReceiptContract(null)}
+                className="text-white hover:text-gray-200 text-xl sm:text-2xl font-bold p-1.5 cursor-pointer leading-none shrink-0"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-3 sm:p-4 space-y-3.5 flex-1 overflow-y-auto">
+              <div id="calendar-contract-receipt-capture" className="bg-white p-3.5 sm:p-4 rounded-2xl space-y-3 font-sans text-gray-900 w-full box-border">
+                {/* Visual Invoice Title for image export */}
+                <div className="text-center space-y-1 border-b border-gray-200 pb-2.5">
+                  <h3 className="text-base sm:text-lg font-black text-gray-900 uppercase tracking-wide">
+                    HÓA ĐƠN BÀN GIAO & THANH TOÁN
+                  </h3>
+                  <div className="flex items-center justify-center gap-2 text-[10.5px] sm:text-[11px] text-gray-500 font-mono whitespace-nowrap">
+                    <span>Mã HĐ: <strong className="text-orange-600 font-bold">{quickReceiptContract.contractCode}</strong></span>
+                    <span className="text-gray-300 font-normal">•</span>
+                    <span>Ngày lập: {new Date(quickReceiptContract.createdAt).toLocaleString('vi-VN')}</span>
+                  </div>
+                </div>
+
+                {/* Section 1: Customer details & Timings */}
+                <div className="bg-slate-50/80 p-3.5 border border-slate-200/80 rounded-xl space-y-3">
+                  <div className="space-y-1 min-w-0">
+                    <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
+                    <p className="font-black text-gray-900 text-sm sm:text-base">{quickReceiptContract.customerName}</p>
+                    <p className="text-xs text-gray-600 font-mono font-bold">SĐT: {quickReceiptContract.customerPhone}</p>
+                    <div className="pt-0.5">
+                      <span className="text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md inline-block">
+                        Thế chấp: {renderDocTypeLabel(quickReceiptContract.customerDocType)}
+                      </span>
+                    </div>
+                    {quickReceiptContract.customerDocNote && (
+                      <p className="text-xs text-amber-950 bg-amber-50 border border-amber-200 p-2 rounded-lg font-mono leading-relaxed mt-1">
+                        {quickReceiptContract.customerDocNote}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1 pt-2.5 border-t border-gray-200">
+                    <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">THÔNG TIN THỜI HẠN</h4>
+                    <div className="space-y-1.5 text-xs sm:text-[13px]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-gray-500 font-medium whitespace-nowrap">Bắt đầu:</span>
+                        <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">{formatDMY(quickReceiptContract.startDate)}</strong>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-gray-500 font-medium whitespace-nowrap">Hạn trả máy:</span>
+                        <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">
+                          {quickReceiptContract.is6Hours ? `Gói 6h (Trả ${quickReceiptContract.returnTime || '18:00'})` : formatDMY(quickReceiptContract.endDate)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rental Items Detail - ONLY item name, no price */}
+                <div className="space-y-1.5">
+                  <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">DANH SÁCH THIẾT BỊ THUÊ</h4>
+                  <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
+                    {quickReceiptContract.items.map((i, idx) => (
+                      <div key={idx} className="p-2.5 px-3.5 flex items-center text-xs sm:text-sm bg-white">
+                        <div className="font-bold text-gray-900 truncate flex-1 min-w-0 flex items-center gap-2">
+                          <span className="text-orange-500 text-xs">📷</span>
+                          <span className="truncate">{i.cameraName}</span>
+                          {i.quantity > 1 && (
+                            <span className="text-gray-500 font-mono text-[11px] font-medium">({i.quantity} chiếc)</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Financial Summary Block */}
+                <div className="bg-gradient-to-br from-orange-50/60 to-amber-50/40 border border-orange-200/80 p-3.5 sm:p-4 rounded-xl space-y-2.5">
+                  {quickReceiptContract.discountPercent ? (
+                    <div className="flex justify-between items-center text-xs sm:text-sm">
+                      <span className="text-gray-600 font-medium">Giảm giá tự động:</span>
+                      <span className="font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded text-xs shrink-0">-{quickReceiptContract.discountPercent}%</span>
+                    </div>
+                  ) : null}
+
+                  <div className="flex justify-between items-center text-xs sm:text-sm gap-2">
+                    <span className="text-gray-700 font-semibold">Tổng tiền thuê dự kiến:</span>
+                    <span className="font-black text-gray-900 text-sm sm:text-base font-mono shrink-0">{quickReceiptContract.totalPrice.toLocaleString()}đ</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
+                    <span>Trị giá cọc thế chấp (VNĐ cọc):</span>
+                    <span className="font-bold text-gray-800 font-mono shrink-0">{quickReceiptContract.depositAmount.toLocaleString()}đ</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
+                    <span className="font-medium text-amber-900">Khách cọc đặt giữ máy trước ({quickReceiptContract.totalPrice > 0 ? Math.round((quickReceiptContract.paidAmount / quickReceiptContract.totalPrice) * 100) : 0}%):</span>
+                    <span className="font-bold text-amber-700 font-mono shrink-0">{quickReceiptContract.paidAmount.toLocaleString()}đ</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
+                    <span>Thực tế khách đã thanh toán:</span>
+                    <span className="font-bold text-gray-400 font-mono shrink-0">0đ <span className="text-[10px] font-normal">(Chưa cọc)</span></span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-300 pt-2 font-bold text-gray-900 gap-2">
+                    <span>Còn lại cần thanh toán khi nhận máy:</span>
+                    <span className="text-rose-600 text-sm sm:text-base font-black font-mono shrink-0">{(quickReceiptContract.totalPrice - quickReceiptContract.paidAmount).toLocaleString()}đ</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Print Simulate buttons - Centered */}
+            <div className="bg-gray-50 px-4 sm:px-5 py-3.5 flex flex-wrap gap-2.5 justify-center items-center border-t border-gray-150 shrink-0">
+              <button
+                type="button"
+                className="bg-white hover:bg-gray-100 border border-gray-250 text-gray-750 font-bold text-xs px-3.5 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs min-h-[38px]"
+                onClick={() => setCustomAlertMessage(`Đang chuẩn bị in hợp đồng ${quickReceiptContract.contractCode}... Vui lòng kết nối máy in để in bản cứng kèm chữ ký.`)}
+              >
+                In Hợp Đồng (Bản cứng)
+              </button>
+
+              <button
+                type="button"
+                disabled={isExportingReceipt}
+                onClick={() => handleExportReceiptImage('calendar-contract-receipt-capture', `${quickReceiptContract.contractCode}_thong_tin_thue.png`)}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs border border-transparent min-h-[38px]"
+              >
+                <ImageIcon className="w-4 h-4" /> {isExportingReceipt ? 'Đang tạo...' : 'Xuất ảnh Hợp đồng'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setQuickReceiptContract(null)}
+                className="bg-gray-800 text-white hover:bg-gray-900 border border-transparent font-bold text-xs px-5 py-2 rounded-xl transition-colors cursor-pointer text-center min-h-[38px]"
+              >
+                Đóng
+              </button>
+            </div>
           </div>
         </div>,
         document.body

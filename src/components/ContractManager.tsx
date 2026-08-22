@@ -540,8 +540,8 @@ export default function ContractManager({
     }
   }, [calculatedTotal, prevCalculatedTotal, newContractForm.paidAmount]);
 
-  const handleCreateContract = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateContract = (e?: React.FormEvent, exportReceiptAfterSave = false) => {
+    if (e) e.preventDefault();
     if (newContractForm.selectedCameraIds.length === 0) {
       setCustomAlertMessage('Vui lòng chọn ít nhất một máy ảnh/ống kính!');
       return;
@@ -600,6 +600,12 @@ export default function ContractManager({
 
     onAddContract(contract);
     setShowAddModal(false);
+    
+    // If user clicked quick invoice export, open the receipt modal right away
+    if (exportReceiptAfterSave) {
+      setSelectedContract(contract);
+    }
+
     // Reset form
     setNewContractForm({
       customerName: '',
@@ -1233,11 +1239,11 @@ export default function ContractManager({
       {/* Contract Detail & Status Transition Modal */}
       {selectedContract && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] overflow-y-auto animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden self-center animate-scale-up border border-gray-100 flex flex-col max-h-[92vh] sm:max-h-[90vh]">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-[480px] w-full overflow-hidden self-center animate-scale-up border border-gray-100 flex flex-col max-h-[92vh] sm:max-h-[90vh]">
             {/* Modal Header */}
-            <div className="bg-orange-600 text-white px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0">
+            <div className="bg-orange-600 text-white px-4 sm:px-5 py-3 sm:py-3.5 flex justify-between items-center shrink-0">
               <div className="min-w-0 flex-1 pr-2">
-                <h3 className="font-extrabold text-sm sm:text-lg flex items-center gap-1.5 truncate">
+                <h3 className="font-extrabold text-sm sm:text-base flex items-center gap-1.5 truncate">
                   <FileText className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" /> <span className="truncate">Hợp đồng {selectedContract.contractCode}</span>
                 </h3>
                 <p className="text-[10px] sm:text-xs text-white/80 mt-0.5 truncate">Lập lúc: {new Date(selectedContract.createdAt).toLocaleString('vi-VN')}</p>
@@ -1251,7 +1257,7 @@ export default function ContractManager({
             </div>
 
             {/* Modal Content */}
-            <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-6 flex-1 overflow-y-auto">
+            <div className="p-3 sm:p-4 space-y-3.5 flex-1 overflow-y-auto">
               {/* Overdue Alert banner */}
               {selectedContract.status === 'Overdue' && (
                 <div className="bg-rose-50 border border-rose-200 p-3 sm:p-3.5 rounded-xl flex items-start gap-2 text-rose-800">
@@ -1265,7 +1271,7 @@ export default function ContractManager({
                 </div>
               )}
 
-              <div id="contract-receipt-capture" className="bg-white p-4 sm:p-5 rounded-2xl space-y-3.5 font-sans text-gray-900 w-full max-w-[420px] mx-auto box-border">
+              <div id="contract-receipt-capture" className="bg-white p-3.5 sm:p-4 rounded-2xl space-y-3 font-sans text-gray-900 w-full box-border">
                 {/* Visual Invoice Title for image export */}
                 <div className="text-center space-y-1 border-b border-gray-200 pb-2.5">
                   <h3 className="text-base sm:text-lg font-black text-gray-900 uppercase tracking-wide">
@@ -1425,15 +1431,18 @@ export default function ContractManager({
                   </div>
                 </div>
 
-                {/* Rental Items Detail */}
+                {/* Rental Items Detail - ONLY item name, no price */}
                 <div className="space-y-1.5">
                   <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">DANH SÁCH THIẾT BỊ THUÊ</h4>
                   <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
                     {selectedContract.items.map((i, idx) => (
-                      <div key={idx} className="p-2.5 flex justify-between items-center text-xs sm:text-sm gap-2">
-                        <div className="font-bold text-gray-900 truncate flex-1 min-w-0">{i.cameraName}</div>
-                        <div className="text-right font-black text-gray-800 font-mono shrink-0">
-                          {Math.round(i.dailyRate).toLocaleString()}đ <span className="text-[10px] text-gray-400 font-normal font-sans">{selectedContract.is6Hours ? '/6h' : '/ngày'}</span>
+                      <div key={idx} className="p-2.5 px-3.5 flex items-center text-xs sm:text-sm bg-white">
+                        <div className="font-bold text-gray-900 truncate flex-1 min-w-0 flex items-center gap-2">
+                          <span className="text-orange-500 text-xs">📷</span>
+                          <span className="truncate">{i.cameraName}</span>
+                          {i.quantity > 1 && (
+                            <span className="text-gray-500 font-mono text-[11px] font-medium">({i.quantity} chiếc)</span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1490,11 +1499,13 @@ export default function ContractManager({
 
               </div>
 
-              {/* Status Update Quick Controls */}
-              <div className="border-t border-gray-150 pt-4 space-y-3 shrink-0">
-                <h4 className="text-[10px] sm:text-xs uppercase font-extrabold text-gray-400 tracking-wider">VẬN HÀNH TRẠNG THÁI HỢP ĐỒNG & CỌC GIỮ MÁY</h4>
+              {/* Status Update Quick Controls - Centered */}
+              <div className="border-t border-gray-150 pt-3.5 space-y-2.5 shrink-0 text-center">
+                <h4 className="text-[10px] sm:text-xs uppercase font-extrabold text-gray-400 tracking-wider text-center">
+                  VẬN HÀNH TRẠNG THÁI HỢP ĐỒNG & CỌC GIỮ MÁY
+                </h4>
                 
-                <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
+                <div className="flex flex-wrap gap-2 justify-center items-center">
                   {selectedContract.status === 'Pending' && (
                     <>
                       <button
@@ -1507,7 +1518,7 @@ export default function ContractManager({
                             paidAmount: deposit50
                           });
                         }}
-                        className="bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2.5 sm:py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0"
+                        className="bg-amber-600 hover:bg-amber-700 text-white font-black px-3.5 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0"
                         title="Xác nhận khách đã chuyển khoản 50% tiền cọc"
                       >
                         <CheckCircle2 className="w-4 h-4 text-white" />
@@ -1523,7 +1534,7 @@ export default function ContractManager({
                             paidAmount: 0
                           });
                         }}
-                        className="bg-amber-50 hover:bg-amber-100 text-amber-850 border border-amber-300 font-bold px-3 py-2.5 sm:py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                        className="bg-amber-50 hover:bg-amber-100 text-amber-850 border border-amber-300 font-bold px-3 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                         title="Đánh dấu khách chưa chuyển tiền cọc 50%"
                       >
                         <Clock className="w-4 h-4 text-amber-700" />
@@ -1535,7 +1546,7 @@ export default function ContractManager({
                           onUpdateContractStatus(selectedContract.id, 'Active', 'Bàn giao thiết bị và chụp ảnh lưu hồ sơ cọc.');
                           setSelectedContract(null);
                         }}
-                        className="bg-blue-600 text-white font-bold px-4 py-2.5 sm:py-2 rounded-xl text-xs hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                        className="bg-blue-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                       >
                         <Check className="w-4 h-4 text-white" /> Bàn giao máy (Bắt đầu thuê)
                       </button>
@@ -1545,7 +1556,7 @@ export default function ContractManager({
                           onUpdateContractStatus(selectedContract.id, 'Cancelled', 'Khách hàng hủy đặt lịch do thay đổi kế hoạch.');
                           setSelectedContract(null);
                         }}
-                        className="bg-gray-100 border border-gray-200 text-gray-750 font-bold px-4 py-2.5 sm:py-2 rounded-xl text-xs hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                        className="bg-gray-100 border border-gray-200 text-gray-750 font-bold px-3.5 py-2 rounded-xl text-xs hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                       >
                         <X className="w-4 h-4 text-gray-450" /> Hủy đặt lịch (Cancel)
                       </button>
@@ -1559,7 +1570,7 @@ export default function ContractManager({
                           onUpdateContractStatus(selectedContract.id, 'Completed', 'Mọi thiết bị được thu hồi đầy đủ và thanh toán tất toán toàn bộ.', selectedContract.totalPrice);
                           setSelectedContract(null);
                         }}
-                        className="bg-emerald-600 text-white font-bold px-4 py-2.5 sm:py-2 rounded-xl text-xs hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                        className="bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-xs hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                       >
                         <Check className="w-4 h-4 text-white" /> Nhận máy & Tất toán xong
                       </button>
@@ -1568,7 +1579,7 @@ export default function ContractManager({
                           onUpdateContractStatus(selectedContract.id, 'Overdue', 'Hợp đồng trễ hạn chưa trả, liên hệ chưa phản hồi.');
                           setSelectedContract(null);
                         }}
-                        className="bg-rose-100 text-rose-700 font-bold px-4 py-2.5 sm:py-2 rounded-xl text-xs hover:bg-rose-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                        className="bg-rose-100 text-rose-700 font-bold px-4 py-2 rounded-xl text-xs hover:bg-rose-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                       >
                         <AlertCircle className="w-4 h-4 text-rose-500" /> Báo quá hạn (Overdue)
                       </button>
@@ -1581,20 +1592,20 @@ export default function ContractManager({
                         onUpdateContractStatus(selectedContract.id, 'Completed', 'Đã thu hồi thành công sau thời gian trễ hạn. Thu thêm phụ thu.', selectedContract.totalPrice);
                         setSelectedContract(null);
                       }}
-                      className="bg-emerald-600 text-white font-bold px-4 py-2.5 sm:py-2 rounded-xl text-xs hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                      className="bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-xs hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                     >
                       <Check className="w-4 h-4 text-white" /> Tất toán nhận lại máy (Đã thu hồi)
                     </button>
                   )}
 
                   {selectedContract.status === 'Completed' && (
-                    <p className="text-gray-400 text-xs italic flex items-center gap-2 py-1">
+                    <p className="text-gray-400 text-xs italic flex items-center justify-center gap-2 py-1">
                       <Check className="w-4 h-4 text-emerald-500 shrink-0" /> Hợp đồng đã hoàn thành chu trình thanh toán & thu hồi thiết bị.
                     </p>
                   )}
 
                   {selectedContract.status === 'Cancelled' && (
-                    <p className="text-gray-400 text-xs italic flex items-center gap-2 py-1">
+                    <p className="text-gray-400 text-xs italic flex items-center justify-center gap-2 py-1">
                       <X className="w-4 h-4 text-gray-450 shrink-0" /> Hợp đồng này đã bị hủy bỏ.
                     </p>
                   )}
@@ -1602,42 +1613,41 @@ export default function ContractManager({
               </div>
             </div>
 
-            {/* Print Simulate buttons */}
-            <div className="bg-gray-50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center border-t border-gray-150 shrink-0">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            {/* Print Simulate buttons - Centered */}
+            <div className="bg-gray-50 px-4 sm:px-5 py-3.5 flex flex-wrap gap-2.5 justify-center items-center border-t border-gray-150 shrink-0">
+              <button
+                type="button"
+                className="bg-white hover:bg-gray-100 border border-gray-250 text-gray-750 font-bold text-xs px-3.5 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs min-h-[38px]"
+                onClick={() => setCustomAlertMessage(`Đang chuẩn bị in hợp đồng ${selectedContract.contractCode}... Vui lòng kết nối máy in để in bản cứng kèm chữ ký.`)}
+              >
+                In Hợp Đồng (Bản cứng)
+              </button>
+
+              <button
+                type="button"
+                disabled={isExporting}
+                onClick={() => handleExportImage('contract-receipt-capture', `${selectedContract.contractCode}_thong_tin_thue.png`)}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs border border-transparent min-h-[38px]"
+              >
+                <ImageIcon className="w-4 h-4" /> {isExporting ? 'Đang tạo...' : 'Xuất ảnh Hợp đồng'}
+              </button>
+
+              {onDeleteContract && (
                 <button
                   type="button"
-                  className="bg-white hover:bg-gray-100 border border-gray-250 text-gray-750 font-bold text-xs px-3 py-2.5 sm:py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs min-h-[40px]"
-                  onClick={() => setCustomAlertMessage(`Đang chuẩn bị in hợp đồng ${selectedContract.contractCode}... Vui lòng kết nối máy in để in bản cứng kèm chữ ký.`)}
+                  onClick={() => {
+                    setDeleteConfirmId(selectedContract.id);
+                  }}
+                  className="text-red-600 hover:text-red-850 hover:bg-red-500/10 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer border border-transparent hover:border-red-100 px-3.5 py-2 rounded-xl transition-all min-h-[38px]"
                 >
-                  In Hợp Đồng (Bản cứng)
+                  Xóa Hợp Đồng
                 </button>
+              )}
 
-                <button
-                  type="button"
-                  disabled={isExporting}
-                  onClick={() => handleExportImage('contract-receipt-capture', `${selectedContract.contractCode}_thong_tin_thue.png`)}
-                  className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-bold text-xs px-3 py-2.5 sm:py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs border border-transparent min-h-[40px]"
-                >
-                  <ImageIcon className="w-4 h-4" /> {isExporting ? 'Đang tạo...' : 'Xuất ảnh Hợp đồng'}
-                </button>
-
-                {onDeleteContract && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDeleteConfirmId(selectedContract.id);
-                    }}
-                    className="text-red-600 hover:text-red-850 hover:bg-red-500/10 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer border border-transparent hover:border-red-100 px-3 py-2 sm:py-1.5 rounded-xl transition-all min-h-[40px]"
-                  >
-                    Xóa Hợp Đồng
-                  </button>
-                )}
-              </div>
               <button
                 type="button"
                 onClick={() => setSelectedContract(null)}
-                className="bg-gray-800 text-white hover:bg-gray-900 border border-transparent font-bold text-xs px-5 py-2.5 sm:py-2 rounded-xl transition-colors cursor-pointer text-center min-h-[40px]"
+                className="bg-gray-800 text-white hover:bg-gray-900 border border-transparent font-bold text-xs px-5 py-2 rounded-xl transition-colors cursor-pointer text-center min-h-[38px]"
               >
                 Đóng
               </button>
@@ -2104,17 +2114,24 @@ export default function ContractManager({
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex flex-col sm:flex-row justify-end gap-2.5 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-650 hover:bg-gray-105 rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 text-sm font-medium text-gray-650 hover:bg-gray-105 rounded-xl transition-colors cursor-pointer text-center order-3 sm:order-1"
                 >
                   Hủy bỏ
                 </button>
                 <button
+                  type="button"
+                  onClick={() => handleCreateContract(undefined, true)}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer order-2 sm:order-2"
+                >
+                  <ImageIcon className="w-4 h-4" /> Lưu & Xuất hóa đơn nhanh
+                </button>
+                <button
                   type="submit"
-                  className="bg-orange-600 text-white font-medium px-5 py-2 rounded-xl text-sm hover:bg-orange-700 transition-all cursor-pointer"
+                  className="bg-orange-600 text-white font-bold px-5 py-2 rounded-xl text-sm hover:bg-orange-700 transition-all cursor-pointer text-center order-1 sm:order-3"
                 >
                   Tạo hợp đồng
                 </button>
