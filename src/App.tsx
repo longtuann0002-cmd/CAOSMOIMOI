@@ -1898,30 +1898,63 @@ export default function App() {
       <div className="flex-grow flex flex-col min-w-0 h-screen overflow-hidden">
         
         {/* TOP PATH HEADER BAR */}
-        <header className="bg-white/85 backdrop-blur-md border-b border-gray-150/75 sticky top-0 z-20 px-3 py-2 md:px-6 md:py-3.5 flex items-center justify-between select-none">
-          
-          {/* Breadcrumb path */}
-          <div className="flex items-center gap-1 sm:gap-2 text-xs text-gray-500 font-bold">
-            <span className="hidden sm:inline text-slate-400 font-bold uppercase tracking-wider text-[10px]">Hệ thống vận hành</span>
-            <span className="hidden sm:inline text-slate-300">›</span>
-            <span className="text-slate-800 font-black uppercase tracking-wider text-[11px] sm:text-[10px] sm:text-slate-700">
-              {activeTab === 'calendar' && 'Lịch máy'}
-              {activeTab === 'contracts' && 'Đơn thuê'}
-              {activeTab === 'equipment' && 'Thiết bị'}
-              {activeTab === 'revenue' && 'Doanh thu'}
-              {activeTab === 'customers' && 'Khách hàng'}
-              {activeTab === 'expenses' && 'Khoản chi'}
-            </span>
+        <header className="bg-white/85 backdrop-blur-xl border-b border-gray-200/70 sticky top-0 z-30 px-3.5 py-2.5 sm:px-6 sm:py-3.5 flex items-center justify-between select-none shadow-[0_1px_6px_rgba(0,0,0,0.02)]">
+          {/* Breadcrumb path (Desktop) / App Brand & Current Tab Title (Mobile) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            {/* Mobile Brand Pill */}
+            <div className="md:hidden flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-200/80 p-1 flex items-center justify-center shrink-0 shadow-3xs">
+                <img 
+                  src={logoBase64 || '/logocaos.png'} 
+                  alt="Logo" 
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 leading-tight">
+                  <span className="text-[13px] font-black text-gray-900 tracking-tight truncate">
+                    {activeTab === 'calendar' && 'Lịch máy'}
+                    {activeTab === 'contracts' && 'Đơn thuê'}
+                    {activeTab === 'equipment' && 'Kho thiết bị'}
+                    {activeTab === 'revenue' && 'Doanh thu'}
+                    {activeTab === 'customers' && 'Khách hàng'}
+                    {activeTab === 'expenses' && 'Khoản chi'}
+                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0"></span>
+                </div>
+                <span className="text-[9.5px] font-bold text-orange-600 truncate block leading-tight tracking-wide uppercase font-display">
+                  {logoText || 'TIỆM ẢNH NHÀ CAO'}
+                </span>
+              </div>
+            </div>
+
+            {/* Desktop Breadcrumb */}
+            <div className="hidden md:flex items-center gap-1.5 text-xs text-gray-500 font-bold">
+              <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Hệ thống vận hành</span>
+              <span className="text-slate-300">›</span>
+              <span className="text-slate-800 font-black uppercase tracking-wider text-[10px]">
+                {activeTab === 'calendar' && 'Lịch máy'}
+                {activeTab === 'contracts' && 'Đơn thuê'}
+                {activeTab === 'equipment' && 'Kho thiết bị'}
+                {activeTab === 'revenue' && 'Doanh thu'}
+                {activeTab === 'customers' && 'Khách hàng'}
+                {activeTab === 'expenses' && 'Khoản chi'}
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Notification & User Panel for both Mobile & Desktop */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* System Date Badge */}
             <div 
-              className="bg-orange-50/95 border border-orange-105/80 text-orange-950 px-2.5 sm:px-3.5 py-1 rounded-full flex items-center gap-1.5 text-[10px] sm:text-xs font-extrabold shrink-0 select-none shadow-3xs"
+              className="bg-orange-50/90 border border-orange-200/70 text-orange-950 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl flex items-center gap-1.5 text-[10px] sm:text-xs font-extrabold shrink-0 select-none shadow-3xs"
               title="Ngày hoạt động của hệ thống"
             >
-              <Calendar className="w-3.5 h-3.5 text-orange-600" />
-              <span>Hệ thống: <span className="font-mono font-black">{formatDMY(systemDate)}</span></span>
+              <Calendar className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+              <span className="hidden sm:inline">Hệ thống:</span>
+              <span className="font-mono font-black">{formatDMY(systemDate)}</span>
             </div>
             
             <NotificationCenter
@@ -1937,7 +1970,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden border border-gray-200 bg-white flex items-center justify-center cursor-pointer"
+                className="w-7.5 h-7.5 sm:w-8.5 sm:h-8.5 rounded-xl overflow-hidden border border-gray-200/80 bg-white flex items-center justify-center cursor-pointer shadow-3xs active:scale-95 transition-transform"
               >
                 <img 
                   src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'} 
@@ -2001,88 +2034,66 @@ export default function App() {
           </div>
         </header>
 
-        {/* MOBILE NAVIGATION BAR - iOS Style with safe area padding */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white/95 backdrop-blur-xl border-t border-gray-200/80 shadow-[0_-4px_24px_rgba(0,0,0,0.04)] pb-[calc(11px+env(safe-area-inset-bottom))] pt-2 px-1 flex justify-around items-center select-none">
-          {/* Lịch máy */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('calendar')}
-            className={`flex flex-col items-center justify-center flex-1 py-1.5 transition-all text-[10px] font-extrabold ${
-              activeTab === 'calendar' ? 'text-orange-600 scale-102' : 'text-gray-400 active:text-gray-600'
-            }`}
-          >
-            <Calendar className={`w-5 h-5 mb-1 transition-transform ${activeTab === 'calendar' ? 'text-orange-600 scale-110' : 'text-gray-400'}`} />
-            <span>Lịch máy</span>
-          </button>
-          
-          {/* Đơn thuê */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('contracts')}
-            className={`flex flex-col items-center justify-center flex-1 py-1.5 transition-all text-[10px] font-extrabold ${
-              activeTab === 'contracts' ? 'text-orange-600 scale-102' : 'text-gray-400 active:text-gray-600'
-            }`}
-          >
-            <FileText className={`w-5 h-5 mb-1 transition-transform ${activeTab === 'contracts' ? 'text-orange-600 scale-110' : 'text-gray-400'}`} />
-            <span>Đơn thuê</span>
-          </button>
+        {/* MOBILE NAVIGATION BAR - Modern Apple/iOS Floating Glassmorphic Tab Bar */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/92 backdrop-blur-2xl border-t border-gray-200/70 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] pb-[calc(10px+env(safe-area-inset-bottom,8px))] pt-1.5 px-1.5 flex justify-around items-center select-none">
+          {[
+            { id: 'calendar', label: 'Lịch máy', icon: Calendar },
+            { 
+              id: 'contracts', 
+              label: 'Đơn thuê', 
+              icon: FileText, 
+              badge: contracts.filter(c => c.status === 'Pending' || c.status === 'Overdue').length 
+            },
+            { id: 'equipment', label: 'Thiết bị', icon: CameraIcon },
+            { id: 'customers', label: 'Khách', icon: Users },
+            { id: 'revenue', label: 'Doanh thu', icon: TrendingUp },
+            { id: 'expenses', label: 'Khoản chi', icon: DollarSign },
+          ].map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`relative flex flex-col items-center justify-center flex-1 py-1 px-0.5 transition-all duration-200 cursor-pointer active:scale-90 ${
+                  isActive ? 'text-orange-600' : 'text-gray-400 active:text-gray-700'
+                }`}
+              >
+                {/* Active Indicator Background Pill */}
+                <div className={`relative px-3 py-1 rounded-2xl transition-all duration-200 flex items-center justify-center ${
+                  isActive 
+                    ? 'bg-orange-50 text-orange-600 shadow-3xs ring-1 ring-orange-200/60' 
+                    : 'bg-transparent text-gray-400'
+                }`}>
+                  <tab.icon className={`w-5 h-5 transition-transform duration-200 ${
+                    isActive ? 'scale-110 stroke-[2.4] text-orange-600' : 'stroke-[1.8]'
+                  }`} />
 
-          {/* Thiết bị */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('equipment')}
-            className={`flex flex-col items-center justify-center flex-1 py-1.5 transition-all text-[10px] font-extrabold ${
-              activeTab === 'equipment' ? 'text-orange-600 scale-102' : 'text-gray-400 active:text-gray-600'
-            }`}
-          >
-            <CameraIcon className={`w-5 h-5 mb-1 transition-transform ${activeTab === 'equipment' ? 'text-orange-600 scale-110' : 'text-gray-400'}`} />
-            <span>Thiết bị</span>
-          </button>
+                  {/* Notification Dot / Badge */}
+                  {tab.badge && tab.badge > 0 ? (
+                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8.5px] font-black min-w-3.5 h-3.5 px-1 rounded-full flex items-center justify-center shadow-xs animate-pulse">
+                      {tab.badge > 9 ? '9+' : tab.badge}
+                    </span>
+                  ) : null}
+                </div>
 
-          {/* Khách hàng */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('customers')}
-            className={`flex flex-col items-center justify-center flex-1 py-1.5 transition-all text-[10px] font-extrabold ${
-              activeTab === 'customers' ? 'text-orange-600 scale-102' : 'text-gray-400 active:text-gray-600'
-            }`}
-          >
-            <Users className={`w-5 h-5 mb-1 transition-transform ${activeTab === 'customers' ? 'text-orange-600 scale-110' : 'text-gray-400'}`} />
-            <span>Khách</span>
-          </button>
-
-          {/* Doanh thu */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('revenue')}
-            className={`flex flex-col items-center justify-center flex-1 py-1.5 transition-all text-[10px] font-extrabold ${
-              activeTab === 'revenue' ? 'text-orange-600 scale-102' : 'text-gray-400 active:text-gray-600'
-            }`}
-          >
-            <TrendingUp className={`w-5 h-5 mb-1 transition-transform ${activeTab === 'revenue' ? 'text-orange-600 scale-110' : 'text-gray-400'}`} />
-            <span>Doanh thu</span>
-          </button>
-
-          {/* Khoản chi */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('expenses')}
-            className={`flex flex-col items-center justify-center flex-1 py-1.5 transition-all text-[10px] font-extrabold ${
-              activeTab === 'expenses' ? 'text-orange-600 scale-102' : 'text-gray-400 active:text-gray-600'
-            }`}
-          >
-            <DollarSign className={`w-5 h-5 mb-1 transition-transform ${activeTab === 'expenses' ? 'text-orange-600 scale-110' : 'text-gray-400'}`} />
-            <span>Khoản chi</span>
-          </button>
+                <span className={`text-[10px] tracking-tight mt-0.5 transition-all leading-tight ${
+                  isActive ? 'font-black text-orange-600 scale-102' : 'font-semibold text-gray-500'
+                }`}>
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* MAIN BODY AREA */}
-        <main className="flex-grow w-full px-3 sm:px-6 md:px-8 py-3.5 sm:py-6 pb-24 md:pb-6 overflow-y-auto">
-          {/* Header row in main panel content */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 sm:pb-4 mb-3 sm:mb-6 border-b border-gray-150">
+        <main className="flex-grow w-full px-3 sm:px-6 md:px-8 py-3 sm:py-6 pb-24 md:pb-6 overflow-y-auto">
+          {/* Header row in main panel content (Desktop only to avoid duplicate title taking space on mobile) */}
+          <div className="hidden md:flex flex-row items-center justify-between gap-2 pb-3 mb-5 border-b border-gray-150">
             <div className="space-y-0.5">
-              <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-[#ea580c] font-display">HỆ THỐNG VẬN HÀNH</span>
-              <h1 className="text-lg sm:text-2xl font-black text-gray-950 tracking-tight">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#ea580c] font-display">HỆ THỐNG VẬN HÀNH</span>
+              <h1 className="text-2xl font-black text-gray-950 tracking-tight">
                 {activeTab === 'calendar' && 'Lịch máy'}
                 {activeTab === 'contracts' && 'Hợp đồng & Đơn thuê'}
                 {activeTab === 'equipment' && 'Kho thiết bị'}
@@ -2092,7 +2103,7 @@ export default function App() {
               </h1>
             </div>
             
-            <div className="text-[10px] sm:text-xs text-gray-500 font-bold bg-white border border-gray-150 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-lg sm:rounded-xl shadow-3xs flex items-center gap-1.5 self-start sm:self-auto select-none">
+            <div className="text-xs text-gray-500 font-bold bg-white border border-gray-150 px-3.5 py-1.5 rounded-xl shadow-3xs flex items-center gap-1.5 select-none">
               <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse inline-block"></span>
               <span>Cập nhật mới nhất:</span>
               <span className="text-gray-800 font-extrabold">Hôm nay</span>
