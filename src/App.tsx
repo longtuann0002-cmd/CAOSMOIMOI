@@ -1898,21 +1898,21 @@ export default function App() {
       <div className="flex-grow flex flex-col min-w-0 h-screen overflow-hidden">
         
         {/* TOP PATH HEADER BAR */}
-        <header className="bg-white/85 backdrop-blur-xl border-b border-gray-200/70 sticky top-0 z-30 px-3.5 py-2.5 sm:px-6 sm:py-3.5 flex items-center justify-between select-none shadow-[0_1px_6px_rgba(0,0,0,0.02)]">
+        <header className="bg-white/85 backdrop-blur-xl border-b border-gray-200/70 sticky top-0 z-30 px-3.5 py-2 sm:px-6 sm:py-3 flex items-center justify-between select-none shadow-[0_1px_6px_rgba(0,0,0,0.02)]">
           {/* Breadcrumb path (Desktop) / Section Icon & Tab Title (Mobile) */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            {/* Mobile Header Title */}
-            <div className="md:hidden flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-sm shrink-0 ring-2 ring-orange-200/50">
-                {activeTab === 'calendar' && <Calendar className="w-5.5 h-5.5 stroke-[2.2]" />}
-                {activeTab === 'contracts' && <FileText className="w-5.5 h-5.5 stroke-[2.2]" />}
-                {activeTab === 'equipment' && <CameraIcon className="w-5.5 h-5.5 stroke-[2.2]" />}
-                {activeTab === 'revenue' && <TrendingUp className="w-5.5 h-5.5 stroke-[2.2]" />}
-                {activeTab === 'customers' && <Users className="w-5.5 h-5.5 stroke-[2.2]" />}
-                {activeTab === 'expenses' && <DollarSign className="w-5.5 h-5.5 stroke-[2.2]" />}
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Mobile Header Title (Compact) */}
+            <div className="md:hidden flex items-center gap-2 min-w-0">
+              <div className="w-7.5 h-7.5 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-3xs shrink-0">
+                {activeTab === 'calendar' && <Calendar className="w-4 h-4 stroke-[2.2]" />}
+                {activeTab === 'contracts' && <FileText className="w-4 h-4 stroke-[2.2]" />}
+                {activeTab === 'equipment' && <CameraIcon className="w-4 h-4 stroke-[2.2]" />}
+                {activeTab === 'revenue' && <TrendingUp className="w-4 h-4 stroke-[2.2]" />}
+                {activeTab === 'customers' && <Users className="w-4 h-4 stroke-[2.2]" />}
+                {activeTab === 'expenses' && <DollarSign className="w-4 h-4 stroke-[2.2]" />}
               </div>
               <div className="min-w-0">
-                <h1 className="text-[15.5px] font-black text-gray-950 tracking-tight truncate leading-tight">
+                <h1 className="text-[13px] font-black text-gray-900 tracking-tight truncate leading-tight">
                   {activeTab === 'calendar' && 'Lịch máy'}
                   {activeTab === 'contracts' && 'Đơn thuê'}
                   {activeTab === 'equipment' && 'Kho thiết bị'}
@@ -1920,7 +1920,7 @@ export default function App() {
                   {activeTab === 'customers' && 'Khách hàng'}
                   {activeTab === 'expenses' && 'Khoản chi'}
                 </h1>
-                <span className="text-[10px] font-bold text-gray-400 block leading-tight truncate mt-0.5">
+                <span className="text-[9px] font-bold text-gray-400 block leading-tight truncate">
                   {logoText || 'TIỆM ẢNH NHÀ CAOS'}
                 </span>
               </div>

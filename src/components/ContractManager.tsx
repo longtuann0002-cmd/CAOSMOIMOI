@@ -665,14 +665,14 @@ export default function ContractManager({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             {/* Card 1: Dư Nợ Chưa Thu */}
             {unpaidContractsCount > 0 && (
-              <div className="bg-gradient-to-r from-rose-50 to-rose-100/60 border border-rose-200/90 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-2.5 shadow-3xs">
+              <div className="bg-gradient-to-r from-rose-50 to-rose-100/50 border border-rose-200/90 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-2 shadow-3xs">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="p-2 bg-rose-200/80 text-rose-800 rounded-xl shrink-0">
-                    <CreditCard className="w-4 h-4" />
+                  <div className="p-2 sm:p-2.5 bg-rose-200/80 text-rose-800 rounded-xl shrink-0">
+                    <CreditCard className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[9.5px] sm:text-[11px] font-bold text-rose-800 uppercase tracking-wider block truncate">Dư Nợ Chưa Thu</span>
-                    <span className="font-mono text-sm sm:text-lg font-black text-rose-700 block truncate mt-0.5">
+                    <span className="text-[10px] sm:text-[11px] font-bold text-rose-800 uppercase tracking-wider block truncate">Dư Nợ Chưa Thu</span>
+                    <span className="font-mono text-base sm:text-lg font-black text-rose-700 block truncate mt-0.5">
                       {totalContractDebt.toLocaleString()}đ
                     </span>
                   </div>
@@ -680,7 +680,7 @@ export default function ContractManager({
                 <button
                   type="button"
                   onClick={() => setStatusFilter(statusFilter === 'UNPAID' ? 'ALL' : 'UNPAID')}
-                  className={`text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shrink-0 transition cursor-pointer border shadow-4xs ${
+                  className={`text-[10.5px] sm:text-xs font-bold px-2.5 py-1.5 rounded-lg shrink-0 transition cursor-pointer border shadow-3xs whitespace-nowrap ${
                     statusFilter === 'UNPAID'
                       ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
                       : 'bg-white text-rose-800 border-rose-300 hover:bg-rose-50'
@@ -693,14 +693,14 @@ export default function ContractManager({
 
             {/* Card 2: Chưa Thanh Toán Tiền Cọc 50% Giữ Máy */}
             {pendingContractsCount > 0 && (
-              <div className="bg-gradient-to-r from-amber-50 to-amber-100/60 border border-amber-200/90 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-2.5 shadow-3xs">
+              <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 border border-amber-200/90 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-2 shadow-3xs">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="p-2 bg-amber-200/80 text-amber-800 rounded-xl shrink-0">
-                    <Clock className="w-4 h-4" />
+                  <div className="p-2 sm:p-2.5 bg-amber-200/80 text-amber-800 rounded-xl shrink-0">
+                    <Clock className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[9.5px] sm:text-[11px] font-bold text-amber-800 uppercase tracking-wider block truncate">Chưa Thanh Toán Cọc 50% Giữ Máy</span>
-                    <span className="font-mono text-sm sm:text-lg font-black text-amber-700 block truncate mt-0.5">
+                    <span className="text-[10px] sm:text-[11px] font-bold text-amber-800 uppercase tracking-wider block truncate">Chưa Cọc 50% Giữ Máy</span>
+                    <span className="font-mono text-base sm:text-lg font-black text-amber-700 block truncate mt-0.5">
                       {pendingDepositTotal.toLocaleString()}đ
                     </span>
                   </div>
@@ -708,13 +708,13 @@ export default function ContractManager({
                 <button
                   type="button"
                   onClick={() => setStatusFilter(statusFilter === 'UNPAID_DEPOSIT' ? 'ALL' : 'UNPAID_DEPOSIT')}
-                  className={`text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shrink-0 transition cursor-pointer border shadow-4xs ${
+                  className={`text-[10.5px] sm:text-xs font-bold px-2.5 py-1.5 rounded-lg shrink-0 transition cursor-pointer border shadow-3xs whitespace-nowrap ${
                     statusFilter === 'UNPAID_DEPOSIT'
                       ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
                       : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-50'
                   }`}
                 >
-                  {statusFilter === 'UNPAID_DEPOSIT' ? '✓ Đang lọc' : `⏳ ${pendingContractsCount} đơn chờ cọc 50%`}
+                  {statusFilter === 'UNPAID_DEPOSIT' ? '✓ Đang lọc' : `⏳ ${pendingContractsCount} đơn chưa cọc`}
                 </button>
               </div>
             )}
