@@ -1243,25 +1243,25 @@ export default function ContractManager({
                 </div>
               )}
 
-              <div id="contract-receipt-capture" className="bg-white p-5 sm:p-7 rounded-2xl space-y-4 font-sans text-gray-900 w-full max-w-xl mx-auto box-border">
+              <div id="contract-receipt-capture" className="bg-white p-4 sm:p-5 rounded-2xl space-y-3.5 font-sans text-gray-900 w-full max-w-[420px] mx-auto box-border">
                 {/* Visual Invoice Title for image export */}
-                <div className="text-center space-y-1.5 border-b border-gray-200 pb-3.5">
+                <div className="text-center space-y-1 border-b border-gray-200 pb-3">
                   <h3 className="text-base sm:text-lg font-black text-gray-900 uppercase tracking-wide">
                     HÓA ĐƠN BÀN GIAO & THANH TOÁN
                   </h3>
-                  <div className="flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-[13px] text-gray-600 font-mono whitespace-nowrap">
+                  <div className="flex items-center justify-center gap-2 text-xs text-gray-600 font-mono whitespace-nowrap">
                     <span>Mã HĐ: <strong className="text-orange-600 font-bold">{selectedContract.contractCode}</strong></span>
                     <span className="text-gray-400 font-normal">•</span>
                     <span>Ngày lập: {new Date(selectedContract.createdAt).toLocaleString('vi-VN')}</span>
                   </div>
                 </div>
 
-                {/* Grid 1: Customer details & Timings */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 bg-slate-50/80 p-3.5 sm:p-4 border border-slate-200/80 rounded-xl">
+                {/* Section 1: Customer details & Timings in Mobile Standardized Layout */}
+                <div className="bg-slate-50/80 p-3.5 border border-slate-200/80 rounded-xl space-y-3">
                   {/* Customer Info */}
-                  <div className="space-y-1.5 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-[10.5px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
                       {onUpdateContractCustomer && !editingCustomer && !isExporting && (
                         <button
                           type="button"
@@ -1371,7 +1371,7 @@ export default function ContractManager({
                       <div className="space-y-1">
                         <p className="font-black text-gray-900 text-sm sm:text-base">{selectedContract.customerName}</p>
                         <p className="text-xs text-gray-600 font-mono font-bold">SĐT: {selectedContract.customerPhone}</p>
-                        <div className="pt-1">
+                        <div className="pt-0.5">
                           <span className="text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md inline-block">
                             Thế chấp: {renderDocTypeLabel(selectedContract.customerDocType)}
                           </span>
@@ -1386,9 +1386,9 @@ export default function ContractManager({
                   </div>
 
                   {/* Timing Info */}
-                  <div className="space-y-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-gray-200 sm:pl-4 flex flex-col justify-between">
-                    <h4 className="text-[10.5px] uppercase font-bold text-gray-400 tracking-wider mb-1">THÔNG TIN THỜI HẠN</h4>
-                    <div className="space-y-2 text-xs sm:text-[13px]">
+                  <div className="space-y-1 pt-2.5 border-t border-gray-200">
+                    <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">THÔNG TIN THỜI HẠN</h4>
+                    <div className="space-y-1.5 text-xs sm:text-[13px]">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-gray-500 font-medium whitespace-nowrap">Bắt đầu:</span>
                         <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">{formatDMY(selectedContract.startDate)}</strong>
@@ -1405,10 +1405,10 @@ export default function ContractManager({
 
                 {/* Rental Items Detail */}
                 <div className="space-y-1.5">
-                  <h4 className="text-[10.5px] uppercase font-bold text-gray-400 tracking-wider">DANH SÁCH THIẾT BỊ THUÊ</h4>
+                  <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">DANH SÁCH THIẾT BỊ THUÊ</h4>
                   <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
                     {selectedContract.items.map((i, idx) => (
-                      <div key={idx} className="p-3 flex justify-between items-center text-xs sm:text-sm gap-2">
+                      <div key={idx} className="p-2.5 flex justify-between items-center text-xs sm:text-sm gap-2">
                         <div className="font-bold text-gray-900 truncate flex-1 min-w-0">{i.cameraName}</div>
                         <div className="text-right font-black text-gray-800 font-mono shrink-0">
                           {Math.round(i.dailyRate).toLocaleString()}đ <span className="text-[10px] text-gray-400 font-normal font-sans">{selectedContract.is6Hours ? '/6h' : '/ngày'}</span>
@@ -1419,7 +1419,7 @@ export default function ContractManager({
                 </div>
 
                 {/* Financial Summary Block */}
-                <div className="bg-gradient-to-br from-orange-50/60 to-amber-50/40 border border-orange-200/80 p-4 rounded-xl space-y-2.5">
+                <div className="bg-gradient-to-br from-orange-50/60 to-amber-50/40 border border-orange-200/80 p-3.5 sm:p-4 rounded-xl space-y-2.5">
                   {selectedContract.discountPercent ? (
                     <div className="flex justify-between items-center text-xs sm:text-sm">
                       <span className="text-gray-600 font-medium">Giảm giá tự động:</span>
