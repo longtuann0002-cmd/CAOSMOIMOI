@@ -4,7 +4,7 @@ import { Camera, RentalContract, BankConfig, Customer } from '../types';
 import MoneyInput from './MoneyInput';
 import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText } from 'lucide-react';
 import { toPng } from 'html-to-image';
-import { getCameraRateForDuration, checkBookingConflict } from '../utils/pricing';
+import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
 import { formatDMY } from '../utils/dateUtils';
 import { VIET_BANKS } from './ContractManager';
@@ -135,7 +135,8 @@ export default function BookingCalendar({
     startDate: '',
     endDate: '',
     is6Hours: false,
-    returnTime: '18:00',
+    startTime: '08:00',
+    returnTime: '14:00',
     depositAmount: 0,
     paidAmount: 0,
     discountPercent: 0, // Tỷ lệ tự giảm giá (%)
@@ -486,7 +487,10 @@ export default function BookingCalendar({
       formData.startDate,
       formData.is6Hours ? formData.startDate : formData.endDate,
       formData.is6Hours,
-      contracts
+      contracts,
+      undefined,
+      formData.is6Hours ? (formData.startTime || '08:00') : undefined,
+      formData.is6Hours ? (formData.returnTime || '14:00') : undefined
     );
     if (conflict.hasConflict) {
       setCustomAlertMessage(conflict.message);
@@ -519,7 +523,8 @@ export default function BookingCalendar({
       startDate: formData.startDate,
       endDate: formData.is6Hours ? formData.startDate : formData.endDate,
       is6Hours: formData.is6Hours,
-      returnTime: formData.is6Hours ? formData.returnTime : undefined,
+      startTime: formData.is6Hours ? (formData.startTime || '08:00') : undefined,
+      returnTime: formData.is6Hours ? (formData.returnTime || '14:00') : undefined,
       totalPrice,
       discountPercent: formData.discountPercent,
       paidAmount: formData.paidAmount,
@@ -1316,7 +1321,13 @@ export default function BookingCalendar({
                   <button
                     type="button"
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, is6Hours: true, endDate: prev.startDate }));
+                      setFormData(prev => ({
+                        ...prev,
+                        is6Hours: true,
+                        endDate: prev.startDate,
+                        startTime: prev.startTime || '08:00',
+                        returnTime: add6Hours(prev.startTime || '08:00')
+                      }));
                     }}
                     className={`p-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer border text-center flex flex-col items-center justify-center gap-0.5 ${
                       formData.is6Hours
@@ -1334,7 +1345,9 @@ export default function BookingCalendar({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Ngày bắt đầu *</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    {formData.is6Hours ? 'Ngày thuê máy *' : 'Ngày bắt đầu *'}
+                  </label>
                   <input
                     type="date"
                     required
@@ -1351,32 +1364,61 @@ export default function BookingCalendar({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    {formData.is6Hours ? 'Giờ trả dự kiến (24h) *' : 'Ngày trả dự kiến *'}
-                  </label>
                   {formData.is6Hours ? (
-                    <div className="flex gap-2">
-                      <div className="flex-1 border border-amber-200 bg-amber-50/20 text-amber-800 rounded-lg p-2 text-[10px] font-bold flex items-center justify-center h-[38px] cursor-not-allowed border-dashed">
-                        ⏱️ Trả trong ngày
+                    <div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy">
+                            Giờ lấy máy *
+                          </label>
+                          <input
+                            type="time"
+                            required
+                            value={formData.startTime || '08:00'}
+                            onChange={e => {
+                              const t = e.target.value;
+                              setFormData(prev => ({
+                                ...prev,
+                                startTime: t,
+                                returnTime: add6Hours(t)
+                              }));
+                            }}
+                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                            title="Khung giờ khách nhận máy"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h)">
+                            Giờ trả (+6h) *
+                          </label>
+                          <input
+                            type="time"
+                            required
+                            value={formData.returnTime || '14:00'}
+                            onChange={e => setFormData({ ...formData, returnTime: e.target.value })}
+                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                            title="Khung giờ khách trả máy (tự động cộng 6 tiếng)"
+                          />
+                        </div>
                       </div>
-                      <input
-                        type="time"
-                        required
-                        value={formData.returnTime}
-                        onChange={e => setFormData({ ...formData, returnTime: e.target.value })}
-                        className="w-[124px] border border-amber-300 bg-amber-50/30 rounded-lg px-2 py-1.5 text-sm font-bold text-amber-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                        title="Vui lòng nhập giờ trả máy hẹn trước"
-                      />
+                      <p className="text-[10px] text-amber-700 font-medium mt-1">
+                        ⏱️ Tự động tính: {formData.startTime || '08:00'} ➔ {formData.returnTime || '14:00'} (6 tiếng)
+                      </p>
                     </div>
                   ) : (
-                    <input
-                      type="date"
-                      required
-                      min={formData.startDate}
-                      value={formData.endDate}
-                      onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    />
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Ngày trả dự kiến *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        min={formData.startDate}
+                        value={formData.endDate}
+                        onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -1536,24 +1578,25 @@ export default function BookingCalendar({
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row justify-end gap-2.5 pt-4 border-t border-gray-100">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowAddQuickModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-650 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer text-center order-3 sm:order-1"
+                  className="px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-650 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer text-center whitespace-nowrap"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickBookingSubmit(undefined, true)}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer order-2 sm:order-2"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3.5 sm:px-4 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
-                  <ImageIcon className="w-4 h-4" /> Lưu & Xuất hóa đơn nhanh
+                  <ImageIcon className="w-4 h-4 shrink-0" />
+                  <span>Lưu & Xuất hóa đơn</span>
                 </button>
                 <button
                   type="submit"
-                  className="bg-orange-600 text-white font-bold px-5 py-2 rounded-xl text-sm hover:bg-orange-700 transition-all cursor-pointer text-center order-1 sm:order-3"
+                  className="bg-orange-600 text-white font-bold px-4 sm:px-5 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm hover:bg-orange-700 transition-all cursor-pointer text-center whitespace-nowrap"
                 >
                   Xác nhận đặt lịch
                 </button>
@@ -1627,7 +1670,7 @@ export default function BookingCalendar({
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-gray-500 font-medium whitespace-nowrap">Hạn trả máy:</span>
                         <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">
-                          {quickReceiptContract.is6Hours ? `Gói 6h (Trả ${quickReceiptContract.returnTime || '18:00'})` : formatDMY(quickReceiptContract.endDate)}
+                          {quickReceiptContract.is6Hours ? `Gói 6h (${quickReceiptContract.startTime || '08:00'} - ${quickReceiptContract.returnTime || '14:00'})` : formatDMY(quickReceiptContract.endDate)}
                         </strong>
                       </div>
                     </div>

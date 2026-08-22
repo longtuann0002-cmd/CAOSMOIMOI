@@ -8,7 +8,7 @@ import {
   Image as ImageIcon, ChevronLeft, ChevronRight, FileSpreadsheet, Copy, Edit2, 
   Save, Clock, DollarSign, User, AlertTriangle, CheckCircle2 
 } from 'lucide-react';
-import { getCameraRateForDuration, checkBookingConflict } from '../utils/pricing';
+import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
 import { formatDMY } from '../utils/dateUtils';
 import { toPng } from 'html-to-image';
@@ -255,7 +255,8 @@ export default function ContractManager({
     startDate: systemDate,
     endDate: systemDate,
     is6Hours: false,
-    returnTime: '18:00',
+    startTime: '08:00',
+    returnTime: '14:00',
     depositAmount: 0,
     paidAmount: 0,
     discountPercent: 0, // Tỷ lệ tự giảm giá (%)
@@ -557,7 +558,10 @@ export default function ContractManager({
       newContractForm.startDate,
       newContractForm.is6Hours ? newContractForm.startDate : newContractForm.endDate,
       newContractForm.is6Hours,
-      contracts
+      contracts,
+      undefined,
+      newContractForm.is6Hours ? (newContractForm.startTime || '08:00') : undefined,
+      newContractForm.is6Hours ? (newContractForm.returnTime || '14:00') : undefined
     );
     if (conflict.hasConflict) {
       setCustomAlertMessage(conflict.message);
@@ -588,7 +592,8 @@ export default function ContractManager({
       startDate: newContractForm.startDate,
       endDate: newContractForm.is6Hours ? newContractForm.startDate : newContractForm.endDate,
       is6Hours: newContractForm.is6Hours,
-      returnTime: newContractForm.is6Hours ? newContractForm.returnTime : undefined,
+      startTime: newContractForm.is6Hours ? (newContractForm.startTime || '08:00') : undefined,
+      returnTime: newContractForm.is6Hours ? (newContractForm.returnTime || '14:00') : undefined,
       totalPrice: calculatedTotal,
       discountPercent: newContractForm.discountPercent,
       paidAmount: newContractForm.paidAmount,
@@ -831,7 +836,7 @@ export default function ContractManager({
                     </div>
                     <div className="flex items-center justify-between text-gray-500 border-t border-gray-100 pt-1.5 font-medium">
                       <span>Thời hạn thuê:</span>
-                      <span className={c.is6Hours ? 'font-extrabold text-amber-700 bg-amber-50 border border-amber-250 text-[10px] px-2 py-0.5 rounded shadow-3xs inline-block' : 'font-bold text-gray-650'}>{c.is6Hours ? `⚡ 6 Tiếng (Trả: ${c.returnTime || '18:00'})` : `${duration} ngày`}</span>
+                      <span className={c.is6Hours ? 'font-extrabold text-amber-700 bg-amber-50 border border-amber-250 text-[10px] px-2 py-0.5 rounded shadow-3xs inline-block' : 'font-bold text-gray-650'}>{c.is6Hours ? `⚡ 6 Tiếng (${c.startTime || '08:00'} - ${c.returnTime || '14:00'})` : `${duration} ngày`}</span>
                     </div>
                   </div>
 
@@ -1424,7 +1429,7 @@ export default function ContractManager({
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-gray-500 font-medium whitespace-nowrap">Hạn trả máy:</span>
                         <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">
-                          {selectedContract.is6Hours ? `Gói 6h (Trả ${selectedContract.returnTime || '18:00'})` : formatDMY(selectedContract.endDate)}
+                          {selectedContract.is6Hours ? `Gói 6h (${selectedContract.startTime || '08:00'} - ${selectedContract.returnTime || '14:00'})` : formatDMY(selectedContract.endDate)}
                         </strong>
                       </div>
                     </div>
@@ -1891,7 +1896,13 @@ export default function ContractManager({
                   <button
                     type="button"
                     onClick={() => {
-                      setNewContractForm(prev => ({ ...prev, is6Hours: true, endDate: prev.startDate }));
+                      setNewContractForm(prev => ({
+                        ...prev,
+                        is6Hours: true,
+                        endDate: prev.startDate,
+                        startTime: prev.startTime || '08:00',
+                        returnTime: add6Hours(prev.startTime || '08:00')
+                      }));
                     }}
                     className={`p-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer border text-center flex flex-col items-center justify-center gap-0.5 ${
                       newContractForm.is6Hours
@@ -1910,7 +1921,9 @@ export default function ContractManager({
               {/* Rent dates */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Ngày bàn giao *</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    {newContractForm.is6Hours ? 'Ngày thuê máy *' : 'Ngày bàn giao *'}
+                  </label>
                   <input
                     type="date"
                     required
@@ -1927,32 +1940,61 @@ export default function ContractManager({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    {newContractForm.is6Hours ? 'Giờ trả dự kiến (24h) *' : 'Ngày trả dự kiến *'}
-                  </label>
                   {newContractForm.is6Hours ? (
-                    <div className="flex gap-2">
-                      <div className="flex-1 border border-amber-200 bg-amber-50/20 text-amber-800 rounded-lg p-2 text-[10px] font-bold flex items-center justify-center h-[38px] cursor-not-allowed border-dashed">
-                        ⏱️ Trả trong ngày
+                    <div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy">
+                            Giờ lấy máy *
+                          </label>
+                          <input
+                            type="time"
+                            required
+                            value={newContractForm.startTime || '08:00'}
+                            onChange={e => {
+                              const t = e.target.value;
+                              setNewContractForm(prev => ({
+                                ...prev,
+                                startTime: t,
+                                returnTime: add6Hours(t)
+                              }));
+                            }}
+                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                            title="Khung giờ khách nhận máy"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h)">
+                            Giờ trả (+6h) *
+                          </label>
+                          <input
+                            type="time"
+                            required
+                            value={newContractForm.returnTime || '14:00'}
+                            onChange={e => setNewContractForm({ ...newContractForm, returnTime: e.target.value })}
+                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                            title="Khung giờ khách trả máy (tự động cộng 6 tiếng)"
+                          />
+                        </div>
                       </div>
-                      <input
-                        type="time"
-                        required
-                        value={newContractForm.returnTime}
-                        onChange={e => setNewContractForm({ ...newContractForm, returnTime: e.target.value })}
-                        className="w-[124px] border border-amber-300 bg-amber-55/40 rounded-lg px-2 py-1.5 text-sm font-bold text-amber-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                        title="Vui lòng nhập giờ trả máy hẹn trước"
-                      />
+                      <p className="text-[10px] text-amber-700 font-medium mt-1">
+                        ⏱️ Tự động tính: {newContractForm.startTime || '08:00'} ➔ {newContractForm.returnTime || '14:00'} (6 tiếng)
+                      </p>
                     </div>
                   ) : (
-                    <input
-                      type="date"
-                      required
-                      min={newContractForm.startDate}
-                      value={newContractForm.endDate}
-                      onChange={e => setNewContractForm({ ...newContractForm, endDate: e.target.value })}
-                      className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    />
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Ngày trả dự kiến *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        min={newContractForm.startDate}
+                        value={newContractForm.endDate}
+                        onChange={e => setNewContractForm({ ...newContractForm, endDate: e.target.value })}
+                        className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -2114,24 +2156,25 @@ export default function ContractManager({
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row justify-end gap-2.5 pt-4 border-t border-gray-100">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-650 hover:bg-gray-105 rounded-xl transition-colors cursor-pointer text-center order-3 sm:order-1"
+                  className="px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-650 hover:bg-gray-105 rounded-xl transition-colors cursor-pointer text-center whitespace-nowrap"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="button"
                   onClick={() => handleCreateContract(undefined, true)}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer order-2 sm:order-2"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3.5 sm:px-4 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
-                  <ImageIcon className="w-4 h-4" /> Lưu & Xuất hóa đơn nhanh
+                  <ImageIcon className="w-4 h-4 shrink-0" />
+                  <span>Lưu & Xuất hóa đơn</span>
                 </button>
                 <button
                   type="submit"
-                  className="bg-orange-600 text-white font-bold px-5 py-2 rounded-xl text-sm hover:bg-orange-700 transition-all cursor-pointer text-center order-1 sm:order-3"
+                  className="bg-orange-600 text-white font-bold px-4 sm:px-5 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm hover:bg-orange-700 transition-all cursor-pointer text-center whitespace-nowrap"
                 >
                   Tạo hợp đồng
                 </button>

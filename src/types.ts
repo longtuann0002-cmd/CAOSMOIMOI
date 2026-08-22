@@ -35,7 +35,8 @@ export interface RentalContract {
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
   is6Hours?: boolean; // Tiêu chí thuê 6 tiếng (nửa ngày)
-  returnTime?: string; // Giờ trả khi thuê 6 tiếng (VD: "18:00")
+  startTime?: string; // Giờ nhận máy khi thuê 6 tiếng (VD: "08:00")
+  returnTime?: string; // Giờ trả khi thuê 6 tiếng (VD: "14:00")
   totalPrice: number;
   discountPercent?: number; // Tỷ lệ giảm giá (%)
   paidAmount: number;
