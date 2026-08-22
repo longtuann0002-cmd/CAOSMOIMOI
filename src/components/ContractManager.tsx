@@ -1646,16 +1646,57 @@ export default function ContractManager({
 
             <form onSubmit={handleCreateContract} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+                <div className="relative">
                   <label className="block text-xs font-bold text-gray-700 mb-1">Họ tên khách hàng *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newContractForm.customerName}
-                    onChange={e => setNewContractForm({ ...newContractForm, customerName: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    placeholder="Nguyễn Văn A"
-                  />
+                  {(() => {
+                    const query = newContractForm.customerName.trim().toLowerCase();
+                    // Build deduplicated list from customers + contracts
+                    const allKnown: { name: string; phone: string }[] = [];
+                    const seen = new Set<string>();
+                    [...customers.map(c => ({ name: c.name, phone: c.phone })),
+                     ...contracts.map(c => ({ name: c.customerName, phone: c.customerPhone }))]
+                      .forEach(item => {
+                        const key = item.phone || item.name;
+                        if (!seen.has(key) && item.name) { seen.add(key); allKnown.push(item); }
+                      });
+                    const nameSuggestions = query.length >= 1
+                      ? allKnown.filter(k => k.name.toLowerCase().includes(query) && k.name !== newContractForm.customerName)
+                      : [];
+                    return (
+                      <>
+                        <input
+                          type="text"
+                          required
+                          value={newContractForm.customerName}
+                          onChange={e => setNewContractForm({ ...newContractForm, customerName: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                          placeholder="Nguyễn Văn A"
+                          autoComplete="off"
+                        />
+                        {nameSuggestions.length > 0 && (
+                          <div className="absolute left-0 top-full mt-0.5 w-full bg-white border border-orange-200 rounded-xl shadow-lg z-50 overflow-hidden max-h-44 overflow-y-auto">
+                            <div className="px-2 py-1 text-[10px] font-extrabold text-orange-600 uppercase tracking-wider bg-orange-50 border-b border-orange-100">
+                              👥 Khách cũ gợi ý
+                            </div>
+                            {nameSuggestions.slice(0, 6).map((sug, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onMouseDown={e => {
+                                  e.preventDefault();
+                                  setNewContractForm({ ...newContractForm, customerName: sug.name, customerPhone: sug.phone || newContractForm.customerPhone });
+                                }}
+                                className="w-full text-left px-3 py-2 hover:bg-orange-50 transition-colors flex items-center justify-between gap-2 cursor-pointer border-b border-gray-100 last:border-0"
+                              >
+                                <span className="font-semibold text-sm text-gray-850 truncate">{sug.name}</span>
+                                {sug.phone && <span className="font-mono text-[11px] text-gray-500 shrink-0">{sug.phone}</span>}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Số điện thoại *</label>
@@ -1706,6 +1747,7 @@ export default function ContractManager({
                   })()}
                 </div>
               </div>
+
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
