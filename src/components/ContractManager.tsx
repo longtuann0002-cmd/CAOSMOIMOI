@@ -141,6 +141,13 @@ export default function ContractManager({
         backgroundColor: '#ffffff',
         cacheBust: true,
         pixelRatio: 2,
+        style: {
+          width: '580px',
+          maxWidth: '580px',
+          margin: '0',
+          padding: '28px',
+          boxSizing: 'border-box'
+        }
       })
         .then((dataUrl) => {
           const link = document.createElement('a');
@@ -859,7 +866,7 @@ export default function ContractManager({
                               Cọc thế chấp: <strong className="text-gray-750">{c.depositAmount > 0 ? `${c.depositAmount.toLocaleString()}đ` : 'Không có'}</strong>
                             </div>
                             <div>
-                              <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200/70 px-2 py-0.5 rounded-md font-bold shadow-3xs">
+                              <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-md font-bold shadow-3xs">
                                 ⏳ Chưa cọc 50%: {(Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()}đ
                               </span>
                             </div>
@@ -881,11 +888,11 @@ export default function ContractManager({
                           </div>
                           <div>
                             {c.totalPrice - c.paidAmount > 0 ? (
-                              <span className="text-[10px] bg-red-50 text-red-700 border border-red-200/70 px-2 py-0.5 rounded-md font-bold shadow-3xs">
+                              <span className="text-[10px] bg-rose-50 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-md font-bold shadow-3xs">
                                 Còn nợ: {(c.totalPrice - c.paidAmount).toLocaleString()}đ
                               </span>
                             ) : (
-                              <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200/70 px-2 py-0.5 rounded-md font-bold shadow-3xs">
+                              <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-md font-bold shadow-3xs">
                                 ✓ Đã thanh toán đủ
                               </span>
                             )}
@@ -1249,9 +1256,9 @@ export default function ContractManager({
                   <h3 className="text-base sm:text-lg font-black text-gray-900 uppercase tracking-wide">
                     HÓA ĐƠN BÀN GIAO & THANH TOÁN
                   </h3>
-                  <div className="flex items-center justify-center gap-2 text-xs text-gray-500 font-mono flex-wrap">
+                  <div className="flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-[13px] text-gray-600 font-mono whitespace-nowrap">
                     <span>Mã HĐ: <strong className="text-orange-600 font-bold">{selectedContract.contractCode}</strong></span>
-                    <span>•</span>
+                    <span className="text-gray-400 font-normal">•</span>
                     <span>Ngày lập: {new Date(selectedContract.createdAt).toLocaleString('vi-VN')}</span>
                   </div>
                 </div>

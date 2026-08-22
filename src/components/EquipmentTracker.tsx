@@ -500,30 +500,30 @@ export default function EquipmentTracker({
 
                 {/* Dynamic Tiered Rates info */}
                 {/* Desktop Version: Always visible */}
-                <div className="hidden md:block border-t border-gray-100 pt-3 space-y-1.5 bg-gray-55/70 p-3 rounded-xl border border-gray-200/50">
-                  <div className="flex justify-between items-center text-[10px] text-gray-400 font-extrabold uppercase tracking-wider pb-0.5 border-b border-gray-200">
+                <div className="hidden md:block border-t border-gray-100 pt-3 space-y-1.5 bg-orange-50/30 p-3 rounded-xl border border-orange-200/70">
+                  <div className="flex justify-between items-center text-[10px] text-gray-500 font-extrabold uppercase tracking-wider pb-0.5 border-b border-orange-200/50">
                     <span>Thời hạn</span>
                     <span>Đơn giá/ngày (Hoặc buổi)</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 pt-1 text-[11px] font-semibold">
-                    <div className="flex justify-between items-center bg-amber-50/70 px-2 py-1 rounded-lg border border-amber-200/30 col-span-2 mb-1 shadow-3xs">
-                      <span className="text-amber-850 font-extrabold">Thuê ngắn hạn (6 tiếng):</span>
+                    <div className="flex justify-between items-center bg-amber-50 px-2 py-1 rounded-lg border border-amber-300 col-span-2 mb-1 shadow-3xs">
+                      <span className="text-amber-900 font-extrabold">Thuê ngắn hạn (6 tiếng):</span>
                       <span className="font-mono text-amber-700 font-extrabold">{(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500 font-medium">Thuê 1 ngày:</span>
+                      <span className="text-gray-600 font-medium">Thuê 1 ngày:</span>
                       <span className="font-mono text-gray-800 font-bold">{(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500 font-medium">Thuê 2 ngày:</span>
+                      <span className="text-gray-600 font-medium">Thuê 2 ngày:</span>
                       <span className="font-mono text-gray-800 font-bold">{Math.round((cam.price2Days ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.9)) * 2).toLocaleString()}đ</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500 font-medium">Thuê 3 ngày:</span>
+                      <span className="text-gray-600 font-medium">Thuê 3 ngày:</span>
                       <span className="font-mono text-gray-800 font-bold">{Math.round((cam.price3Days ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.8)) * 3).toLocaleString()}đ</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-500 font-medium">Từ 4 ngày:</span>
+                      <span className="text-gray-600 font-medium">Từ 4 ngày:</span>
                       <span className="font-mono text-orange-600 font-extrabold">{(cam.price4DaysPlus ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.7)).toLocaleString()}đ/ngày</span>
                     </div>
                   </div>
@@ -531,7 +531,7 @@ export default function EquipmentTracker({
 
                 {/* Mobile Version: Collapsed by default, elegant toggle button */}
                 <div className="block md:hidden border-t border-gray-100/60 pt-2.5">
-                  <div className="flex justify-between items-center bg-orange-50/40 p-2 sm:p-2.5 rounded-xl border border-orange-100/40">
+                  <div className="flex justify-between items-center bg-orange-50/50 p-2 sm:p-2.5 rounded-xl border border-orange-200/80">
                     <div>
                       <span className="text-[9px] text-gray-500 font-extrabold block uppercase tracking-wide">Giá ngày cơ bản</span>
                       <span className="text-xs sm:text-sm font-extrabold text-orange-600">
@@ -542,37 +542,37 @@ export default function EquipmentTracker({
                     <button
                       type="button"
                       onClick={() => togglePricingExpanded(cam.id)}
-                      className="px-2.5 py-1.5 text-[9px] sm:text-[10px] bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 active:scale-95 transition-all font-bold cursor-pointer flex items-center gap-1 shrink-0"
+                      className="px-2.5 py-1.5 text-[9px] sm:text-[10px] bg-white border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-50 active:scale-95 transition-all font-bold cursor-pointer flex items-center gap-1 shrink-0 shadow-3xs"
                     >
                       {expandedPrices[cam.id] ? 'Thu gọn bảng giá' : 'Bảng giá lũy tiến'}
-                      <span className="text-[8px] text-gray-400 transition-transform duration-200" style={{ transform: expandedPrices[cam.id] ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                      <span className="text-[8px] text-gray-500 transition-transform duration-200" style={{ transform: expandedPrices[cam.id] ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
                     </button>
                   </div>
 
                   {expandedPrices[cam.id] && (
-                    <div className="mt-2 space-y-1.5 bg-gray-55/70 p-2.5 rounded-xl border border-gray-200/50 text-[10px] sm:text-[11px] font-medium transition-all duration-300">
-                      <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase tracking-wider pb-0.5 border-b border-gray-200">
+                    <div className="mt-2 space-y-1.5 bg-orange-50/30 p-2.5 rounded-xl border border-orange-200/80 text-[10px] sm:text-[11px] font-medium transition-all duration-300">
+                      <div className="flex justify-between items-center text-[9px] text-gray-500 font-bold uppercase tracking-wider pb-0.5 border-b border-orange-200/60">
                         <span>Thời hạn</span>
                         <span>Đơn giá/ngày (hoặc buổi)</span>
                       </div>
-                      <div className="flex justify-between items-center bg-amber-50/70 p-1.5 rounded-lg border border-amber-200/30 font-bold">
-                        <span className="text-amber-850 font-extrabold">Ngắn hạn (6 tiếng):</span>
+                      <div className="flex justify-between items-center bg-amber-50 p-1.5 rounded-lg border border-amber-300 font-bold">
+                        <span className="text-amber-900 font-extrabold">Ngắn hạn (6 tiếng):</span>
                         <span className="font-mono text-amber-700 font-extrabold">{(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ</span>
                       </div>
                       <div className="flex justify-between items-center px-1">
-                        <span className="text-gray-500">Thuê 1 ngày:</span>
+                        <span className="text-gray-600">Thuê 1 ngày:</span>
                         <span className="font-mono text-gray-800 font-bold">{(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ</span>
                       </div>
                       <div className="flex justify-between items-center px-1">
-                        <span className="text-gray-500">Thuê 2 ngày:</span>
+                        <span className="text-gray-600">Thuê 2 ngày:</span>
                         <span className="font-mono text-gray-800 font-bold">{Math.round((cam.price2Days ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.9)) * 2).toLocaleString()}đ</span>
                       </div>
                       <div className="flex justify-between items-center px-1">
-                        <span className="text-gray-500">Thuê 3 ngày:</span>
+                        <span className="text-gray-600">Thuê 3 ngày:</span>
                         <span className="font-mono text-gray-800 font-bold">{Math.round((cam.price3Days ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.8)) * 3).toLocaleString()}đ</span>
                       </div>
                       <div className="flex justify-between items-center px-1">
-                        <span className="text-gray-500">Từ 4 ngày:</span>
+                        <span className="text-gray-600">Từ 4 ngày:</span>
                         <span className="font-mono text-orange-600 font-extrabold">{(cam.price4DaysPlus ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.7)).toLocaleString()}đ/ngày</span>
                       </div>
                     </div>
@@ -582,11 +582,11 @@ export default function EquipmentTracker({
             </div>
 
             {/* Quick Status and Admin tools bar */}
-            <div className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gray-50/90 border-t border-gray-100 flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
+            <div className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
               {currentUserRole === 'admin' ? (
                 <>
                   {/* Reorder Buttons: Left & Right */}
-                  <div className="flex items-center gap-0.5 bg-white border border-gray-250 rounded-lg p-0.5 shadow-4xs" title="Đổi vị trí thiết bị trong danh sách">
+                  <div className="flex items-center gap-0.5 bg-white border border-gray-300 rounded-lg p-0.5 shadow-3xs" title="Đổi vị trí thiết bị trong danh sách">
                     <button
                       type="button"
                       onClick={() => handleMoveCamera(cam.id, 'left')}
@@ -596,7 +596,7 @@ export default function EquipmentTracker({
                     >
                       <ArrowLeft className="w-3.5 h-3.5" />
                     </button>
-                    <span className="text-[10px] font-mono font-bold text-gray-500 px-1 select-none" title={`Vị trí thứ ${globalIndex + 1} trên tổng ${cameras.length} thiết bị`}>
+                    <span className="text-[10px] font-mono font-bold text-gray-600 px-1 select-none" title={`Vị trí thứ ${globalIndex + 1} trên tổng ${cameras.length} thiết bị`}>
                       #{globalIndex + 1}
                     </span>
                     <button
@@ -610,21 +610,21 @@ export default function EquipmentTracker({
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-1 ml-auto">
+                  <div className="flex items-center gap-1.5 ml-auto">
                     <button
                       onClick={() => handleOpenEditModal(cam)}
-                      className="text-gray-650 hover:text-orange-600 p-1.5 hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
+                      className="text-gray-700 hover:text-orange-600 p-1.5 bg-white border border-gray-300 hover:bg-orange-50 rounded-lg transition-colors cursor-pointer shadow-3xs"
                       title="Sửa thông tin (Admin)"
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Edit2 className="w-3.5 h-3.5" />
                     </button>
 
                     <button
                       onClick={() => toggleMaintenance(cam)}
-                      className={`text-[11px] px-2.5 py-1.5 font-bold rounded-lg transition-all cursor-pointer ${
+                      className={`text-[11px] px-2.5 py-1.5 font-bold rounded-lg transition-all cursor-pointer shadow-3xs ${
                         cam.status === 'Maintenance'
-                          ? 'bg-emerald-55 border border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                          : 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100'
+                          ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                          : 'bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100'
                       }`}
                       title={cam.status === 'Maintenance' ? 'Chuyển sang Sẵn sàng hoạt động' : 'Chuyển sang trạng thái Đang bảo trì'}
                     >
@@ -641,10 +641,10 @@ export default function EquipmentTracker({
                           setCameraToDelete(cam);
                         }
                       }}
-                      className="text-gray-400 hover:text-red-650 p-1.5 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                      className="text-gray-500 hover:text-red-650 p-1.5 bg-white border border-gray-300 hover:bg-red-50 hover:border-red-200 rounded-lg transition-all cursor-pointer shadow-3xs"
                       title="Xóa máy"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </>

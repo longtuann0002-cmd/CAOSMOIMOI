@@ -628,26 +628,26 @@ export default function CustomerManager({
 
                 {/* Debt / deposit alerts */}
                 {financials.pendingDepositCount > 0 && (
-                  <div className="bg-amber-50/90 border border-amber-200 rounded-lg px-2 py-1.5 space-y-0.5">
+                  <div className="bg-amber-50 border border-amber-300 rounded-lg px-2 py-1.5 space-y-0.5">
                     <div className="flex items-center justify-between text-xs gap-1">
                       <span className="font-bold text-amber-900 truncate text-[10.5px]">⏳ Chưa cọc</span>
                       <span className="font-mono font-black text-amber-700 shrink-0 text-xs">+{financials.pendingDepositAmount.toLocaleString()}đ</span>
                     </div>
-                    <div className="text-[9.5px] text-amber-700 font-medium">({financials.pendingDepositCount} đơn chờ)</div>
+                    <div className="text-[9.5px] text-amber-800 font-medium">({financials.pendingDepositCount} đơn chờ)</div>
                   </div>
                 )}
 
                 {financials.totalDebt > 0 ? (
-                  <div className="bg-rose-50/90 border border-rose-200 rounded-lg px-2 py-1.5 space-y-0.5">
+                  <div className="bg-rose-50 border border-rose-300 rounded-lg px-2 py-1.5 space-y-0.5">
                     <div className="flex items-center justify-between text-xs gap-1">
-                      <span className="font-bold text-rose-800 truncate text-[10.5px]">⚠️ Dư nợ</span>
+                      <span className="font-bold text-rose-900 truncate text-[10.5px]">⚠️ Dư nợ</span>
                       <span className="font-mono font-black text-rose-700 shrink-0 text-xs">+{financials.totalDebt.toLocaleString()}đ</span>
                     </div>
-                    <div className="text-[9.5px] text-rose-600 font-medium">({financials.debtContractsCount} đơn nợ)</div>
+                    <div className="text-[9.5px] text-rose-700 font-medium">({financials.debtContractsCount} đơn nợ)</div>
                   </div>
                 ) : financials.pendingDepositCount === 0 ? (
-                  <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-lg px-2 py-1 flex items-center justify-between text-[10.5px] sm:text-xs">
-                    <span className="text-emerald-800 font-bold">✓ Đủ tiền</span>
+                  <div className="bg-emerald-50 border border-emerald-300 rounded-lg px-2 py-1 flex items-center justify-between text-[10.5px] sm:text-xs">
+                    <span className="text-emerald-900 font-bold">✓ Đủ tiền</span>
                     <span className="font-mono text-emerald-700 font-bold">0đ</span>
                   </div>
                 ) : null}
