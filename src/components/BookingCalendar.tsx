@@ -336,17 +336,17 @@ export default function BookingCalendar({
       const activeBookingsToday = (dayBookingsMap[selectedDate] || []).filter(b => b.cameraShort === cam.shortName);
       
       let statusText = 'Còn trống cả ngày';
-      let statusColor = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+      let statusColor = 'bg-emerald-50 text-emerald-800 border-emerald-300';
       
       if (activeBookingsToday.length > 0) {
         const hasFullDay = activeBookingsToday.some(b => (b.timeString === '00:00-00:00' && !b.contract.is6Hours));
         if (hasFullDay) {
           statusText = 'Kín lịch cả ngày';
-          statusColor = 'bg-rose-50 text-rose-850 border-rose-250';
+          statusColor = 'bg-rose-50 text-rose-900 border-rose-300';
         } else {
           const times = activeBookingsToday.map(b => `${b.timeString}${b.contract.is6Hours ? ' (6h)' : ''}`).join(', ');
           statusText = `Bận giờ: ${times}`;
-          statusColor = 'bg-amber-50 text-amber-850 border-amber-250';
+          statusColor = 'bg-amber-50 text-amber-900 border-amber-300';
         }
       }
 
@@ -685,13 +685,13 @@ export default function BookingCalendar({
               const isToday = (systemDate || new Date().toISOString().split('T')[0]) === dateString;
 
               // Determine status and style matching the legend
-              let statusStyle = 'bg-white border-gray-200/80 hover:border-emerald-300';
+              let statusStyle = 'bg-white border-gray-200 hover:border-emerald-400';
               if (bookingCount > 0) {
                 const hasFullDayBooking = bookings.some(b => !b.contract.is6Hours);
                 if (bookingCount >= 2 && hasFullDayBooking) {
-                  statusStyle = 'bg-rose-50/80 border-rose-200 hover:border-rose-300';
+                  statusStyle = 'bg-rose-50/80 border-rose-300 hover:border-rose-400';
                 } else {
-                  statusStyle = 'bg-amber-50/80 border-amber-200 hover:border-amber-300';
+                  statusStyle = 'bg-amber-50/80 border-amber-300 hover:border-amber-400';
                 }
               }
 

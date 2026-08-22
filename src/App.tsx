@@ -1715,10 +1715,10 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen bg-slate-50 flex font-sans select-none antialiased w-full overflow-hidden">
+    <div className="h-[100dvh] bg-slate-50 flex font-sans select-none antialiased w-full overflow-hidden">
       
       {/* PERSISTENT LEFT SIDEBAR - Visible on medium screens and up */}
-      <aside className="hidden md:flex flex-col w-20 lg:w-[280px] bg-[#0b0f19] text-white shrink-0 h-screen sticky top-0 border-r border-slate-800/40 transition-all duration-300">
+      <aside className="hidden md:flex flex-col w-20 lg:w-[280px] bg-[#0b0f19] text-white shrink-0 h-[100dvh] sticky top-0 border-r border-slate-800/40 transition-all duration-300">
         
         {/* Top Header Section: Tiệm ảnh Caos logo */}
         <div 
@@ -1895,10 +1895,10 @@ export default function App() {
       </aside>
 
       {/* RIGHT MAIN WORKSPACE PANORAMA */}
-      <div className="flex-grow flex flex-col min-w-0 h-screen overflow-hidden">
+      <div className="flex-grow flex flex-col min-w-0 h-[100dvh] overflow-hidden">
         
         {/* TOP PATH HEADER BAR */}
-        <header className="bg-white/85 backdrop-blur-xl border-b border-gray-200/70 sticky top-0 z-30 px-3.5 py-2 sm:px-6 sm:py-3 flex items-center justify-between select-none shadow-[0_1px_6px_rgba(0,0,0,0.02)]">
+        <header className="bg-white/95 backdrop-blur-xl border-b border-gray-200/80 sticky top-0 z-30 pt-[max(8px,env(safe-area-inset-top,8px))] pb-2.5 px-3.5 sm:px-6 sm:py-3 flex items-center justify-between select-none shadow-xs shrink-0">
           {/* Breadcrumb path (Desktop) / Section Icon & Tab Title (Mobile) */}
           <div className="flex items-center gap-2 min-w-0">
             {/* Mobile Header Title (Compact) */}

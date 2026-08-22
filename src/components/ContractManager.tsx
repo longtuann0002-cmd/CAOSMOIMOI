@@ -141,13 +141,6 @@ export default function ContractManager({
         backgroundColor: '#ffffff',
         cacheBust: true,
         pixelRatio: 2,
-        style: {
-          margin: '0',
-          padding: '24px',
-          borderRadius: '16px',
-          boxSizing: 'border-box',
-          width: '560px',
-        }
       })
         .then((dataUrl) => {
           const link = document.createElement('a');
@@ -1250,21 +1243,15 @@ export default function ContractManager({
                 </div>
               )}
 
-              <div id="contract-receipt-capture" className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4 font-sans text-gray-900">
-                {/* Store Header & Invoice Title */}
-                <div className="text-center space-y-2 border-b border-gray-200 pb-4">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="bg-orange-600 text-white font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-lg uppercase tracking-wider">
-                      TIỆM ẢNH NHÀ CAOS
-                    </span>
-                    <span className="text-xs font-bold text-gray-500">• CHO THUÊ MÁY ẢNH GIÁ RẺ</span>
-                  </div>
-                  <h3 className="text-sm sm:text-base font-black text-gray-900 uppercase tracking-wide">
+              <div id="contract-receipt-capture" className="bg-white p-5 sm:p-7 rounded-2xl border border-gray-200 shadow-sm space-y-4 font-sans text-gray-900 w-full max-w-xl mx-auto box-border">
+                {/* Visual Invoice Title for image export */}
+                <div className="text-center space-y-1.5 border-b border-gray-200 pb-3.5">
+                  <h3 className="text-base sm:text-lg font-black text-gray-900 uppercase tracking-wide">
                     HÓA ĐƠN BÀN GIAO & THANH TOÁN
                   </h3>
-                  <div className="flex items-center justify-center gap-2 text-[11px] sm:text-xs text-gray-500 font-mono flex-wrap">
+                  <div className="flex items-center justify-center gap-2 text-xs text-gray-500 font-mono flex-wrap">
                     <span>Mã HĐ: <strong className="text-orange-600 font-bold">{selectedContract.contractCode}</strong></span>
-                    <span>|</span>
+                    <span>•</span>
                     <span>Ngày lập: {new Date(selectedContract.createdAt).toLocaleString('vi-VN')}</span>
                   </div>
                 </div>
@@ -1477,17 +1464,10 @@ export default function ContractManager({
                   )}
                 </div>
 
-                {selectedContract.note && (
-                  <div className="text-xs sm:text-sm bg-amber-50/80 border border-amber-200 p-3 rounded-xl">
-                    <span className="font-bold text-amber-900 block mb-0.5">Yêu cầu đặc biệt bổ sung:</span>
-                    <p className="text-gray-700 italic font-sans">{selectedContract.note}</p>
-                  </div>
-                )}
-
                 {/* Footer Banner */}
-                <div className="text-center pt-2 border-t border-gray-200 text-[11px] text-gray-500 space-y-0.5">
-                  <p className="font-bold text-gray-700">Cảm ơn quý khách đã tin tưởng Tiệm Ảnh Nhà Caos!</p>
-                  <p className="font-mono text-[10px] text-gray-400">Hotline/Zalo: 0387.532.321 • Địa chỉ: Tiệm Ảnh Nhà Caos</p>
+                <div className="text-center pt-3 border-t border-gray-200 text-xs text-gray-500 space-y-0.5">
+                  <p className="font-bold text-gray-800">Cảm ơn quý khách đã tin tưởng Tiệm Ảnh Nhà Caos!</p>
+                  <p className="font-mono text-[11px] text-gray-400">Hotline/Zalo: 0387.532.321 • Địa chỉ: Tiệm Ảnh Nhà Caos</p>
                 </div>
               </div>
 

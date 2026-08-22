@@ -60,10 +60,6 @@
   --color-slate-850: #0f172a;
 }
 
-*, ::before, ::after {
-  border-color: #e5e7eb;
-}
-
 body {
   font-family: var(--font-sans);
   background-color: #fcfcfd;
