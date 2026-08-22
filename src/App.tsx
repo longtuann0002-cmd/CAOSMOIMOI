@@ -849,6 +849,10 @@ export default function App() {
     setCameras(prev => prev.filter(c => c.id !== id));
   };
 
+  const handleReorderCameras = (newCameras: Camera[]) => {
+    setCameras(newCameras);
+  };
+
   // Operations: CUSTOMERS
   const handleAddCustomer = (newCust: Customer) => {
     setCustomers(prev => [...prev, newCust]);
@@ -2101,6 +2105,7 @@ export default function App() {
                 <BookingCalendar
                   cameras={cameras}
                   contracts={contracts}
+                  customers={customers}
                   onAddContract={handleAddContract}
                   onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
                   selectedDate={selectedDate}
@@ -2115,6 +2120,7 @@ export default function App() {
                 <ContractManager
                   contracts={contracts}
                   cameras={cameras}
+                  customers={customers}
                   onAddContract={handleAddContract}
                   onUpdateContractStatus={handleUpdateContractStatus}
                   onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
@@ -2132,6 +2138,7 @@ export default function App() {
                   onAddCamera={handleAddCamera}
                   onUpdateCamera={handleUpdateCamera}
                   onDeleteCamera={handleDeleteCamera}
+                  onReorderCameras={handleReorderCameras}
                   currentUserRole={currentUser?.role}
                   contracts={contracts}
                   systemDate={systemDate}

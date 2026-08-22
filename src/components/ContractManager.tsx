@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { RentalContract, Camera, ContractStatus, BankConfig, ContractTemplate } from '../types';
+import { RentalContract, Camera, ContractStatus, BankConfig, ContractTemplate, Customer } from '../types';
 import MoneyInput from './MoneyInput';
 import { 
   Search, Plus, Filter, Calendar, FileText, Check, AlertCircle, RefreshCw, X, 
@@ -16,6 +16,7 @@ import { toPng } from 'html-to-image';
 interface ContractManagerProps {
   contracts: RentalContract[];
   cameras: Camera[];
+  customers?: Customer[];
   onAddContract: (contract: RentalContract) => void;
   onUpdateContractStatus: (id: string, status: ContractStatus, note?: string, paidAmount?: number) => void;
   onDeleteContract?: (id: string) => void;
@@ -70,6 +71,7 @@ const getBankBin = (id: string): string => {
 export default function ContractManager({
   contracts,
   cameras,
+  customers = [],
   onAddContract,
   onUpdateContractStatus,
   onDeleteContract,
@@ -1657,14 +1659,51 @@ export default function ContractManager({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Số điện thoại *</label>
-                  <input
-                    type="tel"
-                    required
-                    value={newContractForm.customerPhone}
-                    onChange={e => setNewContractForm({ ...newContractForm, customerPhone: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    placeholder="0912xxxxxx"
-                  />
+                  {(() => {
+                    const phone = newContractForm.customerPhone.trim();
+                    const matchedCustomer = phone.length >= 8
+                      ? (customers.find(c => c.phone === phone) ||
+                         contracts.reduce((found: any, c) => found || (c.customerPhone === phone ? { name: c.customerName } : null), null))
+                      : null;
+                    return (
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          required
+                          value={newContractForm.customerPhone}
+                          onChange={e => {
+                            const newPhone = e.target.value;
+                            const found = newPhone.trim().length >= 8
+                              ? (customers.find(c => c.phone === newPhone.trim()) ||
+                                 contracts.reduce((f: any, c) => f || (c.customerPhone === newPhone.trim() ? { name: c.customerName } : null), null))
+                              : null;
+                            if (found && !newContractForm.customerName) {
+                              setNewContractForm({ ...newContractForm, customerPhone: newPhone, customerName: found.name });
+                            } else {
+                              setNewContractForm({ ...newContractForm, customerPhone: newPhone });
+                            }
+                          }}
+                          className={`w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none ${matchedCustomer ? 'border-emerald-400 bg-emerald-50/50' : 'border-gray-200'}`}
+                          placeholder="0912xxxxxx"
+                        />
+                        {matchedCustomer && (
+                          <div className="mt-1 flex items-center gap-1 text-[11px] text-emerald-700 font-semibold">
+                            <span>✓</span>
+                            <span>Khách cũ: <span className="font-bold">{matchedCustomer.name}</span></span>
+                            {newContractForm.customerName !== matchedCustomer.name && (
+                              <button
+                                type="button"
+                                onClick={() => setNewContractForm({ ...newContractForm, customerName: matchedCustomer.name })}
+                                className="ml-1 px-1.5 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold cursor-pointer hover:bg-emerald-700 transition-colors"
+                              >
+                                Điền tên
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

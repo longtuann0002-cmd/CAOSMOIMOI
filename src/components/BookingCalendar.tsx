@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, RentalContract, BankConfig } from '../types';
+import { Camera, RentalContract, BankConfig, Customer } from '../types';
 import MoneyInput from './MoneyInput';
 import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye } from 'lucide-react';
 import { getCameraRateForDuration, checkBookingConflict } from '../utils/pricing';
@@ -49,6 +49,7 @@ const getCameraColorProps = (shortName: string) => {
 interface BookingCalendarProps {
   cameras: Camera[];
   contracts: RentalContract[];
+  customers?: Customer[];
   onAddContract: (contract: RentalContract) => void;
   onDeleteContract?: (id: string) => void;
   selectedDate: string;
@@ -59,6 +60,7 @@ interface BookingCalendarProps {
 export default function BookingCalendar({
   cameras,
   contracts,
+  customers = [],
   onAddContract,
   onDeleteContract,
   selectedDate,
@@ -1035,16 +1037,54 @@ export default function BookingCalendar({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Số điện thoại *</label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.customerPhone}
-                    onChange={e => setFormData({ ...formData, customerPhone: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none placeholder:text-gray-400 font-medium font-mono"
-                    placeholder="VD: 0912345678"
-                  />
+                  {(() => {
+                    const phone = formData.customerPhone.trim();
+                    const matchedCustomer = phone.length >= 8
+                      ? (customers.find(c => c.phone === phone) ||
+                         contracts.reduce((found: any, c) => found || (c.customerPhone === phone ? { name: c.customerName, phone: c.customerPhone } : null), null))
+                      : null;
+                    return (
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          required
+                          value={formData.customerPhone}
+                          onChange={e => {
+                            const newPhone = e.target.value;
+                            const found = newPhone.trim().length >= 8
+                              ? (customers.find(c => c.phone === newPhone.trim()) ||
+                                 contracts.reduce((f: any, c) => f || (c.customerPhone === newPhone.trim() ? { name: c.customerName } : null), null))
+                              : null;
+                            if (found && !formData.customerName) {
+                              setFormData({ ...formData, customerPhone: newPhone, customerName: found.name });
+                            } else {
+                              setFormData({ ...formData, customerPhone: newPhone });
+                            }
+                          }}
+                          className={`w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none placeholder:text-gray-400 font-medium font-mono ${matchedCustomer ? 'border-emerald-400 bg-emerald-50/50' : 'border-gray-300'}`}
+                          placeholder="VD: 0912345678"
+                        />
+                        {matchedCustomer && (
+                          <div className="mt-1 flex items-center gap-1 text-[11px] text-emerald-700 font-semibold">
+                            <span>✓</span>
+                            <span>Khách cũ: <span className="font-bold">{matchedCustomer.name}</span></span>
+                            {formData.customerName !== matchedCustomer.name && (
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, customerName: matchedCustomer.name })}
+                                className="ml-1 px-1.5 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold cursor-pointer hover:bg-emerald-700 transition-colors"
+                              >
+                                Điền tên
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
+
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

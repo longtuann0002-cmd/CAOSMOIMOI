@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract } from '../types';
 import MoneyInput from './MoneyInput';
-import { Search, Plus, Filter, Camera as CameraIcon, CheckCircle, Flame, Server, ShieldCheck, RefreshCw, Trash2, Edit2, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Image as ImageIcon, Upload, Link as LinkIcon, Sparkles } from 'lucide-react';
+import { Search, Plus, Filter, Camera as CameraIcon, CheckCircle, Flame, Server, ShieldCheck, RefreshCw, Trash2, Edit2, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Image as ImageIcon, Upload, Link as LinkIcon, Sparkles, ArrowLeft, ArrowRight, GripVertical } from 'lucide-react';
 import { getInitialTieredPrices } from '../utils/pricing';
 import RentalFrequencyChart from './RentalFrequencyChart';
 
@@ -11,6 +11,7 @@ interface EquipmentTrackerProps {
   onAddCamera: (camera: Camera) => void;
   onUpdateCamera: (camera: Camera) => void;
   onDeleteCamera: (id: string) => void;
+  onReorderCameras?: (cameras: Camera[]) => void;
   currentUserRole?: string;
   contracts?: RentalContract[];
   systemDate?: string;
@@ -21,6 +22,7 @@ export default function EquipmentTracker({
   onAddCamera,
   onUpdateCamera,
   onDeleteCamera,
+  onReorderCameras,
   currentUserRole,
   contracts = [],
   systemDate = '2026-06-17'
@@ -40,6 +42,71 @@ export default function EquipmentTracker({
       ...prev,
       [id]: !prev[id]
     }));
+  };
+
+  // Reordering & Drag-and-Drop states
+  const [draggedCamId, setDraggedCamId] = useState<string | null>(null);
+  const [dragOverCamId, setDragOverCamId] = useState<string | null>(null);
+
+  const handleMoveCamera = (camId: string, direction: 'left' | 'right') => {
+    const currentIndex = cameras.findIndex(c => c.id === camId);
+    if (currentIndex === -1) return;
+    
+    const targetIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= cameras.length) return;
+
+    const newCameras = [...cameras];
+    const [moved] = newCameras.splice(currentIndex, 1);
+    newCameras.splice(targetIndex, 0, moved);
+
+    if (onReorderCameras) {
+      onReorderCameras(newCameras);
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, camId: string) => {
+    e.dataTransfer.setData('text/plain', camId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedCamId(camId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, camId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverCamId !== camId) {
+      setDragOverCamId(camId);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetCamId: string) => {
+    e.preventDefault();
+    const sourceId = draggedCamId || e.dataTransfer.getData('text/plain');
+    if (!sourceId || sourceId === targetCamId) {
+      setDraggedCamId(null);
+      setDragOverCamId(null);
+      return;
+    }
+
+    const sourceIndex = cameras.findIndex(c => c.id === sourceId);
+    const targetIndex = cameras.findIndex(c => c.id === targetCamId);
+
+    if (sourceIndex !== -1 && targetIndex !== -1) {
+      const newCameras = [...cameras];
+      const [moved] = newCameras.splice(sourceIndex, 1);
+      newCameras.splice(targetIndex, 0, moved);
+
+      if (onReorderCameras) {
+        onReorderCameras(newCameras);
+      }
+    }
+
+    setDraggedCamId(null);
+    setDragOverCamId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCamId(null);
+    setDragOverCamId(null);
   };
 
   // Form states including tiered pricing fields
@@ -356,27 +423,54 @@ export default function EquipmentTracker({
 
       {/* Equipment Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {paginatedCameras.map(cam => (
-          <div key={cam.id} className="bg-white border border-gray-150/65 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-            <div>
-              {/* Product Image and tags */}
-              <div className="h-36 sm:h-44 md:h-48 overflow-hidden relative bg-gray-100">
-                <img
-                  src={cam.image}
-                  alt={cam.name}
-                  className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1">
-                  <span className="bg-black/60 backdrop-blur-xs text-white text-[9px] sm:text-[10px] uppercase font-bold px-2 py-0.5 rounded-full tracking-wider">
-                    {cam.category === 'Body' ? 'Thân máy' :
-                     cam.category === 'Lens' ? 'Ống kính' :
-                     cam.category === 'Combo' ? 'Bộ Gear' : 'Phụ kiện'}
-                  </span>
-                  <span className="bg-orange-600 text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {cam.shortName}
-                  </span>
-                </div>
+        {paginatedCameras.map(cam => {
+          const globalIndex = cameras.findIndex(c => c.id === cam.id);
+          const isFirst = globalIndex === 0;
+          const isLast = globalIndex === cameras.length - 1;
+          const isDraggingThis = draggedCamId === cam.id;
+          const isDragTarget = dragOverCamId === cam.id && !isDraggingThis;
+
+          return (
+            <div 
+              key={cam.id}
+              onDragOver={(e) => handleDragOver(e, cam.id)}
+              onDrop={(e) => handleDrop(e, cam.id)}
+              className={`bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative ${
+                isDraggingThis ? 'opacity-35 border-dashed border-orange-500 scale-[0.98]' :
+                isDragTarget ? 'border-orange-500 ring-2 ring-orange-400/60 scale-[1.01] shadow-lg' :
+                'border-gray-150/65'
+              }`}
+            >
+              <div>
+                {/* Product Image and tags */}
+                <div className="h-36 sm:h-44 md:h-48 overflow-hidden relative bg-gray-100">
+                  <img
+                    src={cam.image}
+                    alt={cam.name}
+                    className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1">
+                    {currentUserRole === 'admin' && (
+                      <div
+                        draggable={true}
+                        onDragStart={(e) => handleDragStart(e, cam.id)}
+                        onDragEnd={handleDragEnd}
+                        className="bg-black/60 hover:bg-orange-600 backdrop-blur-xs text-white text-[10px] font-bold p-1 rounded-full cursor-grab active:cursor-grabbing inline-flex items-center justify-center transition-colors shadow-sm"
+                        title="Kéo & thả để đổi vị trí thứ tự thiết bị"
+                      >
+                        <GripVertical className="w-3.5 h-3.5" />
+                      </div>
+                    )}
+                    <span className="bg-black/60 backdrop-blur-xs text-white text-[9px] sm:text-[10px] uppercase font-bold px-2 py-0.5 rounded-full tracking-wider">
+                      {cam.category === 'Body' ? 'Thân máy' :
+                       cam.category === 'Lens' ? 'Ống kính' :
+                       cam.category === 'Combo' ? 'Bộ Gear' : 'Phụ kiện'}
+                    </span>
+                    <span className="bg-orange-600 text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {cam.shortName}
+                    </span>
+                  </div>
                 
                 {/* Status Overlay Bubble */}
                 <div className="absolute top-2.5 right-2.5 text-xs">
@@ -488,44 +582,71 @@ export default function EquipmentTracker({
             </div>
 
             {/* Quick Status and Admin tools bar */}
-            <div className="px-4 sm:px-5 py-3 sm:py-3.5 bg-gray-50/90 border-t border-gray-100 flex items-center justify-between gap-1.5">
+            <div className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gray-50/90 border-t border-gray-100 flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
               {currentUserRole === 'admin' ? (
                 <>
-                  <button
-                    onClick={() => handleOpenEditModal(cam)}
-                    className="text-gray-650 hover:text-orange-600 p-2 hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
-                    title="Sửa thông tin (Admin)"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
+                  {/* Reorder Buttons: Left & Right */}
+                  <div className="flex items-center gap-0.5 bg-white border border-gray-250 rounded-lg p-0.5 shadow-4xs" title="Đổi vị trí thiết bị trong danh sách">
+                    <button
+                      type="button"
+                      onClick={() => handleMoveCamera(cam.id, 'left')}
+                      disabled={isFirst}
+                      className="p-1 text-gray-600 hover:text-orange-600 hover:bg-orange-50 disabled:opacity-25 disabled:pointer-events-none rounded transition cursor-pointer"
+                      title="Di chuyển lên trước (←)"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-[10px] font-mono font-bold text-gray-500 px-1 select-none" title={`Vị trí thứ ${globalIndex + 1} trên tổng ${cameras.length} thiết bị`}>
+                      #{globalIndex + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveCamera(cam.id, 'right')}
+                      disabled={isLast}
+                      className="p-1 text-gray-600 hover:text-orange-600 hover:bg-orange-50 disabled:opacity-25 disabled:pointer-events-none rounded transition cursor-pointer"
+                      title="Di chuyển về sau (→)"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
-                  <button
-                    onClick={() => toggleMaintenance(cam)}
-                    className={`text-xs px-3 py-1.5 font-bold rounded-lg transition-all cursor-pointer ${
-                      cam.status === 'Maintenance'
-                        ? 'bg-emerald-55 border border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                        : 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100'
-                    }`}
-                    title={cam.status === 'Maintenance' ? 'Chuyển sang Sẵn sàng hoạt động' : 'Chuyển sang trạng thái Đang bảo trì'}
-                  >
-                    {cam.status === 'Maintenance' ? 'Xong bảo dưỡng' : 'Cần bảo trì'}
-                  </button>
+                  <div className="flex items-center gap-1 ml-auto">
+                    <button
+                      onClick={() => handleOpenEditModal(cam)}
+                      className="text-gray-650 hover:text-orange-600 p-1.5 hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
+                      title="Sửa thông tin (Admin)"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
 
-                  <button
-                    onClick={() => {
-                      if (cam.status === 'Rented') {
-                        setDeleteError(`Thiết bị "${cam.name}" hiện đang trong trạng thái ĐANG THUÊ (Rented) bởi khách hàng. Vui lòng hoàn tất thu hồi hoặc xử lý hợp đồng của thiết bị này trước khi xóa khỏi hệ thống.`);
-                        setCameraToDelete(cam);
-                      } else {
-                        setDeleteError(null);
-                        setCameraToDelete(cam);
-                      }
-                    }}
-                    className="text-gray-400 hover:text-red-650 p-2 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
-                    title="Xóa máy"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <button
+                      onClick={() => toggleMaintenance(cam)}
+                      className={`text-[11px] px-2.5 py-1.5 font-bold rounded-lg transition-all cursor-pointer ${
+                        cam.status === 'Maintenance'
+                          ? 'bg-emerald-55 border border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                          : 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100'
+                      }`}
+                      title={cam.status === 'Maintenance' ? 'Chuyển sang Sẵn sàng hoạt động' : 'Chuyển sang trạng thái Đang bảo trì'}
+                    >
+                      {cam.status === 'Maintenance' ? 'Xong bảo dưỡng' : 'Cần bảo trì'}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (cam.status === 'Rented') {
+                          setDeleteError(`Thiết bị "${cam.name}" hiện đang trong trạng thái ĐANG THUÊ (Rented) bởi khách hàng. Vui lòng hoàn tất thu hồi hoặc xử lý hợp đồng của thiết bị này trước khi xóa khỏi hệ thống.`);
+                          setCameraToDelete(cam);
+                        } else {
+                          setDeleteError(null);
+                          setCameraToDelete(cam);
+                        }
+                      }}
+                      className="text-gray-400 hover:text-red-650 p-1.5 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                      title="Xóa máy"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -548,7 +669,8 @@ export default function EquipmentTracker({
               )}
             </div>
           </div>
-        ))}
+        );
+      })}
         {filteredCameras.length === 0 && (
           <div className="col-span-full bg-white border border-gray-150 p-12 text-center rounded-2xl text-gray-400 italic font-medium">
             Không tìm thấy máy móc nào trùng khớp với bộ lọc của bạn.
