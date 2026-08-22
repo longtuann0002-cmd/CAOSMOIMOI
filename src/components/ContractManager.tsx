@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { getCameraRateForDuration, checkBookingConflict } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
+import { formatDMY } from '../utils/dateUtils';
 import { toPng } from 'html-to-image';
 
 interface ContractManagerProps {
@@ -798,7 +799,7 @@ export default function ContractManager({
                   <div className="bg-gray-50/60 p-3 rounded-xl border border-gray-150/60 space-y-1.5 text-xs">
                     <div className="flex items-center gap-2 font-bold text-gray-700">
                       <Calendar className="w-3.5 h-3.5 text-gray-400 font-semibold" />
-                      <span>{c.startDate}{c.is6Hours ? '' : ` đến ${c.endDate}`}</span>
+                      <span>{formatDMY(c.startDate)}{c.is6Hours ? '' : ` đến ${formatDMY(c.endDate)}`}</span>
                     </div>
                     <div className="flex items-center justify-between text-gray-500 border-t border-gray-100 pt-1.5 font-medium">
                       <span>Thời hạn thuê:</span>
@@ -1091,7 +1092,7 @@ export default function ContractManager({
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-gray-700 font-medium">{c.startDate}{c.is6Hours ? '' : ` đến ${c.endDate}`}</div>
+                        <div className="text-gray-700 font-medium">{formatDMY(c.startDate)}{c.is6Hours ? '' : ` đến ${formatDMY(c.endDate)}`}</div>
                         <div className="text-gray-400 text-xs">Thời hạn: <span className={c.is6Hours ? 'font-extrabold text-amber-700 bg-amber-50 border border-amber-200 text-[11px] px-1.5 py-0.5 rounded shadow-3xs inline-block' : 'font-bold text-gray-650'}>{c.is6Hours ? `⚡ 6 Tiếng (Trả: ${c.returnTime || '18:00'})` : `${duration} ngày`}</span></div>
                       </td>
                       <td className="px-6 py-4 text-right font-mono font-bold text-gray-900">
@@ -1378,11 +1379,11 @@ export default function ContractManager({
                     <div className="space-y-1.5 text-xs sm:text-sm text-gray-750">
                       <p className="flex justify-between items-center gap-2">
                         <span className="text-gray-500">Bắt đầu:</span>
-                        <strong className="text-gray-800 text-right font-medium">{selectedContract.startDate}</strong>
+                        <strong className="text-gray-800 text-right font-medium">{formatDMY(selectedContract.startDate)}</strong>
                       </p>
                       <p className="flex justify-between items-start gap-2">
                         <span className="text-gray-500 shrink-0">Trả máy dự kiến:</span>
-                        <strong className="text-gray-800 text-right font-medium">{selectedContract.is6Hours ? 'Gói 6 tiếng trong ngày' : selectedContract.endDate}</strong>
+                        <strong className="text-gray-800 text-right font-medium">{selectedContract.is6Hours ? 'Gói 6 tiếng trong ngày' : formatDMY(selectedContract.endDate)}</strong>
                       </p>
                     </div>
                   </div>

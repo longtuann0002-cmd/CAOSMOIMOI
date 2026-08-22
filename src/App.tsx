@@ -10,6 +10,7 @@ import {
   INITIAL_EXPENSES
 } from './utils/mockData';
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from './utils/supabase';
+import { formatDMY } from './utils/dateUtils';
 
 
 // Component imports
@@ -1916,10 +1917,7 @@ export default function App() {
               title="Ngày hoạt động của hệ thống"
             >
               <Calendar className="w-3.5 h-3.5 text-orange-600" />
-              <span>Hệ thống: <span className="font-mono font-black">{(() => {
-                const parts = (systemDate || '').split('-');
-                return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : systemDate;
-              })()}</span></span>
+              <span>Hệ thống: <span className="font-mono font-black">{formatDMY(systemDate)}</span></span>
             </div>
             
             <NotificationCenter

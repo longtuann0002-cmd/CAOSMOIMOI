@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Expense } from '../types';
 import MoneyInput from './MoneyInput';
+import { formatDMY } from '../utils/dateUtils';
 import { Search, Plus, Trash2, Tag, Calendar, User, DollarSign, ListCollapse, ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react';
 
 interface ExpenseTrackerProps {
@@ -256,7 +257,7 @@ export default function ExpenseTracker({
                     <td className="px-6 py-4 text-gray-600 font-mono">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                        {exp.date}
+                        {formatDMY(exp.date)}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-gray-600">
@@ -318,7 +319,7 @@ export default function ExpenseTracker({
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <div className="flex items-center gap-1 font-mono text-gray-500 font-semibold">
                       <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                      <span>{exp.date}</span>
+                      <span>{formatDMY(exp.date)}</span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-500">
                       <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />

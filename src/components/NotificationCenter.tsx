@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { RentalContract, Camera, ContractStatus } from '../types';
+import { formatDMY } from '../utils/dateUtils';
 import { 
   Bell, 
   BellRing, 
@@ -512,7 +513,7 @@ export default function NotificationCenter({
 
                             <div className="flex items-center gap-1">
                               <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                              <span>{c.startDate} ĐẾN {c.endDate}</span>
+                              <span>{formatDMY(c.startDate)} ĐẾN {formatDMY(c.endDate)}</span>
                             </div>
 
                             <div className="flex items-center gap-1 truncate" title={`Thế chấp: ${c.customerDocNote || 'Chưa cập nhật'}`}>

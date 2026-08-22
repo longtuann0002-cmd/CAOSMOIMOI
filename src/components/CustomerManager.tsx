@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Customer, RentalContract } from '../types';
+import { formatDMY } from '../utils/dateUtils';
 import { Search, Plus, Trash2, Edit2, Shield, User, Heart, AlertTriangle, Phone, Globe, MapPin, ChevronLeft, ChevronRight, FileSpreadsheet, Eye, Calendar, DollarSign, FileText, CheckCircle2, Clock, X, Info, ArrowUpDown, Filter, SortDesc, Sparkles } from 'lucide-react';
 
 interface CustomerManagerProps {
@@ -1217,7 +1218,7 @@ export default function CustomerManager({
                                 <div className="bg-slate-50 p-2 rounded-lg border border-gray-150">
                                   <div className="text-gray-400 font-bold text-[10px] uppercase">Thời hạn thuê máy:</div>
                                   <div className="font-mono text-gray-800 font-bold mt-0.5">
-                                    📅 {new Date(contract.startDate).toLocaleDateString('vi-VN')} {contract.is6Hours ? '' : `đến ${new Date(contract.endDate).toLocaleDateString('vi-VN')}`}
+                                    📅 {formatDMY(contract.startDate)} {contract.is6Hours ? '' : `đến ${formatDMY(contract.endDate)}`}
                                   </div>
                                 </div>
                                 <div className="bg-slate-50 p-2 rounded-lg border border-gray-150">

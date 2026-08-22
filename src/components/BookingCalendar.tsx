@@ -5,6 +5,7 @@ import MoneyInput from './MoneyInput';
 import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye } from 'lucide-react';
 import { getCameraRateForDuration, checkBookingConflict } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
+import { formatDMY } from '../utils/dateUtils';
 import { VIET_BANKS } from './ContractManager';
 
 const getCameraColorProps = (shortName: string) => {
@@ -789,7 +790,7 @@ export default function BookingCalendar({
 
           <div className="text-gray-600 font-mono text-[11px] bg-orange-50/60 px-3 py-1 rounded-lg border border-orange-200/60 flex items-center gap-1.5">
             <span className="font-sans font-bold">Ngày đang chọn:</span>
-            <span className="text-orange-600 font-black">{selectedDate}</span>
+            <span className="text-orange-600 font-black">{formatDMY(selectedDate)}</span>
           </div>
         </div>
 
@@ -883,7 +884,7 @@ export default function BookingCalendar({
             </span>
             <div>
               <h3 className="font-black text-gray-900 text-sm sm:text-base select-none">
-                Chi tiết đặt lịch ngày {selectedDate}
+                Chi tiết đặt lịch ngày {formatDMY(selectedDate)}
               </h3>
               <span className="text-xs text-gray-500">
                 {dayBookingsMap[selectedDate]?.length || 0} thiết bị có lịch thuê trong ngày
