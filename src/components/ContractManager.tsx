@@ -126,7 +126,7 @@ export default function ContractManager({
 
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
-  const handleExportImage = (elementId: string, filename: string) => {
+  const handleExportImage = async (elementId: string, filename: string) => {
     const element = document.getElementById(elementId);
     if (!element) {
       setCustomAlertMessage('Không tìm thấy dữ liệu để xuất ảnh!');
@@ -136,38 +136,54 @@ export default function ContractManager({
     setIsExporting(true);
     setEditingCustomer(false);
     
-    setTimeout(() => {
-      const targetWidth = 420;
-      toPng(element, {
+    try {
+      // Create off-screen clone with exact fixed 420px width and clean symmetric padding
+      const clone = element.cloneNode(true) as HTMLElement;
+      
+      // Remove any non-export elements
+      clone.querySelectorAll('[data-no-export="true"]').forEach(el => el.remove());
+      
+      // Reset any margins or inherited transforms that could cause skewing
+      clone.style.position = 'fixed';
+      clone.style.left = '-99999px';
+      clone.style.top = '0';
+      clone.style.width = '420px';
+      clone.style.maxWidth = '420px';
+      clone.style.minWidth = '420px';
+      clone.style.margin = '0';
+      clone.style.marginLeft = '0';
+      clone.style.marginRight = '0';
+      clone.style.padding = '20px';
+      clone.style.boxSizing = 'border-box';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.borderRadius = '0';
+      clone.style.zIndex = '-9999';
+      clone.style.transform = 'none';
+      
+      document.body.appendChild(clone);
+      
+      // Allow DOM rendering cycle to compute fonts and styles
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      const dataUrl = await toPng(clone, {
         backgroundColor: '#ffffff',
         cacheBust: true,
         pixelRatio: 2,
-        width: targetWidth,
-        style: {
-          margin: '0',
-          marginLeft: '0',
-          marginRight: '0',
-          marginTop: '0',
-          marginBottom: '0',
-          width: `${targetWidth}px`,
-          maxWidth: `${targetWidth}px`,
-          minWidth: `${targetWidth}px`,
-          boxSizing: 'border-box'
-        }
-      })
-        .then((dataUrl) => {
-          const link = document.createElement('a');
-          link.download = filename;
-          link.href = dataUrl;
-          link.click();
-          setIsExporting(false);
-        })
-        .catch((err) => {
-          console.error('Lỗi khi xuất ảnh:', err);
-          setCustomAlertMessage('Không thể tạo file ảnh. Vui lòng tải lại trang và thử lại!');
-          setIsExporting(false);
-        });
-    }, 200);
+        width: 420,
+      });
+      
+      document.body.removeChild(clone);
+      
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Lỗi khi xuất ảnh:', err);
+      setCustomAlertMessage('Không thể tạo file ảnh. Vui lòng thử lại!');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleExportCSV = () => {
