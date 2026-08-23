@@ -1197,16 +1197,16 @@ export default function ContractManager({
 
         {/* Contract manager pagination controls */}
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-150 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/60 select-none">
-            <span className="text-xs text-gray-500 font-medium">
+          <div className="px-3 sm:px-6 py-3 sm:py-4 border-t border-gray-150 flex flex-col items-center gap-3 bg-gray-50/60 select-none">
+            <span className="text-xs text-gray-500 font-medium text-center">
               Hiển thị từ <span className="font-bold text-gray-800">{(currentPage - 1) * itemsPerPage + 1}</span> tới <span className="font-bold text-gray-800">{Math.min(currentPage * itemsPerPage, filteredContracts.length)}</span> trong tổng số <span className="font-bold text-gray-800">{filteredContracts.length}</span> hợp đồng
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
               <button
                 type="button"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+                className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer shrink-0"
                 title="Trang trước"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -1217,7 +1217,7 @@ export default function ContractManager({
                   key={page}
                   type="button"
                   onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
                     currentPage === page
                       ? 'bg-orange-600 border border-orange-600 text-white shadow-xs'
                       : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -1231,7 +1231,7 @@ export default function ContractManager({
                 type="button"
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+                className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer shrink-0"
                 title="Trang sau"
               >
                 <ChevronRight className="w-4 h-4" />

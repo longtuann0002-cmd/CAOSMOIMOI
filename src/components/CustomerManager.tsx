@@ -764,16 +764,16 @@ export default function CustomerManager({
 
       {/* Pagination controls — compact on mobile */}
       {totalPages > 1 && (
-        <div className="bg-white border border-gray-150 px-3 py-2.5 sm:p-4 rounded-xl sm:rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 shadow-2xs select-none">
-          <span className="text-[10px] sm:text-xs text-gray-500 font-medium text-center sm:text-left">
+        <div className="bg-white border border-gray-150 px-3 py-2.5 sm:p-4 rounded-xl sm:rounded-2xl flex flex-col items-center gap-2 sm:gap-3 shadow-2xs select-none">
+          <span className="text-[10px] sm:text-xs text-gray-500 font-medium text-center">
             <span className="font-bold text-gray-800">{(currentPage - 1) * itemsPerPage + 1}</span>–<span className="font-bold text-gray-800">{Math.min(currentPage * itemsPerPage, filteredCustomers.length)}</span> / <span className="font-bold text-gray-800">{filteredCustomers.length}</span> khách hàng
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
             <button
               type="button"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+              className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer shrink-0"
             >
               <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
@@ -786,13 +786,13 @@ export default function CustomerManager({
               }, [])
               .map((item, i) =>
                 item === 'dot' ? (
-                  <span key={`dot-${i}`} className="px-1 text-gray-400 text-xs">…</span>
+                  <span key={`dot-${i}`} className="px-1 text-gray-400 text-xs shrink-0">…</span>
                 ) : (
                   <button
                     key={item}
                     type="button"
                     onClick={() => setCurrentPage(item as number)}
-                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
                       currentPage === item
                         ? 'bg-orange-600 border border-orange-600 text-white shadow-xs'
                         : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -806,7 +806,7 @@ export default function CustomerManager({
               type="button"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+              className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer shrink-0"
             >
               <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
