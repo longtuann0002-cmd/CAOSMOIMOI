@@ -2083,7 +2083,7 @@ export default function App() {
         </div>
 
         {/* MAIN BODY AREA */}
-        <main className="flex-grow w-full px-3 sm:px-6 md:px-8 py-3 sm:py-6 pb-18 md:pb-6 overflow-y-auto">
+        <main className="flex-grow w-full px-3 sm:px-6 md:px-8 py-3 sm:py-6 pb-24 md:pb-6 overflow-y-auto" style={{ paddingBottom: 'max(96px, calc(env(safe-area-inset-bottom, 0px) + 76px))' }}>
           {/* Header row in main panel content (Desktop only to avoid duplicate title taking space on mobile) */}
           <div className="hidden md:flex flex-row items-center justify-between gap-2 pb-3 mb-5 border-b border-gray-150">
             <div className="space-y-0.5">
