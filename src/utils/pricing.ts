@@ -7,17 +7,23 @@ import { Camera } from '../types';
  * @param is6Hours Có phải hình thức thuê 6 tiếng hay không
  */
 export function getCameraRateForDuration(camera: Camera, days: number, is6Hours?: boolean): number {
+  const p1 = camera.price1Day ?? camera.dailyRate;
   if (is6Hours) {
-    return camera.price6Hours ?? Math.round((camera.price1Day ?? camera.dailyRate) * 0.6); // Mặc định 60% giá ngày đầu
+    return camera.price6Hours ?? (Math.round((p1 * 0.7) / 10000) * 10000); // 70% giá ngày đầu làm tròn chẵn chục nghìn
   }
 
   const d = Math.max(1, days);
   
-  // Lấy các mốc giá đã thiết lập, nếu chưa thiết lập thì tính theo tỷ lệ mặc định từ dailyRate
-  const p1 = camera.price1Day ?? camera.dailyRate;
-  const p2 = camera.price2Days ?? Math.round(p1 * 0.9); // Giảm 10%
-  const p3 = camera.price3Days ?? Math.round(p1 * 0.8); // Giảm 20%
-  const p4 = camera.price4DaysPlus ?? Math.round(p1 * 0.7); // Giảm 30%
+  const p2_daily = Math.max(0, p1 - 30000); // Ngày 2 giảm 30k so với ngày 1
+  const p4_daily = Math.max(0, p1 - 40000); // Từ ngày 4 trở đi giảm 40k so với ngày 1
+  const p3_daily = p4_daily; // Ngày 3 bằng ngày 4
+
+  const defaultPrice2DaysAvg = (p1 + p2_daily) / 2;
+  const defaultPrice3DaysAvg = (p1 + p2_daily + p3_daily) / 3;
+
+  const p2 = camera.price2Days ?? defaultPrice2DaysAvg;
+  const p3 = camera.price3Days ?? defaultPrice3DaysAvg;
+  const p4 = camera.price4DaysPlus ?? p4_daily;
 
   if (d === 1) {
     return p1;
@@ -35,12 +41,18 @@ export function getCameraRateForDuration(camera: Camera, days: number, is6Hours?
  * Tạo giá trị mặc định cho cấu hình giá thuê đa tầng dựa trên đơn giá mặc định
  */
 export function getInitialTieredPrices(dailyRate: number) {
+  const p1 = dailyRate;
+  const p6h = Math.round((p1 * 0.7) / 10000) * 10000;
+  const p2_daily = Math.max(0, p1 - 30000);
+  const p4_daily = Math.max(0, p1 - 40000);
+  const p3_daily = p4_daily;
+
   return {
-    price6Hours: Math.round(dailyRate * 0.6),
-    price1Day: dailyRate,
-    price2Days: Math.round(dailyRate * 0.9),
-    price3Days: Math.round(dailyRate * 0.8),
-    price4DaysPlus: Math.round(dailyRate * 0.7)
+    price6Hours: p6h,
+    price1Day: p1,
+    price2Days: (p1 + p2_daily) / 2,
+    price3Days: (p1 + p2_daily + p3_daily) / 3,
+    price4DaysPlus: p4_daily
   };
 }
 

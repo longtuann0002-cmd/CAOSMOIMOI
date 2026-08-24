@@ -114,12 +114,12 @@ export default function EquipmentTracker({
     name: '',
     shortName: '',
     category: 'Body' as Camera['category'],
-    dailyRate: 150000,
-    price6Hours: 90000,
-    price1Day: 150000,
-    price2Days: 270000,
-    price3Days: 360000,
-    price4DaysPlus: 105000,
+    dailyRate: 290000,
+    price6Hours: 200000,
+    price1Day: 290000,
+    price2Days: 550000,
+    price3Days: 800000,
+    price4DaysPlus: 250000,
     depositAmount: 5000000,
     status: 'Available' as Camera['status'],
     serialNumber: '',
@@ -173,12 +173,12 @@ export default function EquipmentTracker({
       name: '',
       shortName: '',
       category: 'Body',
-      dailyRate: 150000,
-      price6Hours: 90000,
-      price1Day: 150000,
-      price2Days: 270000,
-      price3Days: 360000,
-      price4DaysPlus: 105000,
+      dailyRate: 290000,
+      price6Hours: 200000,
+      price1Day: 290000,
+      price2Days: 550000,
+      price3Days: 800000,
+      price4DaysPlus: 250000,
       depositAmount: 5000000,
       status: 'Available',
       serialNumber: '',
@@ -190,16 +190,22 @@ export default function EquipmentTracker({
   };
 
   const handleOpenEditModal = (cam: Camera) => {
+    const p1 = cam.price1Day ?? cam.dailyRate;
+    const p6hFallback = Math.round((p1 * 0.7) / 10000) * 10000;
+    const p2_daily = Math.max(0, p1 - 30000);
+    const p4_daily = Math.max(0, p1 - 40000);
+    const p3_daily = p4_daily;
+
     setFormState({
       name: cam.name,
       shortName: cam.shortName,
       category: cam.category,
       dailyRate: cam.dailyRate,
-      price6Hours: cam.price6Hours ?? Math.round(cam.dailyRate * 0.6),
-      price1Day: cam.price1Day ?? cam.dailyRate,
-      price2Days: Math.round((cam.price2Days ?? Math.round(cam.dailyRate * 0.9)) * 2),
-      price3Days: Math.round((cam.price3Days ?? Math.round(cam.dailyRate * 0.8)) * 3),
-      price4DaysPlus: cam.price4DaysPlus ?? Math.round(cam.dailyRate * 0.7),
+      price6Hours: cam.price6Hours ?? p6hFallback,
+      price1Day: p1,
+      price2Days: Math.round((cam.price2Days ?? ((p1 + p2_daily) / 2)) * 2),
+      price3Days: Math.round((cam.price3Days ?? ((p1 + p2_daily + p3_daily) / 3)) * 3),
+      price4DaysPlus: cam.price4DaysPlus ?? p4_daily,
       depositAmount: cam.depositAmount ?? 5000000,
       status: cam.status,
       serialNumber: cam.serialNumber,
@@ -506,26 +512,41 @@ export default function EquipmentTracker({
                     <span>Đơn giá/ngày (Hoặc buổi)</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 pt-1 text-[11px] font-semibold">
-                    <div className="flex justify-between items-center bg-amber-50 px-2 py-1 rounded-lg border border-amber-300 col-span-2 mb-1 shadow-3xs">
-                      <span className="text-amber-900 font-extrabold">Thuê ngắn hạn (6 tiếng):</span>
-                      <span className="font-mono text-amber-700 font-extrabold">{(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 font-medium">Thuê 1 ngày:</span>
-                      <span className="font-mono text-gray-800 font-bold">{(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 font-medium">Thuê 2 ngày:</span>
-                      <span className="font-mono text-gray-800 font-bold">{Math.round((cam.price2Days ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.9)) * 2).toLocaleString()}đ</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 font-medium">Thuê 3 ngày:</span>
-                      <span className="font-mono text-gray-800 font-bold">{Math.round((cam.price3Days ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.8)) * 3).toLocaleString()}đ</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 font-medium">Từ 4 ngày:</span>
-                      <span className="font-mono text-orange-600 font-extrabold">{(cam.price4DaysPlus ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.7)).toLocaleString()}đ/ngày</span>
-                    </div>
+                    {(() => {
+                      const p1 = cam.price1Day ?? cam.dailyRate;
+                      const p6h = cam.price6Hours ?? (Math.round((p1 * 0.7) / 10000) * 10000);
+                      const p2_daily = Math.max(0, p1 - 30000);
+                      const p4_daily = Math.max(0, p1 - 40000);
+                      const p3_daily = p4_daily;
+                      const total2Days = Math.round((cam.price2Days ?? ((p1 + p2_daily) / 2)) * 2);
+                      const total3Days = Math.round((cam.price3Days ?? ((p1 + p2_daily + p3_daily) / 3)) * 3);
+                      const rateFrom4Days = cam.price4DaysPlus ?? p4_daily;
+
+                      return (
+                        <>
+                          <div className="flex justify-between items-center bg-amber-50 px-2 py-1 rounded-lg border border-amber-300 col-span-2 mb-1 shadow-3xs">
+                            <span className="text-amber-900 font-extrabold">Thuê ngắn hạn (6 tiếng):</span>
+                            <span className="font-mono text-amber-700 font-extrabold">{p6h.toLocaleString()}đ</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600 font-medium">Thuê 1 ngày:</span>
+                            <span className="font-mono text-gray-800 font-bold">{p1.toLocaleString()}đ</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600 font-medium">Thuê 2 ngày:</span>
+                            <span className="font-mono text-gray-800 font-bold">{total2Days.toLocaleString()}đ</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600 font-medium">Thuê 3 ngày:</span>
+                            <span className="font-mono text-gray-800 font-bold">{total3Days.toLocaleString()}đ</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600 font-medium">Từ 4 ngày:</span>
+                            <span className="font-mono text-orange-600 font-extrabold">{rateFrom4Days.toLocaleString()}đ/ngày</span>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -555,26 +576,41 @@ export default function EquipmentTracker({
                         <span>Thời hạn</span>
                         <span>Đơn giá/ngày (hoặc buổi)</span>
                       </div>
-                      <div className="flex justify-between items-center bg-amber-50 p-1.5 rounded-lg border border-amber-300 font-bold">
-                        <span className="text-amber-900 font-extrabold">Ngắn hạn (6 tiếng):</span>
-                        <span className="font-mono text-amber-700 font-extrabold">{(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ</span>
-                      </div>
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-gray-600">Thuê 1 ngày:</span>
-                        <span className="font-mono text-gray-800 font-bold">{(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ</span>
-                      </div>
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-gray-600">Thuê 2 ngày:</span>
-                        <span className="font-mono text-gray-800 font-bold">{Math.round((cam.price2Days ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.9)) * 2).toLocaleString()}đ</span>
-                      </div>
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-gray-600">Thuê 3 ngày:</span>
-                        <span className="font-mono text-gray-800 font-bold">{Math.round((cam.price3Days ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.8)) * 3).toLocaleString()}đ</span>
-                      </div>
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-gray-600">Từ 4 ngày:</span>
-                        <span className="font-mono text-orange-600 font-extrabold">{(cam.price4DaysPlus ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.7)).toLocaleString()}đ/ngày</span>
-                      </div>
+                      {(() => {
+                        const p1 = cam.price1Day ?? cam.dailyRate;
+                        const p6h = cam.price6Hours ?? (Math.round((p1 * 0.7) / 10000) * 10000);
+                        const p2_daily = Math.max(0, p1 - 30000);
+                        const p4_daily = Math.max(0, p1 - 40000);
+                        const p3_daily = p4_daily;
+                        const total2Days = Math.round((cam.price2Days ?? ((p1 + p2_daily) / 2)) * 2);
+                        const total3Days = Math.round((cam.price3Days ?? ((p1 + p2_daily + p3_daily) / 3)) * 3);
+                        const rateFrom4Days = cam.price4DaysPlus ?? p4_daily;
+
+                        return (
+                          <>
+                            <div className="flex justify-between items-center bg-amber-50 p-1.5 rounded-lg border border-amber-300 font-bold">
+                              <span className="text-amber-900 font-extrabold">Ngắn hạn (6 tiếng):</span>
+                              <span className="font-mono text-amber-700 font-extrabold">{p6h.toLocaleString()}đ</span>
+                            </div>
+                            <div className="flex justify-between items-center px-1">
+                              <span className="text-gray-600">Thuê 1 ngày:</span>
+                              <span className="font-mono text-gray-800 font-bold">{p1.toLocaleString()}đ</span>
+                            </div>
+                            <div className="flex justify-between items-center px-1">
+                              <span className="text-gray-600">Thuê 2 ngày:</span>
+                              <span className="font-mono text-gray-800 font-bold">{total2Days.toLocaleString()}đ</span>
+                            </div>
+                            <div className="flex justify-between items-center px-1">
+                              <span className="text-gray-600">Thuê 3 ngày:</span>
+                              <span className="font-mono text-gray-800 font-bold">{total3Days.toLocaleString()}đ</span>
+                            </div>
+                            <div className="flex justify-between items-center px-1">
+                              <span className="text-gray-600">Từ 4 ngày:</span>
+                              <span className="font-mono text-orange-600 font-extrabold">{rateFrom4Days.toLocaleString()}đ/ngày</span>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -935,15 +971,20 @@ export default function EquipmentTracker({
                   <button
                     type="button"
                     onClick={() => {
-                      const p1 = formState.price1Day || formState.dailyRate || 150000;
+                      const p1 = formState.price1Day || formState.dailyRate || 290000;
+                      const p6h = Math.round((p1 * 0.7) / 10000) * 10000;
+                      const p2_daily = Math.max(0, p1 - 30000);
+                      const p4_daily = Math.max(0, p1 - 40000);
+                      const p3_daily = p4_daily;
+
                       setFormState(prev => ({
                         ...prev,
-                        price6Hours: Math.round(p1 * 0.6),
+                        price6Hours: p6h,
                         price1Day: p1,
                         dailyRate: p1,
-                        price2Days: Math.round(p1 * 0.9 * 2),
-                        price3Days: Math.round(p1 * 0.8 * 3),
-                        price4DaysPlus: Math.round(p1 * 0.7)
+                        price2Days: p1 + p2_daily,
+                        price3Days: p1 + p2_daily + p3_daily,
+                        price4DaysPlus: p4_daily
                       }));
                     }}
                     className="text-[10px] text-orange-850 font-bold bg-orange-100 hover:bg-orange-200 border border-orange-200 px-2 py-0.5 rounded-full transition cursor-pointer shrink-0 flex items-center gap-1"
