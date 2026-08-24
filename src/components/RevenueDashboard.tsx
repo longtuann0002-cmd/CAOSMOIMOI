@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { RentalContract, Expense, Camera } from '../types';
 import { 
   DollarSign, Landmark, TrendingUp, TrendingDown, ClipboardList, 
@@ -1550,9 +1551,9 @@ export default function RevenueDashboard({
       </div>
 
       {/* POPUP MODAL: SPECIFIC RENTAL DATES & REVENUE DETAILS FOR SELECTED EQUIPMENT */}
-      {modalCameraDetail && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-t-2xl sm:rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[92vh] sm:max-h-[90vh] animate-scale-up">
+      {modalCameraDetail && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh] animate-scale-up">
             
             {/* Modal Header */}
             <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/90 shrink-0">
@@ -1737,15 +1738,16 @@ export default function RevenueDashboard({
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
       {/* MODAL 2: UNCOLLECTED RECEIVABLES & PENDING DEPOSITS DRILL-DOWN MODAL       */}
       {/* ========================================================================= */}
-      {showReceivablesModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden self-center animate-scale-up border border-gray-200 flex flex-col max-h-[92vh]">
+      {showReceivablesModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden self-center animate-scale-up border border-gray-200 flex flex-col max-h-[90vh]">
             
             {/* Modal Header */}
             <div className={`text-white px-4 sm:px-6 py-3.5 sm:py-4 flex justify-between items-center shrink-0 transition-colors ${
@@ -2053,7 +2055,8 @@ export default function RevenueDashboard({
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
