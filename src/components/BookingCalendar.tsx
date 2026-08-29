@@ -96,6 +96,16 @@ export default function BookingCalendar({
   const [customAlertMessage, setCustomAlertMessage] = useState<string | null>(null);
   const [selectedCameraFilter, setSelectedCameraFilter] = useState<string>('ALL');
 
+  // Tự động hủy lọc nếu thiết bị đang chọn lọc bị chuyển sang trạng thái bảo trì
+  useEffect(() => {
+    if (selectedCameraFilter !== 'ALL') {
+      const exists = cameras.some(c => c.status !== 'Maintenance' && c.shortName === selectedCameraFilter);
+      if (!exists) {
+        setSelectedCameraFilter('ALL');
+      }
+    }
+  }, [cameras, selectedCameraFilter]);
+
   const goToToday = () => {
     const today = systemDate || new Date().toISOString().split('T')[0];
     setSelectedDate(today);
@@ -341,10 +351,10 @@ export default function BookingCalendar({
     return map;
   }, [contracts, cameras]);
 
-  // Dynamic Camera Real Time Status calculation for all devices
+  // Dynamic Camera Real Time Status calculation for active devices (excluding Maintenance)
   const systemStatusInfo = useMemo(() => {
-    // Show all cameras
-    const displayCams = cameras;
+    // Chỉ hiển thị các thiết bị không ở trạng thái bảo trì
+    const displayCams = cameras.filter(cam => cam.status !== 'Maintenance');
     
     return displayCams.map(cam => {
       const activeBookingsToday = (dayBookingsMap[selectedDate] || []).filter(b => b.cameraShort === cam.shortName);
@@ -587,42 +597,48 @@ export default function BookingCalendar({
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2">
-          {systemStatusInfo.map(cam => {
-            const isFilterActive = selectedCameraFilter === cam.shortName;
-            return (
-              <div
-                key={cam.id}
-                onClick={() => setSelectedCameraFilter(prev => prev === cam.shortName ? 'ALL' : cam.shortName)}
-                className={`p-2 sm:p-2.5 border rounded-xl flex items-start gap-2 transition-all cursor-pointer select-none ${cam.statusColor} ${
-                  isFilterActive ? 'ring-2 ring-orange-500 shadow-xs scale-102 bg-orange-50/40' : 'hover:shadow-3xs hover:scale-101'
-                }`}
-                title="Bấm để lọc xem lịch của máy này"
-              >
-                <div className="p-1.5 rounded-lg bg-white/95 shadow-3xs text-gray-700 shrink-0 mt-0.5">
-                  <CameraIcon className="w-3.5 h-3.5 text-gray-700" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <h3 className="font-black text-[11px] sm:text-xs text-gray-900 truncate leading-tight">
-                      {cam.shortName}
-                    </h3>
-                    <span className="text-[8.5px] font-bold text-gray-400 font-mono shrink-0">
-                      {cam.category === 'Body' ? 'Body' : cam.category === 'Lens' ? 'Lens' : 'Combo'}
-                    </span>
+        {systemStatusInfo.length === 0 ? (
+          <div className="p-3 text-center text-xs text-gray-400 italic bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+            Tất cả thiết bị hiện đang ở trạng thái bảo trì hoặc chưa có thiết bị sẵn sàng.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2">
+            {systemStatusInfo.map(cam => {
+              const isFilterActive = selectedCameraFilter === cam.shortName;
+              return (
+                <div
+                  key={cam.id}
+                  onClick={() => setSelectedCameraFilter(prev => prev === cam.shortName ? 'ALL' : cam.shortName)}
+                  className={`p-2 sm:p-2.5 border rounded-xl flex items-start gap-2 transition-all cursor-pointer select-none ${cam.statusColor} ${
+                    isFilterActive ? 'ring-2 ring-orange-500 shadow-xs scale-102 bg-orange-50/40' : 'hover:shadow-3xs hover:scale-101'
+                  }`}
+                  title="Bấm để lọc xem lịch của máy này"
+                >
+                  <div className="p-1.5 rounded-lg bg-white/95 shadow-3xs text-gray-700 shrink-0 mt-0.5">
+                    <CameraIcon className="w-3.5 h-3.5 text-gray-700" />
                   </div>
-                  <p className="text-[9px] text-gray-500 font-semibold font-mono truncate leading-tight mt-0.5">
-                    {cam.serialNumber}
-                  </p>
-                  <div className="text-[9px] sm:text-[10px] font-black mt-1.5 flex items-center gap-1 leading-none">
-                    <span className="w-1.5 h-1.5 rounded-full bg-current inline-block shrink-0"></span>
-                    <span className="truncate">{cam.statusText}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <h3 className="font-black text-[11px] sm:text-xs text-gray-900 truncate leading-tight">
+                        {cam.shortName}
+                      </h3>
+                      <span className="text-[8.5px] font-bold text-gray-400 font-mono shrink-0">
+                        {cam.category === 'Body' ? 'Body' : cam.category === 'Lens' ? 'Lens' : 'Combo'}
+                      </span>
+                    </div>
+                    <p className="text-[9px] text-gray-500 font-semibold font-mono truncate leading-tight mt-0.5">
+                      {cam.serialNumber}
+                    </p>
+                    <div className="text-[9px] sm:text-[10px] font-black mt-1.5 flex items-center gap-1 leading-none">
+                      <span className="w-1.5 h-1.5 rounded-full bg-current inline-block shrink-0"></span>
+                      <span className="truncate">{cam.statusText}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Main Calendar Section */}
@@ -1252,46 +1268,52 @@ export default function BookingCalendar({
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Chọn thiết bị cần thuê *</label>
                 <div className="border border-gray-200 rounded-lg p-3 max-h-[144px] overflow-y-auto space-y-2 bg-gray-50/50">
-                  {cameras.map(cam => {
-                    const isSelected = formData.selectedCameraIds.includes(cam.id);
-                    return (
-                      <label key={cam.id} className="flex items-center gap-2 cursor-pointer select-none text-sm font-medium hover:text-orange-600 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => {
-                            if (isSelected) {
-                              setFormData({
-                                ...formData,
-                                selectedCameraIds: formData.selectedCameraIds.filter(id => id !== cam.id)
-                              });
-                            } else {
-                              setFormData({
-                                ...formData,
-                                selectedCameraIds: [...formData.selectedCameraIds, cam.id]
-                              });
-                            }
-                          }}
-                          className="rounded text-orange-600 focus:ring-orange-500 h-4 w-4 border-gray-300"
-                        />
-                        <div className="flex-grow flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 min-w-0">
-                          <span className="truncate text-gray-850 font-bold sm:font-medium text-xs sm:text-sm flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="truncate">{cam.name}</span>
-                            <span className="bg-gray-150 text-gray-600 border border-transparent text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0">{cam.serialNumber}</span>
-                          </span>
-                          <span className="font-mono text-xs text-orange-600 font-extrabold sm:font-bold shrink-0">
-                            {formData.is6Hours 
-                              ? `${(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ/6h` 
-                              : (calculatedDays > 0 
-                                ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày (${calculatedDays}n)` 
-                                : `${(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ/ngày`
-                              )
-                            }
-                          </span>
-                        </div>
-                      </label>
-                    );
-                  })}
+                  {cameras.filter(cam => cam.status !== 'Maintenance').length === 0 ? (
+                    <p className="text-xs text-gray-400 italic text-center py-2">
+                      Hiện không có thiết bị khả dụng (toàn bộ thiết bị đang bảo trì).
+                    </p>
+                  ) : (
+                    cameras.filter(cam => cam.status !== 'Maintenance').map(cam => {
+                      const isSelected = formData.selectedCameraIds.includes(cam.id);
+                      return (
+                        <label key={cam.id} className="flex items-center gap-2 cursor-pointer select-none text-sm font-medium hover:text-orange-600 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              if (isSelected) {
+                                setFormData({
+                                  ...formData,
+                                  selectedCameraIds: formData.selectedCameraIds.filter(id => id !== cam.id)
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  selectedCameraIds: [...formData.selectedCameraIds, cam.id]
+                                });
+                              }
+                            }}
+                            className="rounded text-orange-600 focus:ring-orange-500 h-4 w-4 border-gray-300"
+                          />
+                          <div className="flex-grow flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 min-w-0">
+                            <span className="truncate text-gray-850 font-bold sm:font-medium text-xs sm:text-sm flex items-center gap-1.5 min-w-0 flex-1">
+                              <span className="truncate">{cam.name}</span>
+                              <span className="bg-gray-150 text-gray-600 border border-transparent text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0">{cam.serialNumber}</span>
+                            </span>
+                            <span className="font-mono text-xs text-orange-600 font-extrabold sm:font-bold shrink-0">
+                              {formData.is6Hours 
+                                ? `${(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ/6h` 
+                                : (calculatedDays > 0 
+                                  ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày (${calculatedDays}n)` 
+                                  : `${(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ/ngày`
+                                )
+                              }
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 

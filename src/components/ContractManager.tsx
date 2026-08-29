@@ -1858,46 +1858,52 @@ export default function ContractManager({
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Thiết bị thuê trong đơn *</label>
                 <div className="border border-gray-200 rounded-lg p-3 max-h-[140px] overflow-y-auto space-y-2 bg-gray-50/50">
-                  {cameras.map(cam => {
-                    const isSelected = newContractForm.selectedCameraIds.includes(cam.id);
-                    return (
-                      <label key={cam.id} className="flex items-center gap-2 cursor-pointer select-none text-sm font-medium hover:text-orange-600 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => {
-                            if (isSelected) {
-                              setNewContractForm({
-                                ...newContractForm,
-                                selectedCameraIds: newContractForm.selectedCameraIds.filter(id => id !== cam.id)
-                              });
-                            } else {
-                              setNewContractForm({
-                                ...newContractForm,
-                                selectedCameraIds: [...newContractForm.selectedCameraIds, cam.id]
-                              });
-                            }
-                          }}
-                          className="rounded text-orange-600 focus:ring-orange-500 h-4 w-4 border-gray-300"
-                        />
-                        <div className="flex-grow flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 min-w-0">
-                          <span className="truncate text-gray-850 font-bold sm:font-medium text-xs sm:text-sm flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="truncate">{cam.name}</span>
-                            <span className="bg-gray-150 text-gray-600 border border-transparent text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0">{cam.serialNumber}</span>
-                          </span>
-                          <span className="font-mono text-xs text-orange-600 font-extrabold sm:font-bold shrink-0">
-                            {newContractForm.is6Hours 
-                              ? `${(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ /6h`
-                              : (calculatedDays > 0 
-                                ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày (${calculatedDays}n)` 
-                                : `${(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ/ngày`
-                              )
-                            }
-                          </span>
-                        </div>
-                      </label>
-                    );
-                  })}
+                  {cameras.filter(cam => cam.status !== 'Maintenance').length === 0 ? (
+                    <p className="text-xs text-gray-400 italic text-center py-2">
+                      Hiện không có thiết bị khả dụng (toàn bộ thiết bị đang bảo trì).
+                    </p>
+                  ) : (
+                    cameras.filter(cam => cam.status !== 'Maintenance').map(cam => {
+                      const isSelected = newContractForm.selectedCameraIds.includes(cam.id);
+                      return (
+                        <label key={cam.id} className="flex items-center gap-2 cursor-pointer select-none text-sm font-medium hover:text-orange-600 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              if (isSelected) {
+                                setNewContractForm({
+                                  ...newContractForm,
+                                  selectedCameraIds: newContractForm.selectedCameraIds.filter(id => id !== cam.id)
+                                });
+                              } else {
+                                setNewContractForm({
+                                  ...newContractForm,
+                                  selectedCameraIds: [...newContractForm.selectedCameraIds, cam.id]
+                                });
+                              }
+                            }}
+                            className="rounded text-orange-600 focus:ring-orange-500 h-4 w-4 border-gray-300"
+                          />
+                          <div className="flex-grow flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 min-w-0">
+                            <span className="truncate text-gray-850 font-bold sm:font-medium text-xs sm:text-sm flex items-center gap-1.5 min-w-0 flex-1">
+                              <span className="truncate">{cam.name}</span>
+                              <span className="bg-gray-150 text-gray-600 border border-transparent text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0">{cam.serialNumber}</span>
+                            </span>
+                            <span className="font-mono text-xs text-orange-600 font-extrabold sm:font-bold shrink-0">
+                              {newContractForm.is6Hours 
+                                ? `${(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ /6h`
+                                : (calculatedDays > 0 
+                                  ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày (${calculatedDays}n)` 
+                                  : `${(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ/ngày`
+                                )
+                              }
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
