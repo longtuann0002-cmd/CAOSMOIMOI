@@ -13,42 +13,52 @@ const getCameraColorProps = (shortName: string) => {
   const nameUpper = (shortName || '').toUpperCase();
   if (nameUpper.includes('R50')) {
     return {
+      dot: 'bg-rose-500',
+      ring: 'ring-rose-200',
       border: 'border-rose-500',
       textClass: 'text-rose-700',
       bgClass: 'bg-rose-50/90 text-rose-800 hover:bg-rose-100/90',
-      tagColor: 'bg-rose-100 text-rose-800'
+      tagColor: 'bg-rose-50 text-rose-800 border-rose-200'
     };
   }
   if (nameUpper.includes('XS10') || nameUpper.includes('XS-10')) {
     return {
+      dot: 'bg-emerald-500',
+      ring: 'ring-emerald-200',
       border: 'border-emerald-500',
       textClass: 'text-emerald-700',
       bgClass: 'bg-emerald-50/90 text-emerald-800 hover:bg-emerald-100/90',
-      tagColor: 'bg-emerald-100 text-emerald-800'
+      tagColor: 'bg-emerald-50 text-emerald-800 border-emerald-200'
     };
   }
   if (nameUpper.includes('A7') || nameUpper.includes('A74')) {
     return {
+      dot: 'bg-amber-500',
+      ring: 'ring-amber-200',
       border: 'border-amber-600',
       textClass: 'text-amber-800',
       bgClass: 'bg-amber-50/90 text-amber-800 hover:bg-amber-100/90',
-      tagColor: 'bg-amber-100 text-amber-800'
+      tagColor: 'bg-amber-50 text-amber-800 border-amber-200'
     };
   }
   if (nameUpper.includes('2470') || nameUpper.includes('GM')) {
     return {
+      dot: 'bg-cyan-500',
+      ring: 'ring-cyan-200',
       border: 'border-cyan-500',
       textClass: 'text-cyan-700',
       bgClass: 'bg-cyan-50/90 text-cyan-800 hover:bg-cyan-100/90',
-      tagColor: 'bg-cyan-100 text-cyan-800'
+      tagColor: 'bg-cyan-50 text-cyan-800 border-cyan-200'
     };
   }
   // Default orange for other devices / lenses
   return {
+    dot: 'bg-orange-500',
+    ring: 'ring-orange-200',
     border: 'border-orange-500',
     textClass: 'text-orange-700',
     bgClass: 'bg-orange-50/90 text-orange-800 hover:bg-orange-100/90',
-    tagColor: 'bg-orange-100 text-orange-800'
+    tagColor: 'bg-orange-50 text-orange-800 border-orange-200'
   };
 };
 
@@ -827,19 +837,22 @@ export default function BookingCalendar({
                     )}
                   </div>
 
-                  {/* Mobile View: High-contrast micro-labels */}
+                  {/* Mobile View: Apple / Linear Style Micro Chips */}
                   <div className="flex md:hidden flex-col gap-0.5 mt-0.5 select-none w-full overflow-hidden">
                     {bookings.slice(0, 2).map((b, idx) => {
                       const colors = getCameraColorProps(b.cameraShort);
                       return (
                         <div
                           key={idx}
-                          className={`px-1 py-0.5 rounded-[4px] text-[8px] font-black tracking-tight leading-tight border border-black/5 border-l-2 ${colors.border} ${colors.bgClass} flex items-center justify-between truncate w-full shadow-3xs`}
+                          className="px-1 py-0.5 rounded-[4px] bg-white/95 border border-gray-150/90 shadow-3xs flex items-center justify-between gap-1 truncate w-full"
                           title={`${b.cameraName}`}
                         >
-                          <span className="truncate">{b.cameraShort}</span>
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className={`w-1.5 h-1.5 rounded-full ${colors.dot} shrink-0`}></span>
+                            <span className="text-[8.5px] font-black text-gray-850 truncate leading-tight tracking-tight">{b.cameraShort}</span>
+                          </div>
                           {b.contract.is6Hours && (
-                            <span className="text-[7px] font-bold text-amber-800 shrink-0">6h</span>
+                            <span className="text-[7px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-0.5 rounded leading-none shrink-0">6h</span>
                           )}
                         </div>
                       );
@@ -851,19 +864,29 @@ export default function BookingCalendar({
                     )}
                   </div>
 
-                  {/* Desktop View: Booking item text blocks */}
+                  {/* Desktop View: Apple / Linear Style Frosted Cards with Status Dot */}
                   <div className={`hidden md:block space-y-1 mt-0.5 flex-grow overflow-y-auto scrollbar-none select-none ${viewMode === 'week' ? 'max-h-[105px] sm:max-h-[125px]' : 'max-h-[46px] sm:max-h-[50px]'}`}>
                     {bookings.map((b, idx) => {
                       const colors = getCameraColorProps(b.cameraShort);
                       return (
                         <div
                           key={idx}
-                          className={`shadow-3xs group flex items-center justify-between px-1.5 py-0.5 border border-black/5 border-l-[2.5px] ${colors.border} ${colors.bgClass} rounded-[5px] text-[10px] font-extrabold tracking-tight leading-normal truncate max-w-full transition-all`}
+                          className="group flex items-center justify-between px-1.5 py-0.5 bg-white/95 hover:bg-white border border-gray-150/90 shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-xs rounded-[5px] transition-all"
                           title={`${b.cameraName} (${b.contract.is6Hours ? `Lịch thuê 6 tiếng (Trả: ${b.contract.returnTime || '18:00'})` : b.timeString}) - ${b.contract.customerName}`}
                         >
-                          <span className="truncate w-full text-[10px]">
-                            {b.cameraShort} <span className="opacity-80 font-semibold text-[9px]">({b.contract.is6Hours ? `6h` : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString})</span>
-                          </span>
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1 truncate">
+                            <span className={`w-1.5 h-1.5 rounded-full ${colors.dot} ring-2 ${colors.ring} shrink-0`}></span>
+                            <span className="font-black text-[10px] text-gray-900 truncate tracking-tight">{b.cameraShort}</span>
+                          </div>
+                          <div className="shrink-0 ml-1">
+                            {b.contract.is6Hours ? (
+                              <span className="text-[7.5px] font-black text-amber-800 bg-amber-50 border border-amber-200/80 px-1 py-px rounded leading-none">6h</span>
+                            ) : (
+                              <span className="text-[8.5px] font-medium text-gray-400 font-mono">
+                                {b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -958,10 +981,11 @@ export default function BookingCalendar({
                             return (
                               <div
                                 key={bIdx}
-                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-black/5 border-l-2 text-[9.5px] font-black shadow-3xs ${colors.bgClass} ${colors.border}`}
+                                className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white border border-gray-200 shadow-3xs text-[9.5px]"
                               >
-                                <span>{b.cameraShort}</span>
-                                <span className="opacity-75 font-normal text-[8.5px]">
+                                <span className={`w-1.5 h-1.5 rounded-full ${colors.dot} ring-2 ${colors.ring} shrink-0`}></span>
+                                <span className="font-black text-gray-900">{b.cameraShort}</span>
+                                <span className="text-gray-400 font-medium text-[8.5px]">
                                   ({b.contract.is6Hours ? '6h' : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString})
                                 </span>
                               </div>
@@ -1025,7 +1049,8 @@ export default function BookingCalendar({
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className={`${colors.tagColor} text-xs font-black px-2 py-0.5 rounded-lg font-mono shrink-0`}>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white border border-gray-200 text-gray-900 text-xs font-black font-mono shadow-3xs shrink-0">
+                          <span className={`w-2 h-2 rounded-full ${colors.dot} ring-2 ${colors.ring}`}></span>
                           {b.cameraShort}
                         </span>
                         <h4 className="font-extrabold text-gray-900 text-sm truncate">{b.cameraName}</h4>
