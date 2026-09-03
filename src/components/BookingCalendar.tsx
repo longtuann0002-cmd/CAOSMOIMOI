@@ -10,109 +10,93 @@ import { formatDMY } from '../utils/dateUtils';
 import { VIET_BANKS } from './ContractManager';
 
 const CAMERA_COLOR_PALETTES = [
-  { // 0: Rose / Crimson
-    border: 'border-rose-500',
-    bgClass: 'bg-rose-50/90 text-rose-900 hover:bg-rose-100/90',
-    tagColor: 'bg-rose-100 text-rose-800'
+  { // 0: Indigo Navy
+    border: 'border-indigo-600',
+    bgClass: 'bg-indigo-50/90 text-indigo-950 hover:bg-indigo-100/90',
+    tagColor: 'bg-indigo-100 text-indigo-900'
   },
   { // 1: Royal Blue
     border: 'border-blue-600',
-    bgClass: 'bg-blue-50/90 text-blue-900 hover:bg-blue-100/90',
-    tagColor: 'bg-blue-100 text-blue-800'
+    bgClass: 'bg-blue-50/90 text-blue-950 hover:bg-blue-100/90',
+    tagColor: 'bg-blue-100 text-blue-900'
   },
   { // 2: Emerald Green
     border: 'border-emerald-500',
-    bgClass: 'bg-emerald-50/90 text-emerald-900 hover:bg-emerald-100/90',
-    tagColor: 'bg-emerald-100 text-emerald-800'
+    bgClass: 'bg-emerald-50/90 text-emerald-950 hover:bg-emerald-100/90',
+    tagColor: 'bg-emerald-100 text-emerald-900'
   },
   { // 3: Purple / Violet
     border: 'border-purple-600',
-    bgClass: 'bg-purple-50/90 text-purple-900 hover:bg-purple-100/90',
-    tagColor: 'bg-purple-100 text-purple-800'
+    bgClass: 'bg-purple-50/90 text-purple-950 hover:bg-purple-100/90',
+    tagColor: 'bg-purple-100 text-purple-900'
   },
-  { // 4: Indigo
-    border: 'border-indigo-600',
-    bgClass: 'bg-indigo-50/90 text-indigo-900 hover:bg-indigo-100/90',
-    tagColor: 'bg-indigo-100 text-indigo-800'
-  },
-  { // 5: Cyan / Aqua
+  { // 4: Cyan / Aqua
     border: 'border-cyan-500',
-    bgClass: 'bg-cyan-50/90 text-cyan-900 hover:bg-cyan-100/90',
-    tagColor: 'bg-cyan-100 text-cyan-800'
+    bgClass: 'bg-cyan-50/90 text-cyan-950 hover:bg-cyan-100/90',
+    tagColor: 'bg-cyan-100 text-cyan-900'
   },
-  { // 6: Fuchsia / Magenta
+  { // 5: Fuchsia / Magenta
     border: 'border-fuchsia-500',
-    bgClass: 'bg-fuchsia-50/90 text-fuchsia-900 hover:bg-fuchsia-100/90',
-    tagColor: 'bg-fuchsia-100 text-fuchsia-800'
+    bgClass: 'bg-fuchsia-50/90 text-fuchsia-950 hover:bg-fuchsia-100/90',
+    tagColor: 'bg-fuchsia-100 text-fuchsia-900'
   },
-  { // 7: Amber / Gold
+  { // 6: Teal / Sea Green
+    border: 'border-teal-500',
+    bgClass: 'bg-teal-50/90 text-teal-950 hover:bg-teal-100/90',
+    tagColor: 'bg-teal-100 text-teal-900'
+  },
+  { // 7: Amber / Warm Gold
     border: 'border-amber-500',
-    bgClass: 'bg-amber-50/90 text-amber-900 hover:bg-amber-100/90',
-    tagColor: 'bg-amber-100 text-amber-800'
+    bgClass: 'bg-amber-50/90 text-amber-950 hover:bg-amber-100/90',
+    tagColor: 'bg-amber-100 text-amber-900'
   },
   { // 8: Orange / Tangerine
     border: 'border-orange-500',
-    bgClass: 'bg-orange-50/90 text-orange-900 hover:bg-orange-100/90',
-    tagColor: 'bg-orange-100 text-orange-800'
+    bgClass: 'bg-orange-50/90 text-orange-950 hover:bg-orange-100/90',
+    tagColor: 'bg-orange-100 text-orange-900'
   },
-  { // 9: Teal / Sea Green
-    border: 'border-teal-500',
-    bgClass: 'bg-teal-50/90 text-teal-900 hover:bg-teal-100/90',
-    tagColor: 'bg-teal-100 text-teal-800'
-  },
-  { // 10: Pink / Berry
+  { // 9: Pink / Berry
     border: 'border-pink-500',
-    bgClass: 'bg-pink-50/90 text-pink-900 hover:bg-pink-100/90',
-    tagColor: 'bg-pink-100 text-pink-800'
+    bgClass: 'bg-pink-50/90 text-pink-950 hover:bg-pink-100/90',
+    tagColor: 'bg-pink-100 text-pink-900'
   },
-  { // 11: Sky Blue
+  { // 10: Sky Blue
     border: 'border-sky-500',
-    bgClass: 'bg-sky-50/90 text-sky-900 hover:bg-sky-100/90',
-    tagColor: 'bg-sky-100 text-sky-800'
+    bgClass: 'bg-sky-50/90 text-sky-950 hover:bg-sky-100/90',
+    tagColor: 'bg-sky-100 text-sky-900'
+  },
+  { // 11: Lime / Leaf Green
+    border: 'border-lime-500',
+    bgClass: 'bg-lime-50/90 text-lime-950 hover:bg-lime-100/90',
+    tagColor: 'bg-lime-100 text-lime-900'
   },
   { // 12: Violet / Lavender
     border: 'border-violet-600',
-    bgClass: 'bg-violet-50/90 text-violet-900 hover:bg-violet-100/90',
-    tagColor: 'bg-violet-100 text-violet-800'
+    bgClass: 'bg-violet-50/90 text-violet-950 hover:bg-violet-100/90',
+    tagColor: 'bg-violet-100 text-violet-900'
   },
-  { // 13: Lime / Leaf Green
-    border: 'border-lime-500',
-    bgClass: 'bg-lime-50/90 text-lime-900 hover:bg-lime-100/90',
-    tagColor: 'bg-lime-100 text-lime-800'
-  },
-  { // 14: Crimson Red
+  { // 13: Crimson Red
     border: 'border-red-600',
-    bgClass: 'bg-red-50/90 text-red-900 hover:bg-red-100/90',
-    tagColor: 'bg-red-100 text-red-800'
+    bgClass: 'bg-red-50/90 text-red-950 hover:bg-red-100/90',
+    tagColor: 'bg-red-100 text-red-900'
   },
-  { // 15: Slate Indigo
+  { // 14: Rose / Coral
+    border: 'border-rose-500',
+    bgClass: 'bg-rose-50/90 text-rose-950 hover:bg-rose-100/90',
+    tagColor: 'bg-rose-100 text-rose-900'
+  },
+  { // 15: Slate Charcoal
     border: 'border-slate-600',
-    bgClass: 'bg-slate-100/90 text-slate-900 hover:bg-slate-200/90',
-    tagColor: 'bg-slate-200 text-slate-800'
+    bgClass: 'bg-slate-100/90 text-slate-950 hover:bg-slate-200/90',
+    tagColor: 'bg-slate-200 text-slate-900'
   }
 ];
 
 const getCameraColorProps = (shortName: string) => {
-  const nameUpper = (shortName || '').toUpperCase().trim();
+  const nameUpper = (shortName || 'CAM').toUpperCase().trim();
   
-  // Specific mappings for popular camera models
-  if (nameUpper.includes('R50')) {
-    return CAMERA_COLOR_PALETTES[0]; // Rose
-  }
-  if (nameUpper.includes('XS10') || nameUpper.includes('XS-10')) {
-    return CAMERA_COLOR_PALETTES[2]; // Emerald Green
-  }
-  if (nameUpper.includes('XA7') || nameUpper.includes('XA-7') || nameUpper.includes('X-A7')) {
-    return CAMERA_COLOR_PALETTES[4]; // Indigo (Đổi màu mới nổi bật cho XA7)
-  }
-  if (nameUpper.includes('A7') || nameUpper.includes('A74') || nameUpper.includes('A7M4') || nameUpper.includes('A7M3')) {
-    return CAMERA_COLOR_PALETTES[1]; // Royal Blue (Đổi màu mới nổi bật cho dòng Sony A7)
-  }
-  if (nameUpper.includes('2470') || nameUpper.includes('GM')) {
-    return CAMERA_COLOR_PALETTES[5]; // Cyan Aqua
-  }
-
-  // Deterministic FNV-1a hash algorithm for all other devices to guarantee a unique color stripe
+  // Deterministic FNV-1a hash algorithm on the exact model name/shortName
+  // Ensures R50H, R50X, CM, XA7, XS10, A74, etc. all get their own distinct unique colors
   let hash = 2166136261;
   for (let i = 0; i < nameUpper.length; i++) {
     hash ^= nameUpper.charCodeAt(i);
