@@ -837,22 +837,21 @@ export default function BookingCalendar({
                     )}
                   </div>
 
-                  {/* Mobile View: Apple / Linear Style Micro Chips */}
+                  {/* Mobile View: Option 3 - Modern Micro Card with Left Accent */}
                   <div className="flex md:hidden flex-col gap-0.5 mt-0.5 select-none w-full overflow-hidden">
                     {bookings.slice(0, 2).map((b, idx) => {
                       const colors = getCameraColorProps(b.cameraShort);
                       return (
                         <div
                           key={idx}
-                          className="px-1 py-0.5 rounded-[4px] bg-white/95 border border-gray-150/90 shadow-3xs flex items-center justify-between gap-1 truncate w-full"
+                          className={`px-1.5 py-0.5 rounded-[4px] bg-white/95 border border-gray-150/90 border-l-[2.5px] ${colors.border} shadow-3xs flex items-center justify-between gap-1 truncate w-full`}
                           title={`${b.cameraName}`}
                         >
-                          <div className="flex items-center gap-1 min-w-0">
-                            <span className={`w-1.5 h-1.5 rounded-full ${colors.dot} shrink-0`}></span>
-                            <span className="text-[8.5px] font-black text-gray-850 truncate leading-tight tracking-tight">{b.cameraShort}</span>
-                          </div>
-                          {b.contract.is6Hours && (
+                          <span className="text-[8.5px] font-extrabold text-gray-900 truncate leading-tight tracking-tight">{b.cameraShort}</span>
+                          {b.contract.is6Hours ? (
                             <span className="text-[7px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-0.5 rounded leading-none shrink-0">6h</span>
+                          ) : (
+                            <span className="text-[7px] text-gray-400 font-mono shrink-0">1n</span>
                           )}
                         </div>
                       );
@@ -864,25 +863,24 @@ export default function BookingCalendar({
                     )}
                   </div>
 
-                  {/* Desktop View: Apple / Linear Style Frosted Cards with Status Dot */}
+                  {/* Desktop View: Option 3 - Modern Card with Left Accent Bar & Micro-Badge */}
                   <div className={`hidden md:block space-y-1 mt-0.5 flex-grow overflow-y-auto scrollbar-none select-none ${viewMode === 'week' ? 'max-h-[105px] sm:max-h-[125px]' : 'max-h-[46px] sm:max-h-[50px]'}`}>
                     {bookings.map((b, idx) => {
                       const colors = getCameraColorProps(b.cameraShort);
                       return (
                         <div
                           key={idx}
-                          className="group flex items-center justify-between px-1.5 py-0.5 bg-white/95 hover:bg-white border border-gray-150/90 shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-xs rounded-[5px] transition-all"
+                          className={`group flex items-center justify-between px-1.5 py-0.5 bg-white/95 hover:bg-white border border-gray-150/90 border-l-[3.5px] ${colors.border} shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-xs rounded-[5px] transition-all`}
                           title={`${b.cameraName} (${b.contract.is6Hours ? `Lịch thuê 6 tiếng (Trả: ${b.contract.returnTime || '18:00'})` : b.timeString}) - ${b.contract.customerName}`}
                         >
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1 truncate">
-                            <span className={`w-1.5 h-1.5 rounded-full ${colors.dot} ring-2 ${colors.ring} shrink-0`}></span>
-                            <span className="font-black text-[10px] text-gray-900 truncate tracking-tight">{b.cameraShort}</span>
-                          </div>
+                          <span className="font-black text-[10px] text-gray-900 truncate tracking-tight min-w-0 flex-1">
+                            {b.cameraShort}
+                          </span>
                           <div className="shrink-0 ml-1">
                             {b.contract.is6Hours ? (
                               <span className="text-[7.5px] font-black text-amber-800 bg-amber-50 border border-amber-200/80 px-1 py-px rounded leading-none">6h</span>
                             ) : (
-                              <span className="text-[8.5px] font-medium text-gray-400 font-mono">
+                              <span className="text-[8px] font-medium text-gray-500 bg-gray-100/80 border border-gray-200/60 px-1 py-px rounded leading-none font-mono">
                                 {b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString}
                               </span>
                             )}
@@ -981,12 +979,11 @@ export default function BookingCalendar({
                             return (
                               <div
                                 key={bIdx}
-                                className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white border border-gray-200 shadow-3xs text-[9.5px]"
+                                className={`flex items-center justify-between gap-2 px-2 py-0.5 rounded-md bg-white border border-gray-200 border-l-[3px] ${colors.border} shadow-3xs text-[9.5px]`}
                               >
-                                <span className={`w-1.5 h-1.5 rounded-full ${colors.dot} ring-2 ${colors.ring} shrink-0`}></span>
                                 <span className="font-black text-gray-900">{b.cameraShort}</span>
-                                <span className="text-gray-400 font-medium text-[8.5px]">
-                                  ({b.contract.is6Hours ? '6h' : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString})
+                                <span className="text-gray-500 bg-gray-100 font-mono text-[8px] px-1 py-px rounded border border-gray-200/60">
+                                  {b.contract.is6Hours ? '6h' : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString}
                                 </span>
                               </div>
                             );
@@ -1049,8 +1046,7 @@ export default function BookingCalendar({
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white border border-gray-200 text-gray-900 text-xs font-black font-mono shadow-3xs shrink-0">
-                          <span className={`w-2 h-2 rounded-full ${colors.dot} ring-2 ${colors.ring}`}></span>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-gray-200 border-l-[3.5px] ${colors.border} text-gray-900 text-xs font-black font-mono shadow-3xs shrink-0`}>
                           {b.cameraShort}
                         </span>
                         <h4 className="font-extrabold text-gray-900 text-sm truncate">{b.cameraName}</h4>
