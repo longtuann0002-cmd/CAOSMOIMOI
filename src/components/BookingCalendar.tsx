@@ -17,8 +17,9 @@ const getCameraColorProps = (shortName: string) => {
       ring: 'ring-rose-200',
       border: 'border-rose-500',
       textClass: 'text-rose-700',
+      notionTag: 'bg-rose-100/90 text-rose-900 border-rose-200/90 hover:bg-rose-200/80',
       bgClass: 'bg-rose-50/90 text-rose-800 hover:bg-rose-100/90',
-      tagColor: 'bg-rose-50 text-rose-800 border-rose-200'
+      tagColor: 'bg-rose-100 text-rose-900 border-rose-200'
     };
   }
   if (nameUpper.includes('XS10') || nameUpper.includes('XS-10')) {
@@ -27,8 +28,9 @@ const getCameraColorProps = (shortName: string) => {
       ring: 'ring-emerald-200',
       border: 'border-emerald-500',
       textClass: 'text-emerald-700',
+      notionTag: 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90 hover:bg-emerald-200/80',
       bgClass: 'bg-emerald-50/90 text-emerald-800 hover:bg-emerald-100/90',
-      tagColor: 'bg-emerald-50 text-emerald-800 border-emerald-200'
+      tagColor: 'bg-emerald-100 text-emerald-900 border-emerald-200'
     };
   }
   if (nameUpper.includes('A7') || nameUpper.includes('A74')) {
@@ -37,8 +39,9 @@ const getCameraColorProps = (shortName: string) => {
       ring: 'ring-amber-200',
       border: 'border-amber-600',
       textClass: 'text-amber-800',
+      notionTag: 'bg-amber-100/90 text-amber-950 border-amber-200/90 hover:bg-amber-200/80',
       bgClass: 'bg-amber-50/90 text-amber-800 hover:bg-amber-100/90',
-      tagColor: 'bg-amber-50 text-amber-800 border-amber-200'
+      tagColor: 'bg-amber-100 text-amber-950 border-amber-200'
     };
   }
   if (nameUpper.includes('2470') || nameUpper.includes('GM')) {
@@ -47,8 +50,9 @@ const getCameraColorProps = (shortName: string) => {
       ring: 'ring-cyan-200',
       border: 'border-cyan-500',
       textClass: 'text-cyan-700',
+      notionTag: 'bg-cyan-100/90 text-cyan-950 border-cyan-200/90 hover:bg-cyan-200/80',
       bgClass: 'bg-cyan-50/90 text-cyan-800 hover:bg-cyan-100/90',
-      tagColor: 'bg-cyan-50 text-cyan-800 border-cyan-200'
+      tagColor: 'bg-cyan-100 text-cyan-950 border-cyan-200'
     };
   }
   // Default orange for other devices / lenses
@@ -57,8 +61,9 @@ const getCameraColorProps = (shortName: string) => {
     ring: 'ring-orange-200',
     border: 'border-orange-500',
     textClass: 'text-orange-700',
+    notionTag: 'bg-orange-100/90 text-orange-950 border-orange-200/90 hover:bg-orange-200/80',
     bgClass: 'bg-orange-50/90 text-orange-800 hover:bg-orange-100/90',
-    tagColor: 'bg-orange-50 text-orange-800 border-orange-200'
+    tagColor: 'bg-orange-100 text-orange-950 border-orange-200'
   };
 };
 
@@ -837,51 +842,49 @@ export default function BookingCalendar({
                     )}
                   </div>
 
-                  {/* Mobile View: Option 3 - Modern Micro Card with Left Accent */}
+                  {/* Mobile View: Option 2 - Notion Soft Solid Chips */}
                   <div className="flex md:hidden flex-col gap-0.5 mt-0.5 select-none w-full overflow-hidden">
                     {bookings.slice(0, 2).map((b, idx) => {
                       const colors = getCameraColorProps(b.cameraShort);
                       return (
                         <div
                           key={idx}
-                          className={`px-1.5 py-0.5 rounded-[4px] bg-white/95 border border-gray-150/90 border-l-[2.5px] ${colors.border} shadow-3xs flex items-center justify-between gap-1 truncate w-full`}
+                          className={`px-1.5 py-0.5 rounded-[4px] border ${colors.notionTag} shadow-3xs flex items-center justify-between gap-1 truncate w-full`}
                           title={`${b.cameraName}`}
                         >
-                          <span className="text-[8.5px] font-extrabold text-gray-900 truncate leading-tight tracking-tight">{b.cameraShort}</span>
-                          {b.contract.is6Hours ? (
-                            <span className="text-[7px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-0.5 rounded leading-none shrink-0">6h</span>
-                          ) : (
-                            <span className="text-[7px] text-gray-400 font-mono shrink-0">1n</span>
+                          <span className="text-[8.5px] font-black truncate leading-tight tracking-tight">{b.cameraShort}</span>
+                          {b.contract.is6Hours && (
+                            <span className="text-[7px] font-black bg-black/10 px-0.5 rounded leading-none shrink-0">6h</span>
                           )}
                         </div>
                       );
                     })}
                     {bookingCount > 2 && (
-                      <div className="text-[7.5px] font-black text-orange-700 bg-orange-100/80 border border-orange-200/60 rounded-[3px] py-px text-center leading-none mt-0.5 shrink-0">
+                      <div className="text-[7.5px] font-black text-orange-800 bg-orange-100 border border-orange-200 rounded-[3px] py-px text-center leading-none mt-0.5 shrink-0">
                         +{bookingCount - 2} máy
                       </div>
                     )}
                   </div>
 
-                  {/* Desktop View: Option 3 - Modern Card with Left Accent Bar & Micro-Badge */}
+                  {/* Desktop View: Option 2 - Notion Soft Solid Tag */}
                   <div className={`hidden md:block space-y-1 mt-0.5 flex-grow overflow-y-auto scrollbar-none select-none ${viewMode === 'week' ? 'max-h-[105px] sm:max-h-[125px]' : 'max-h-[46px] sm:max-h-[50px]'}`}>
                     {bookings.map((b, idx) => {
                       const colors = getCameraColorProps(b.cameraShort);
                       return (
                         <div
                           key={idx}
-                          className={`group flex items-center justify-between px-1.5 py-0.5 bg-white/95 hover:bg-white border border-gray-150/90 border-l-[3.5px] ${colors.border} shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-xs rounded-[5px] transition-all`}
+                          className={`group flex items-center justify-between px-1.5 py-0.5 border ${colors.notionTag} shadow-[0_1px_2px_rgba(0,0,0,0.03)] rounded-[5px] transition-all cursor-pointer`}
                           title={`${b.cameraName} (${b.contract.is6Hours ? `Lịch thuê 6 tiếng (Trả: ${b.contract.returnTime || '18:00'})` : b.timeString}) - ${b.contract.customerName}`}
                         >
-                          <span className="font-black text-[10px] text-gray-900 truncate tracking-tight min-w-0 flex-1">
+                          <span className="font-black text-[10px] truncate tracking-tight min-w-0 flex-1">
                             {b.cameraShort}
                           </span>
                           <div className="shrink-0 ml-1">
                             {b.contract.is6Hours ? (
-                              <span className="text-[7.5px] font-black text-amber-800 bg-amber-50 border border-amber-200/80 px-1 py-px rounded leading-none">6h</span>
+                              <span className="text-[7.5px] font-black bg-black/10 px-1 py-px rounded leading-none">6h</span>
                             ) : (
-                              <span className="text-[8px] font-medium text-gray-500 bg-gray-100/80 border border-gray-200/60 px-1 py-px rounded leading-none font-mono">
-                                {b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString}
+                              <span className="text-[8.5px] font-semibold opacity-75 font-mono">
+                                ({b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString})
                               </span>
                             )}
                           </div>
@@ -979,11 +982,11 @@ export default function BookingCalendar({
                             return (
                               <div
                                 key={bIdx}
-                                className={`flex items-center justify-between gap-2 px-2 py-0.5 rounded-md bg-white border border-gray-200 border-l-[3px] ${colors.border} shadow-3xs text-[9.5px]`}
+                                className={`flex items-center justify-between gap-1.5 px-2 py-0.5 rounded-md border ${colors.notionTag} shadow-3xs text-[9.5px]`}
                               >
-                                <span className="font-black text-gray-900">{b.cameraShort}</span>
-                                <span className="text-gray-500 bg-gray-100 font-mono text-[8px] px-1 py-px rounded border border-gray-200/60">
-                                  {b.contract.is6Hours ? '6h' : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString}
+                                <span className="font-black">{b.cameraShort}</span>
+                                <span className="opacity-75 font-mono text-[8px]">
+                                  ({b.contract.is6Hours ? '6h' : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString})
                                 </span>
                               </div>
                             );
@@ -1046,7 +1049,7 @@ export default function BookingCalendar({
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-gray-200 border-l-[3.5px] ${colors.border} text-gray-900 text-xs font-black font-mono shadow-3xs shrink-0`}>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-xs font-black font-mono shadow-3xs shrink-0 ${colors.notionTag}`}>
                           {b.cameraShort}
                         </span>
                         <h4 className="font-extrabold text-gray-900 text-sm truncate">{b.cameraName}</h4>
