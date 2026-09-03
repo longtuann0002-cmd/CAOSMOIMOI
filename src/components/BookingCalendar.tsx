@@ -904,7 +904,7 @@ export default function BookingCalendar({
                       return (
                         <div
                           key={idx}
-                          className={`px-1 py-0.5 rounded-[4px] text-[8px] font-black tracking-tight leading-tight border border-black/[0.03] border-l-[2.5px] ${colors.border} ${colors.bgClass} flex items-center justify-between truncate w-full shadow-3xs`}
+                          className={`px-1 py-0.5 rounded-[4px] text-[8px] font-black tracking-tight leading-tight border-0 border-l-[2.5px] ${colors.border} ${colors.bgClass} flex items-center justify-between truncate w-full shadow-3xs`}
                           title={`${b.cameraName}`}
                         >
                           <span className="truncate">{b.cameraShort}</span>
@@ -928,7 +928,7 @@ export default function BookingCalendar({
                       return (
                         <div
                           key={idx}
-                          className={`shadow-3xs group flex items-center justify-between px-1.5 py-0.5 border border-black/[0.03] border-l-[3.5px] ${colors.border} ${colors.bgClass} rounded-[5px] text-[10px] font-extrabold tracking-tight leading-normal truncate max-w-full transition-all`}
+                          className={`shadow-3xs group flex items-center justify-between px-1.5 py-0.5 border-0 border-l-[3.5px] ${colors.border} ${colors.bgClass} rounded-[5px] text-[10px] font-extrabold tracking-tight leading-normal truncate max-w-full transition-all`}
                           title={`${b.cameraName} (${b.contract.is6Hours ? `Lịch thuê 6 tiếng (Trả: ${b.contract.returnTime || '18:00'})` : b.timeString}) - ${b.contract.customerName}`}
                         >
                           <span className="truncate w-full text-[10px]">
@@ -1028,7 +1028,7 @@ export default function BookingCalendar({
                             return (
                               <div
                                 key={bIdx}
-                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-black/[0.03] border-l-[3px] text-[9.5px] font-black shadow-3xs ${colors.bgClass} ${colors.border}`}
+                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border-0 border-l-[3px] text-[9.5px] font-black shadow-3xs ${colors.bgClass} ${colors.border}`}
                               >
                                 <span>{b.cameraShort}</span>
                                 <span className="opacity-75 font-normal text-[8.5px]">
