@@ -9,131 +9,47 @@ import { loadStoredData, saveStoredData } from '../utils/mockData';
 import { formatDMY } from '../utils/dateUtils';
 import { VIET_BANKS } from './ContractManager';
 
-const CAMERA_COLOR_PALETTES = [
-  {
-    border: 'border-rose-500',
-    textClass: 'text-rose-700',
-    bgClass: 'bg-rose-50/90 text-rose-800',
-    tagColor: 'bg-rose-100 text-rose-800 border border-rose-300',
-    dotColor: 'bg-rose-500'
-  },
-  {
-    border: 'border-blue-600',
-    textClass: 'text-blue-700',
-    bgClass: 'bg-blue-50/90 text-blue-800',
-    tagColor: 'bg-blue-100 text-blue-800 border border-blue-300',
-    dotColor: 'bg-blue-600'
-  },
-  {
-    border: 'border-emerald-600',
-    textClass: 'text-emerald-700',
-    bgClass: 'bg-emerald-50/90 text-emerald-800',
-    tagColor: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
-    dotColor: 'bg-emerald-600'
-  },
-  {
-    border: 'border-purple-600',
-    textClass: 'text-purple-700',
-    bgClass: 'bg-purple-50/90 text-purple-800',
-    tagColor: 'bg-purple-100 text-purple-800 border border-purple-300',
-    dotColor: 'bg-purple-600'
-  },
-  {
-    border: 'border-amber-500',
-    textClass: 'text-amber-800',
-    bgClass: 'bg-amber-50/90 text-amber-800',
-    tagColor: 'bg-amber-100 text-amber-900 border border-amber-300',
-    dotColor: 'bg-amber-500'
-  },
-  {
-    border: 'border-indigo-600',
-    textClass: 'text-indigo-700',
-    bgClass: 'bg-indigo-50/90 text-indigo-800',
-    tagColor: 'bg-indigo-100 text-indigo-800 border border-indigo-300',
-    dotColor: 'bg-indigo-600'
-  },
-  {
-    border: 'border-teal-600',
-    textClass: 'text-teal-700',
-    bgClass: 'bg-teal-50/90 text-teal-800',
-    tagColor: 'bg-teal-100 text-teal-800 border border-teal-300',
-    dotColor: 'bg-teal-600'
-  },
-  {
-    border: 'border-pink-600',
-    textClass: 'text-pink-700',
-    bgClass: 'bg-pink-50/90 text-pink-800',
-    tagColor: 'bg-pink-100 text-pink-800 border border-pink-300',
-    dotColor: 'bg-pink-600'
-  },
-  {
-    border: 'border-cyan-600',
-    textClass: 'text-cyan-700',
-    bgClass: 'bg-cyan-50/90 text-cyan-800',
-    tagColor: 'bg-cyan-100 text-cyan-800 border border-cyan-300',
-    dotColor: 'bg-cyan-600'
-  },
-  {
+const getCameraColorProps = (shortName: string) => {
+  const nameUpper = (shortName || '').toUpperCase();
+  if (nameUpper.includes('R50')) {
+    return {
+      border: 'border-rose-500',
+      textClass: 'text-rose-700',
+      bgClass: 'bg-rose-50/90 text-rose-800 hover:bg-rose-100/90',
+      tagColor: 'bg-rose-100 text-rose-800'
+    };
+  }
+  if (nameUpper.includes('XS10') || nameUpper.includes('XS-10')) {
+    return {
+      border: 'border-emerald-500',
+      textClass: 'text-emerald-700',
+      bgClass: 'bg-emerald-50/90 text-emerald-800 hover:bg-emerald-100/90',
+      tagColor: 'bg-emerald-100 text-emerald-800'
+    };
+  }
+  if (nameUpper.includes('A7') || nameUpper.includes('A74')) {
+    return {
+      border: 'border-amber-600',
+      textClass: 'text-amber-800',
+      bgClass: 'bg-amber-50/90 text-amber-800 hover:bg-amber-100/90',
+      tagColor: 'bg-amber-100 text-amber-800'
+    };
+  }
+  if (nameUpper.includes('2470') || nameUpper.includes('GM')) {
+    return {
+      border: 'border-cyan-500',
+      textClass: 'text-cyan-700',
+      bgClass: 'bg-cyan-50/90 text-cyan-800 hover:bg-cyan-100/90',
+      tagColor: 'bg-cyan-100 text-cyan-800'
+    };
+  }
+  // Default orange for other devices / lenses
+  return {
     border: 'border-orange-500',
     textClass: 'text-orange-700',
-    bgClass: 'bg-orange-50/90 text-orange-800',
-    tagColor: 'bg-orange-100 text-orange-800 border border-orange-300',
-    dotColor: 'bg-orange-500'
-  },
-  {
-    border: 'border-violet-600',
-    textClass: 'text-violet-700',
-    bgClass: 'bg-violet-50/90 text-violet-800',
-    tagColor: 'bg-violet-100 text-violet-800 border border-violet-300',
-    dotColor: 'bg-violet-600'
-  },
-  {
-    border: 'border-fuchsia-600',
-    textClass: 'text-fuchsia-700',
-    bgClass: 'bg-fuchsia-50/90 text-fuchsia-800',
-    tagColor: 'bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-300',
-    dotColor: 'bg-fuchsia-600'
-  },
-  {
-    border: 'border-lime-600',
-    textClass: 'text-lime-800',
-    bgClass: 'bg-lime-50/90 text-lime-800',
-    tagColor: 'bg-lime-100 text-lime-900 border border-lime-300',
-    dotColor: 'bg-lime-600'
-  },
-  {
-    border: 'border-sky-600',
-    textClass: 'text-sky-700',
-    bgClass: 'bg-sky-50/90 text-sky-800',
-    tagColor: 'bg-sky-100 text-sky-800 border border-sky-300',
-    dotColor: 'bg-sky-600'
-  },
-  {
-    border: 'border-red-600',
-    textClass: 'text-red-700',
-    bgClass: 'bg-red-50/90 text-red-800',
-    tagColor: 'bg-red-100 text-red-800 border border-red-300',
-    dotColor: 'bg-red-600'
-  },
-  {
-    border: 'border-slate-700',
-    textClass: 'text-slate-800',
-    bgClass: 'bg-slate-100 text-slate-800',
-    tagColor: 'bg-slate-200 text-slate-900 border border-slate-300',
-    dotColor: 'bg-slate-700'
-  }
-];
-
-const getCameraColorProps = (shortName: string) => {
-  const name = (shortName || 'CAM').trim();
-  // FNV-1a 32-bit hash algorithm to deterministically distribute any camera name evenly
-  let hash = 2166136261;
-  for (let i = 0; i < name.length; i++) {
-    hash ^= name.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  const index = Math.abs(hash >>> 0) % CAMERA_COLOR_PALETTES.length;
-  return CAMERA_COLOR_PALETTES[index];
+    bgClass: 'bg-orange-50/90 text-orange-800 hover:bg-orange-100/90',
+    tagColor: 'bg-orange-100 text-orange-800'
+  };
 };
 
 const renderDocTypeLabel = (docType: string) => {
