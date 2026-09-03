@@ -12,82 +12,82 @@ import { VIET_BANKS } from './ContractManager';
 const CAMERA_COLOR_PALETTES = [
   { // 0: Indigo Navy
     border: 'border-indigo-600',
-    bgClass: 'bg-indigo-50/90 text-indigo-950 hover:bg-indigo-100/90',
-    tagColor: 'bg-indigo-100 text-indigo-900'
+    bgClass: 'bg-indigo-200/80 text-indigo-950 hover:bg-indigo-300/80',
+    tagColor: 'bg-indigo-200 text-indigo-900'
   },
   { // 1: Royal Blue
     border: 'border-blue-600',
-    bgClass: 'bg-blue-50/90 text-blue-950 hover:bg-blue-100/90',
-    tagColor: 'bg-blue-100 text-blue-900'
+    bgClass: 'bg-blue-200/80 text-blue-950 hover:bg-blue-300/80',
+    tagColor: 'bg-blue-200 text-blue-900'
   },
   { // 2: Emerald Green
-    border: 'border-emerald-500',
-    bgClass: 'bg-emerald-50/90 text-emerald-950 hover:bg-emerald-100/90',
-    tagColor: 'bg-emerald-100 text-emerald-900'
+    border: 'border-emerald-600',
+    bgClass: 'bg-emerald-200/80 text-emerald-950 hover:bg-emerald-300/80',
+    tagColor: 'bg-emerald-200 text-emerald-900'
   },
   { // 3: Purple / Violet
     border: 'border-purple-600',
-    bgClass: 'bg-purple-50/90 text-purple-950 hover:bg-purple-100/90',
-    tagColor: 'bg-purple-100 text-purple-900'
+    bgClass: 'bg-purple-200/80 text-purple-950 hover:bg-purple-300/80',
+    tagColor: 'bg-purple-200 text-purple-900'
   },
   { // 4: Cyan / Aqua
-    border: 'border-cyan-500',
-    bgClass: 'bg-cyan-50/90 text-cyan-950 hover:bg-cyan-100/90',
-    tagColor: 'bg-cyan-100 text-cyan-900'
+    border: 'border-cyan-600',
+    bgClass: 'bg-cyan-200/80 text-cyan-950 hover:bg-cyan-300/80',
+    tagColor: 'bg-cyan-200 text-cyan-900'
   },
   { // 5: Fuchsia / Magenta
-    border: 'border-fuchsia-500',
-    bgClass: 'bg-fuchsia-50/90 text-fuchsia-950 hover:bg-fuchsia-100/90',
-    tagColor: 'bg-fuchsia-100 text-fuchsia-900'
+    border: 'border-fuchsia-600',
+    bgClass: 'bg-fuchsia-200/80 text-fuchsia-950 hover:bg-fuchsia-300/80',
+    tagColor: 'bg-fuchsia-200 text-fuchsia-900'
   },
   { // 6: Teal / Sea Green
-    border: 'border-teal-500',
-    bgClass: 'bg-teal-50/90 text-teal-950 hover:bg-teal-100/90',
-    tagColor: 'bg-teal-100 text-teal-900'
+    border: 'border-teal-600',
+    bgClass: 'bg-teal-200/80 text-teal-950 hover:bg-teal-300/80',
+    tagColor: 'bg-teal-200 text-teal-900'
   },
   { // 7: Amber / Warm Gold
-    border: 'border-amber-500',
-    bgClass: 'bg-amber-50/90 text-amber-950 hover:bg-amber-100/90',
-    tagColor: 'bg-amber-100 text-amber-900'
+    border: 'border-amber-600',
+    bgClass: 'bg-amber-200/80 text-amber-950 hover:bg-amber-300/80',
+    tagColor: 'bg-amber-200 text-amber-900'
   },
   { // 8: Orange / Tangerine
-    border: 'border-orange-500',
-    bgClass: 'bg-orange-50/90 text-orange-950 hover:bg-orange-100/90',
-    tagColor: 'bg-orange-100 text-orange-900'
+    border: 'border-orange-600',
+    bgClass: 'bg-orange-200/80 text-orange-950 hover:bg-orange-300/80',
+    tagColor: 'bg-orange-200 text-orange-900'
   },
   { // 9: Pink / Berry
-    border: 'border-pink-500',
-    bgClass: 'bg-pink-50/90 text-pink-950 hover:bg-pink-100/90',
-    tagColor: 'bg-pink-100 text-pink-900'
+    border: 'border-pink-600',
+    bgClass: 'bg-pink-200/80 text-pink-950 hover:bg-pink-300/80',
+    tagColor: 'bg-pink-200 text-pink-900'
   },
   { // 10: Sky Blue
-    border: 'border-sky-500',
-    bgClass: 'bg-sky-50/90 text-sky-950 hover:bg-sky-100/90',
-    tagColor: 'bg-sky-100 text-sky-900'
+    border: 'border-sky-600',
+    bgClass: 'bg-sky-200/80 text-sky-950 hover:bg-sky-300/80',
+    tagColor: 'bg-sky-200 text-sky-900'
   },
   { // 11: Lime / Leaf Green
-    border: 'border-lime-500',
-    bgClass: 'bg-lime-50/90 text-lime-950 hover:bg-lime-100/90',
-    tagColor: 'bg-lime-100 text-lime-900'
+    border: 'border-lime-600',
+    bgClass: 'bg-lime-200/80 text-lime-950 hover:bg-lime-300/80',
+    tagColor: 'bg-lime-200 text-lime-900'
   },
   { // 12: Violet / Lavender
     border: 'border-violet-600',
-    bgClass: 'bg-violet-50/90 text-violet-950 hover:bg-violet-100/90',
-    tagColor: 'bg-violet-100 text-violet-900'
+    bgClass: 'bg-violet-200/80 text-violet-950 hover:bg-violet-300/80',
+    tagColor: 'bg-violet-200 text-violet-900'
   },
   { // 13: Crimson Red
     border: 'border-red-600',
-    bgClass: 'bg-red-50/90 text-red-950 hover:bg-red-100/90',
-    tagColor: 'bg-red-100 text-red-900'
+    bgClass: 'bg-red-200/80 text-red-950 hover:bg-red-300/80',
+    tagColor: 'bg-red-200 text-red-900'
   },
   { // 14: Rose / Coral
-    border: 'border-rose-500',
-    bgClass: 'bg-rose-50/90 text-rose-950 hover:bg-rose-100/90',
-    tagColor: 'bg-rose-100 text-rose-900'
+    border: 'border-rose-600',
+    bgClass: 'bg-rose-200/80 text-rose-950 hover:bg-rose-300/80',
+    tagColor: 'bg-rose-200 text-rose-900'
   },
   { // 15: Slate Charcoal
     border: 'border-slate-600',
-    bgClass: 'bg-slate-100/90 text-slate-950 hover:bg-slate-200/90',
+    bgClass: 'bg-slate-200/80 text-slate-950 hover:bg-slate-300/80',
     tagColor: 'bg-slate-200 text-slate-900'
   }
 ];
