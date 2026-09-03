@@ -834,18 +834,18 @@ export default function BookingCalendar({
                       return (
                         <div
                           key={idx}
-                          className={`px-1 py-0.5 rounded-[4px] text-[8px] font-black tracking-tight leading-tight border border-gray-200/80 border-l-[2.5px] ${colors.border} bg-white flex items-center justify-between truncate w-full shadow-3xs`}
+                          className={`px-1 py-0.5 rounded-[4px] text-[8px] font-black tracking-tight leading-tight border border-black/5 border-l-2 ${colors.border} ${colors.bgClass} flex items-center justify-between truncate w-full shadow-3xs`}
                           title={`${b.cameraName}`}
                         >
-                          <span className={`truncate font-black ${colors.textClass}`}>{b.cameraShort}</span>
+                          <span className="truncate">{b.cameraShort}</span>
                           {b.contract.is6Hours && (
-                            <span className="text-[7px] font-bold text-amber-700 bg-amber-50 px-1 rounded shrink-0">6h</span>
+                            <span className="text-[7px] font-bold text-amber-800 shrink-0">6h</span>
                           )}
                         </div>
                       );
                     })}
                     {bookingCount > 2 && (
-                      <div className="text-[7.5px] font-black text-orange-700 bg-orange-100/90 border border-orange-200 rounded-[3px] py-px text-center leading-none mt-0.5 shrink-0 shadow-3xs">
+                      <div className="text-[7.5px] font-black text-orange-700 bg-orange-100/80 border border-orange-200/60 rounded-[3px] py-px text-center leading-none mt-0.5 shrink-0">
                         +{bookingCount - 2} máy
                       </div>
                     )}
@@ -858,12 +858,11 @@ export default function BookingCalendar({
                       return (
                         <div
                           key={idx}
-                          className={`shadow-2xs group flex items-center justify-between px-1.5 py-0.5 border border-gray-200/90 border-l-[3.5px] ${colors.border} bg-white hover:bg-gray-50/90 rounded-[5px] text-[10px] font-extrabold tracking-tight leading-normal truncate max-w-full transition-all`}
+                          className={`shadow-3xs group flex items-center justify-between px-1.5 py-0.5 border border-black/5 border-l-[2.5px] ${colors.border} ${colors.bgClass} rounded-[5px] text-[10px] font-extrabold tracking-tight leading-normal truncate max-w-full transition-all`}
                           title={`${b.cameraName} (${b.contract.is6Hours ? `Lịch thuê 6 tiếng (Trả: ${b.contract.returnTime || '18:00'})` : b.timeString}) - ${b.contract.customerName}`}
                         >
-                          <span className="truncate w-full text-[10px] flex items-center gap-1">
-                            <span className={`font-black ${colors.textClass}`}>{b.cameraShort}</span>
-                            <span className="text-gray-500 font-semibold text-[9px]">({b.contract.is6Hours ? `6h` : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString})</span>
+                          <span className="truncate w-full text-[10px]">
+                            {b.cameraShort} <span className="opacity-80 font-semibold text-[9px]">({b.contract.is6Hours ? `6h` : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString})</span>
                           </span>
                         </div>
                       );
@@ -959,10 +958,10 @@ export default function BookingCalendar({
                             return (
                               <div
                                 key={bIdx}
-                                className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-gray-200 border-l-[3px] ${colors.border} bg-white text-[9.5px] font-black shadow-3xs`}
+                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-black/5 border-l-2 text-[9.5px] font-black shadow-3xs ${colors.bgClass} ${colors.border}`}
                               >
-                                <span className={colors.textClass}>{b.cameraShort}</span>
-                                <span className="text-gray-500 font-medium text-[8.5px]">
+                                <span>{b.cameraShort}</span>
+                                <span className="opacity-75 font-normal text-[8.5px]">
                                   ({b.contract.is6Hours ? '6h' : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString})
                                 </span>
                               </div>
