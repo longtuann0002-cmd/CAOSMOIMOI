@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
+import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from '../utils/supabase';
 import { formatDMY } from '../utils/dateUtils';
 import { toPng } from 'html-to-image';
 
@@ -107,6 +108,24 @@ export default function ContractManager({
     setNoteDraft('');
   };
 
+  // Helper to read custom QR image safely (handles plain base64, data URIs, or JSON-encoded strings)
+  const getStoredCustomQr = (): string => {
+    try {
+      const raw = localStorage.getItem('custom_payment_qr_image');
+      if (!raw) return '';
+      if (raw.startsWith('data:image') || raw.startsWith('http')) return raw;
+      try {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed === 'string') return parsed;
+      } catch {
+        return raw;
+      }
+      return raw;
+    } catch {
+      return '';
+    }
+  };
+
   // Bank information & QR configuration states
   const [bankConfig, setBankConfig] = useState<BankConfig>(() =>
     loadStoredData('rental_bank_config', {
@@ -119,9 +138,65 @@ export default function ContractManager({
   const [qrAmountOption, setQrAmountOption] = useState<'remaining' | 'deposit50' | 'full' | 'custom'>('remaining');
   const [customQrAmount, setCustomQrAmount] = useState<number | null>(null);
 
-  const [customQrImage, setCustomQrImage] = useState<string>(() =>
-    loadStoredData('custom_payment_qr_image', '')
-  );
+  const [customQrImage, setCustomQrImage] = useState<string>(getStoredCustomQr);
+  const [vietQrBase64, setVietQrBase64] = useState<string>('');
+
+  const vietQrUrl = useMemo(() => {
+    return `https://img.vietqr.io/image/${getBankBin(bankConfig.bankId)}-${bankConfig.accountNo}-compact2.png?accountName=${encodeURIComponent(bankConfig.accountName)}`;
+  }, [bankConfig.bankId, bankConfig.accountNo, bankConfig.accountName]);
+
+  // Pre-convert VietQR to base64 data URL to ensure 100% reliable export on mobile and offline
+  useEffect(() => {
+    if (customQrImage) return;
+    let active = true;
+    fetch(vietQrUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (active && typeof reader.result === 'string') {
+            setVietQrBase64(reader.result);
+          }
+        };
+        reader.readAsDataURL(blob);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [vietQrUrl, customQrImage]);
+
+  // Sync bank config and custom QR with Supabase cloud and across tabs
+  useEffect(() => {
+    if (isSupabaseConfigured) {
+      fetchFromSupabase('custom_payment_qr_image').then(cloudQr => {
+        if (cloudQr && typeof cloudQr === 'string') {
+          setCustomQrImage(cloudQr);
+          saveStoredData('custom_payment_qr_image', cloudQr);
+        }
+      });
+      fetchFromSupabase('rental_bank_config').then(cloudBank => {
+        if (cloudBank && cloudBank.bankId && cloudBank.accountNo) {
+          setBankConfig(cloudBank);
+          setBankDraft(cloudBank);
+          saveStoredData('rental_bank_config', cloudBank);
+        }
+      });
+    }
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'custom_payment_qr_image') {
+        setCustomQrImage(getStoredCustomQr());
+      }
+      if (e.key === 'rental_bank_config') {
+        const fresh = loadStoredData('rental_bank_config', null);
+        if (fresh) {
+          setBankConfig(fresh);
+          setBankDraft(fresh);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const handleUploadCustomQr = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,6 +206,9 @@ export default function ContractManager({
       const base64 = reader.result as string;
       setCustomQrImage(base64);
       saveStoredData('custom_payment_qr_image', base64);
+      if (isSupabaseConfigured) {
+        syncToSupabase('custom_payment_qr_image', base64);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -138,11 +216,17 @@ export default function ContractManager({
   const handleRemoveCustomQr = () => {
     setCustomQrImage('');
     saveStoredData('custom_payment_qr_image', '');
+    if (isSupabaseConfigured) {
+      syncToSupabase('custom_payment_qr_image', '');
+    }
   };
 
   const handleUpdateBankConfig = (newConfig: BankConfig) => {
     setBankConfig(newConfig);
     saveStoredData('rental_bank_config', newConfig);
+    if (isSupabaseConfigured) {
+      syncToSupabase('rental_bank_config', newConfig);
+    }
   };
 
   const [bankDraft, setBankDraft] = useState<BankConfig>(bankConfig);
@@ -1445,7 +1529,7 @@ export default function ContractManager({
                     </div>
 
                     {/* QR Code Block on the Right (Always side-by-side on both mobile and desktop) */}
-                    <div className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2 rounded-xl border border-slate-200/90 shadow-2xs w-[96px] sm:w-[120px]">
+                    <div className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2 rounded-xl border border-slate-200/90 shadow-2xs w-[92px] sm:w-[116px]">
                       <div className="text-[8.5px] sm:text-[10px] font-extrabold uppercase text-gray-600 tracking-wider mb-1 flex items-center justify-between w-full">
                         <div className="flex items-center gap-1">
                           <CreditCard className="w-3 h-3 text-orange-600 shrink-0" />
@@ -1467,12 +1551,11 @@ export default function ContractManager({
                         )}
                       </div>
 
-                      <div className="w-[84px] h-[84px] sm:w-[104px] sm:h-[104px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-0.5">
+                      <div className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-0.5">
                         <img
-                          src={customQrImage || `https://img.vietqr.io/image/${getBankBin(bankConfig.bankId)}-${bankConfig.accountNo}-compact2.png?accountName=${encodeURIComponent(bankConfig.accountName)}`}
+                          src={customQrImage || vietQrBase64 || vietQrUrl}
                           alt="Mã QR thanh toán"
                           className="w-full h-full object-contain rounded"
-                          crossOrigin="anonymous"
                         />
                       </div>
 

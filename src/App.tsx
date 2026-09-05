@@ -532,6 +532,16 @@ export default function App() {
         } else {
           setExpenses(loadStoredData('expenses', INITIAL_EXPENSES));
         }
+
+        // Fetch bank config and custom payment QR from Supabase cloud
+        const cloudBankConfig = await fetchFromSupabase('rental_bank_config');
+        if (cloudBankConfig) {
+          saveStoredData('rental_bank_config', cloudBankConfig);
+        }
+        const cloudCustomQr = await fetchFromSupabase('custom_payment_qr_image');
+        if (cloudCustomQr) {
+          saveStoredData('custom_payment_qr_image', cloudCustomQr);
+        }
       } catch (err) {
         console.error('[Supabase] Fetch error, falling back locally', err);
         setCameras(loadStoredData('cameras', INITIAL_CAMERAS));
@@ -562,7 +572,9 @@ export default function App() {
         logoSubtitle,
         logoIconType,
         logoIconColor,
-        logoBase64
+        logoBase64,
+        bankConfig: loadStoredData('rental_bank_config', null),
+        customQrImage: loadStoredData('custom_payment_qr_image', '')
       };
       const jsonString = JSON.stringify(backupData, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
@@ -602,6 +614,14 @@ export default function App() {
       if (parsed.logoIconType !== undefined) setLogoIconType(parsed.logoIconType);
       if (parsed.logoIconColor !== undefined) setLogoIconColor(parsed.logoIconColor);
       if (parsed.logoBase64 !== undefined) setLogoBase64(parsed.logoBase64);
+      if (parsed.bankConfig) {
+        saveStoredData('rental_bank_config', parsed.bankConfig);
+        if (isSupabaseConfigured) syncToSupabase('rental_bank_config', parsed.bankConfig);
+      }
+      if (parsed.customQrImage) {
+        saveStoredData('custom_payment_qr_image', parsed.customQrImage);
+        if (isSupabaseConfigured) syncToSupabase('custom_payment_qr_image', parsed.customQrImage);
+      }
 
       setImportError('');
       addToast('Nhập dữ liệu thành công!', 'success', 'Toàn bộ dữ liệu hệ thống đã được phục hồi từ tệp tin.');
