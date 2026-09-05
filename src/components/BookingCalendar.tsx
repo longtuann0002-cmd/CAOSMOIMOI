@@ -1766,7 +1766,7 @@ export default function BookingCalendar({
 
             {/* Modal Content */}
             <div className="p-3 sm:p-4 space-y-3.5 flex-1 overflow-y-auto">
-              <div id="calendar-contract-receipt-capture" className="bg-white p-3.5 sm:p-4 rounded-2xl space-y-3 font-sans text-gray-900 w-full box-border">
+              <div id="calendar-contract-receipt-capture" className="bg-white p-3 sm:p-4 rounded-2xl space-y-3 font-sans text-gray-900 w-full box-border">
                 {/* Visual Invoice Title for image export */}
                 <div className="text-center space-y-1 border-b border-gray-200 pb-2.5">
                   <h3 className="text-base sm:text-lg font-black text-gray-900 uppercase tracking-wide">
@@ -1780,33 +1780,49 @@ export default function BookingCalendar({
                 </div>
 
                 {/* Section 1: Customer details & Timings */}
-                <div className="bg-slate-50/80 p-3.5 border border-slate-200/80 rounded-xl space-y-3">
+                <div className="bg-slate-50/80 p-2.5 sm:p-3.5 border border-slate-200/80 rounded-xl space-y-3">
                   {/* Customer Info & QR Code Row (Synchronized side-by-side on both mobile and desktop) */}
-                  <div className="flex flex-row gap-2 sm:gap-3 items-start justify-between">
-                    <div className="space-y-1 min-w-0 flex-1 w-full">
+                  <div className="flex flex-row flex-nowrap gap-2 sm:gap-3 items-start justify-between">
+                    <div className="space-y-1 min-w-0 flex-1">
                       <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
                       <p className="font-black text-gray-900 text-sm sm:text-base">{quickReceiptContract.customerName}</p>
                       <p className="text-xs text-gray-600 font-mono font-bold">SĐT: {quickReceiptContract.customerPhone}</p>
                       <div className="pt-0.5">
-                        <span className="text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md inline-block">
+                        <span className="text-[10px] sm:text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-1.5 sm:px-2 py-0.5 rounded-md inline-block">
                           Thế chấp: {renderDocTypeLabel(quickReceiptContract.customerDocType)}
                         </span>
                       </div>
                       {quickReceiptContract.customerDocNote && (
-                        <p className="text-xs text-amber-950 bg-amber-50 border border-amber-200 p-2 rounded-lg font-mono leading-relaxed mt-1">
+                        <p className="text-xs text-amber-950 bg-amber-50 border border-amber-200 p-1.5 sm:p-2 rounded-lg font-mono leading-relaxed mt-1">
                           {quickReceiptContract.customerDocNote}
                         </p>
                       )}
                     </div>
 
                     {/* QR Code Block on the Right (Always side-by-side on both mobile and desktop) */}
-                    <div className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2.5 rounded-xl border border-slate-200/90 shadow-2xs w-[108px] sm:w-[126px]">
-                      <div className="text-[8.5px] sm:text-[10px] font-extrabold uppercase text-gray-600 tracking-wider mb-1 flex items-center gap-1">
-                        <CreditCard className="w-3 h-3 text-orange-600" />
-                        <span>QR THANH TOÁN</span>
+                    <div className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2 rounded-xl border border-slate-200/90 shadow-2xs w-[96px] sm:w-[120px]">
+                      <div className="text-[8.5px] sm:text-[10px] font-extrabold uppercase text-gray-600 tracking-wider mb-1 flex items-center justify-between w-full">
+                        <div className="flex items-center gap-1">
+                          <CreditCard className="w-3 h-3 text-orange-600 shrink-0" />
+                          <span>QR TT</span>
+                        </div>
+                        {!isExportingReceipt && (
+                          <button
+                            type="button"
+                            data-no-export="true"
+                            onClick={() => {
+                              setBankDraft(bankConfig);
+                              setShowBankSettings(true);
+                            }}
+                            className="text-gray-400 hover:text-orange-600 p-0.5 rounded hover:bg-gray-100 transition cursor-pointer"
+                            title="Cài đặt tài khoản ngân hàng"
+                          >
+                            <Settings className="w-2.5 h-2.5" />
+                          </button>
+                        )}
                       </div>
 
-                      <div className="w-[88px] h-[88px] sm:w-[106px] sm:h-[106px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-1">
+                      <div className="w-[84px] h-[84px] sm:w-[104px] sm:h-[104px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-0.5">
                         <img
                           src={customQrImage || `https://img.vietqr.io/image/${getBankBin(bankConfig.bankId)}-${bankConfig.accountNo}-compact2.png?accountName=${encodeURIComponent(bankConfig.accountName)}`}
                           alt="Mã QR thanh toán"
@@ -1817,7 +1833,7 @@ export default function BookingCalendar({
 
                       {!isExportingReceipt && (
                         <div className="mt-1 flex items-center gap-1" data-no-export="true">
-                          <label className="cursor-pointer text-[8.5px] sm:text-[9.5px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-1.5 sm:px-2 py-0.5 rounded-md transition shadow-3xs flex items-center gap-0.5 whitespace-nowrap">
+                          <label className="cursor-pointer text-[8px] sm:text-[9px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-1.5 py-0.5 rounded-md transition shadow-3xs flex items-center gap-0.5 whitespace-nowrap">
                             <span>{customQrImage ? 'Đổi QR' : '+ Thêm QR'}</span>
                             <input
                               type="file"
@@ -1830,32 +1846,12 @@ export default function BookingCalendar({
                             <button
                               type="button"
                               onClick={handleRemoveCustomQr}
-                              className="text-[8.5px] sm:text-[9.5px] text-gray-500 hover:text-rose-600 px-1 py-0.5 rounded border border-gray-200 hover:border-rose-300 transition cursor-pointer"
+                              className="text-[8px] sm:text-[9px] text-gray-500 hover:text-rose-600 px-1 py-0.5 rounded border border-gray-200 hover:border-rose-300 transition cursor-pointer"
                               title="Xóa ảnh tự thêm, dùng lại mã VietQR"
                             >
                               ✕
                             </button>
                           )}
-                        </div>
-                      )}
-
-                      {!isExportingReceipt ? (
-                        <button
-                          type="button"
-                          data-no-export="true"
-                          onClick={() => {
-                            setBankDraft(bankConfig);
-                            setShowBankSettings(true);
-                          }}
-                          className="mt-1 text-[9px] sm:text-[10px] font-mono font-bold text-gray-800 hover:text-orange-600 bg-gray-50 hover:bg-orange-50 border border-gray-200 hover:border-orange-300 px-1.5 py-0.5 rounded transition cursor-pointer flex items-center justify-center gap-1 leading-tight w-full shadow-3xs"
-                          title="Bấm để sửa ngân hàng & số tài khoản"
-                        >
-                          <span className="truncate">{bankConfig.bankId} • {bankConfig.accountNo}</span>
-                          <Edit2 className="w-2.5 h-2.5 text-orange-500 shrink-0" />
-                        </button>
-                      ) : (
-                        <div className="text-center mt-1 text-[9px] sm:text-[10px] font-mono font-bold text-gray-800 leading-tight">
-                          {bankConfig.bankId} • {bankConfig.accountNo}
                         </div>
                       )}
                     </div>
