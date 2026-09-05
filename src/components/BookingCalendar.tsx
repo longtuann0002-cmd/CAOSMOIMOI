@@ -1831,9 +1831,8 @@ export default function BookingCalendar({
                         </div>
                       )}
 
-                      <div className="text-center mt-1 text-[9.5px] font-mono text-gray-500 leading-tight">
-                        <div className="font-bold text-gray-800">{bankConfig.bankId} • {bankConfig.accountNo}</div>
-                        <div className="text-[8.5px] text-gray-400 uppercase tracking-tight truncate max-w-[130px]">{bankConfig.accountName}</div>
+                      <div className="text-center mt-1 text-[10px] font-mono leading-tight">
+                        <span className="font-bold text-gray-800">{bankConfig.bankId} • {bankConfig.accountNo}</span>
                       </div>
                     </div>
                   </div>
