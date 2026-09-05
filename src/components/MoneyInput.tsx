@@ -12,6 +12,7 @@ interface MoneyInputProps {
   min?: number;
   max?: number;
   suffixColor?: 'gray' | 'amber' | 'orange' | 'rose';
+  allowZero?: boolean;
 }
 
 const MoneyInput: React.FC<MoneyInputProps> = ({
@@ -19,6 +20,7 @@ const MoneyInput: React.FC<MoneyInputProps> = ({
   placeholder = 'VD: 5.000.000',
   className = '', disabled = false, required = false,
   id, name, min, max, suffixColor = 'gray',
+  allowZero = false,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const formatDisplay = (num: number): string => {
@@ -29,18 +31,25 @@ const MoneyInput: React.FC<MoneyInputProps> = ({
     const digits = raw.replace(/[^0-9]/g, '');
     return digits ? parseInt(digits, 10) : 0;
   };
-  const [display, setDisplay] = useState<string>(value ? formatDisplay(value) : '');
+  const toDisplayString = (v: number): string => {
+    if (v === 0) return allowZero ? '0' : '';
+    if (!v) return '';
+    return formatDisplay(v);
+  };
+  const [display, setDisplay] = useState<string>(toDisplayString(value));
   useEffect(() => {
     const numeric = parseRaw(display);
-    if (numeric !== value) setDisplay(value ? formatDisplay(value) : '');
+    if (numeric !== value || (value === 0 && allowZero && display !== '0')) {
+      setDisplay(toDisplayString(value));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [value, allowZero]);
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     const numeric = parseRaw(raw);
     const clamped = max !== undefined ? Math.min(numeric, max) : numeric;
     const final = min !== undefined ? Math.max(clamped, min) : clamped;
-    const formatted = final > 0 ? formatDisplay(final) : '';
+    const formatted = (final > 0 || (allowZero && raw.trim() !== '')) ? formatDisplay(final) : '';
     const cursorOffset = raw.length - (e.target.selectionStart ?? raw.length);
     setDisplay(formatted);
     onChange(final);
@@ -53,7 +62,7 @@ const MoneyInput: React.FC<MoneyInputProps> = ({
   };
   const handleBlur = () => {
     const numeric = parseRaw(display);
-    setDisplay(numeric > 0 ? formatDisplay(numeric) : '');
+    setDisplay((numeric > 0 || (allowZero && numeric === 0 && display.trim() !== '')) ? formatDisplay(numeric) : '');
   };
   const sfx: Record<string, string> = {
     gray: 'text-gray-500', amber: 'text-amber-700',

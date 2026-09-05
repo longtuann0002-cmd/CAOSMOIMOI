@@ -264,6 +264,7 @@ export default function ContractManager({
   });
 
   const [prevCalculatedTotal, setPrevCalculatedTotal] = useState(0);
+  const contractDocNoteInputRef = useRef<HTMLInputElement>(null);
 
   // Predefined Contract/Rental Form templates (Mẫu đơn thuê sẵn có)
   const DEFAULT_TEMPLATES: ContractTemplate[] = useMemo(() => [
@@ -1350,7 +1351,7 @@ export default function ContractManager({
                             <option value="GPLX">Giữ bằng lái (GPLX)</option>
                             <option value="Passport">Giữ hộ chiếu (Passport)</option>
                             <option value="CashDeposit">Đặt cọc tiền mặt</option>
-                            <option value="Other">Xe máy / Tài sản khác</option>
+                            <option value="Other">Hình thức khác</option>
                           </select>
                         </div>
                         <div>
@@ -1825,8 +1826,36 @@ export default function ContractManager({
                       const nextData = { ...newContractForm, customerDocType: val };
                       if (val === 'CCCD_And_1M') {
                         nextData.depositAmount = 1000000;
-                        if (!newContractForm.customerDocNote || newContractForm.customerDocNote === 'Giữ CCCD gốc') {
+                        if (!newContractForm.customerDocNote || newContractForm.customerDocNote === 'Giữ CCCD gốc' || newContractForm.customerDocNote === 'Giữ GPLX gốc' || newContractForm.customerDocNote === 'Giữ Hộ chiếu gốc' || newContractForm.customerDocNote === 'Đặt cọc tiền mặt') {
                           nextData.customerDocNote = 'Giữ CCCD gốc + 1.000.000đ';
+                        }
+                      } else if (val === 'Other') {
+                        nextData.depositAmount = 0;
+                        if (newContractForm.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || newContractForm.customerDocNote === 'Giữ CCCD gốc' || newContractForm.customerDocNote === 'Giữ GPLX gốc' || newContractForm.customerDocNote === 'Giữ Hộ chiếu gốc' || newContractForm.customerDocNote === 'Đặt cọc tiền mặt') {
+                          nextData.customerDocNote = '';
+                        }
+                        setTimeout(() => {
+                          contractDocNoteInputRef.current?.focus();
+                        }, 60);
+                      } else if (val === 'CCCD') {
+                        nextData.depositAmount = 0;
+                        if (newContractForm.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ') {
+                          nextData.customerDocNote = 'Giữ CCCD gốc';
+                        }
+                      } else if (val === 'GPLX') {
+                        nextData.depositAmount = 0;
+                        if (newContractForm.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || newContractForm.customerDocNote === 'Giữ CCCD gốc') {
+                          nextData.customerDocNote = 'Giữ GPLX gốc';
+                        }
+                      } else if (val === 'Passport') {
+                        nextData.depositAmount = 0;
+                        if (newContractForm.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || newContractForm.customerDocNote === 'Giữ CCCD gốc') {
+                          nextData.customerDocNote = 'Giữ Hộ chiếu gốc';
+                        }
+                      } else if (val === 'CashDeposit') {
+                        nextData.depositAmount = calculatedRecommendedDeposit > 0 ? calculatedRecommendedDeposit : 1000000;
+                        if (newContractForm.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || newContractForm.customerDocNote === 'Giữ CCCD gốc') {
+                          nextData.customerDocNote = 'Đặt cọc tiền mặt';
                         }
                       }
                       setNewContractForm(nextData);
@@ -1838,18 +1867,23 @@ export default function ContractManager({
                     <option value="GPLX">Giữ bằng lái (GPLX)</option>
                     <option value="Passport">Giữ hộ chiếu (Passport)</option>
                     <option value="CashDeposit">Đặt cọc tiền mặt</option>
-                    <option value="Other">Thế chấp xe máy / Tài sản khác</option>
+                    <option value="Other">Hình thức khác</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Mô tả cọc thế chấp</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Mô tả cọc thế chấp {newContractForm.customerDocType === 'Other' && <span className="text-orange-600 font-bold">* (Viết ghi chú)</span>}
+                  </label>
                   <input
+                    ref={contractDocNoteInputRef}
                     type="text"
                     value={newContractForm.customerDocNote}
                     onChange={e => setNewContractForm({ ...newContractForm, customerDocNote: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    placeholder="VD: CCCD chính chủ + xe máy Wave đỏ"
+                    className={`w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all ${
+                      newContractForm.customerDocType === 'Other' ? 'border-orange-400 bg-orange-50/20' : 'border-gray-200'
+                    }`}
+                    placeholder={newContractForm.customerDocType === 'Other' ? 'Viết ghi chú thế chấp (VD: Xe máy, cavet, thẻ SV...)' : 'VD: CCCD chính chủ + xe máy Wave đỏ'}
                   />
                 </div>
               </div>
@@ -2076,9 +2110,10 @@ export default function ContractManager({
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Giá trị cọc quy đổi (VND)</label>
                   <MoneyInput
-                    value={newContractForm.depositAmount || 0}
+                    value={newContractForm.depositAmount ?? 0}
                     onChange={v => setNewContractForm({ ...newContractForm, depositAmount: v })}
-                    placeholder="VD: 5.000.000"
+                    placeholder="0"
+                    allowZero={true}
                     className="border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
                     suffixColor="gray"
                   />
@@ -2133,8 +2168,8 @@ export default function ContractManager({
               </div>
 
               {/* TÍCH CHỌN: KHÁCH CHƯA THANH TOÁN 50% GIỮ MÁY */}
-              <div className="bg-gradient-to-r from-amber-50 to-amber-100/70 border-2 border-amber-300 rounded-xl p-3.5 shadow-3xs">
-                <label className="flex items-start gap-3 cursor-pointer select-none">
+              <div className="bg-gradient-to-r from-amber-50 to-amber-100/70 border-2 border-amber-300 rounded-xl p-2.5 sm:p-3.5 shadow-3xs">
+                <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={newContractForm.paidAmount === 0}
@@ -2148,12 +2183,12 @@ export default function ContractManager({
                     className="w-5 h-5 text-amber-600 rounded border-amber-400 focus:ring-amber-500 mt-0.5 shrink-0 cursor-pointer accent-amber-600"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-extrabold text-amber-950 text-xs sm:text-sm leading-snug">
-                        ⏳ Khách chưa cọc 50% để giữ máy
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span className="font-extrabold text-amber-950 text-xs sm:text-sm leading-snug whitespace-nowrap">
+                        ⏳ Khách chưa cọc 50% giữ máy
                       </span>
                       {newContractForm.paidAmount === 0 && (
-                        <span className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap shrink-0">
+                        <span className="bg-amber-600 text-white text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-bold whitespace-nowrap shrink-0">
                           ✓ Đang chọn
                         </span>
                       )}
@@ -2161,16 +2196,16 @@ export default function ContractManager({
                     <p className="text-[11px] text-amber-900 mt-1 leading-snug">
                       {newContractForm.paidAmount === 0 ? (
                         <span>
-                          ⚠️ Đơn ghi nhận <strong>"Chưa cọc 50% giữ máy"</strong> — Cần thu cọc:{' '}
+                          ⚠️ Đơn chưa cọc — Cần thu:{' '}
                           <strong className="whitespace-nowrap font-bold text-amber-950">
-                            {(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ
-                          </strong>.
+                            {(Math.round(calculatedTotal * 0.5)).toLocaleString()}&nbsp;đ
+                          </strong>
                         </span>
                       ) : (
                         <span>
-                          ✓ Đã thanh toán trước 50% tiền cọc ({' '}
+                          ✓ Đã thanh toán trước 50% ({' '}
                           <strong className="whitespace-nowrap font-bold">
-                            {newContractForm.paidAmount.toLocaleString()} đ
+                            {newContractForm.paidAmount.toLocaleString()}&nbsp;đ
                           </strong>).
                         </span>
                       )}
@@ -2229,14 +2264,16 @@ export default function ContractManager({
 
               {/* Calculated price breakdown card */}
               {calculatedDays > 0 && calculatedTotal > 0 && (
-                <div className="bg-gradient-to-r from-orange-50 to-amber-50/40 border border-orange-100 rounded-xl p-3 text-xs text-orange-850 flex justify-between items-center font-medium shadow-2xs">
-                  <div>
+                <div className="bg-gradient-to-r from-orange-50 to-amber-50/40 border border-orange-100 rounded-xl p-2.5 sm:p-3 text-xs text-orange-850 flex items-center justify-between gap-3 font-medium shadow-2xs">
+                  <div className="min-w-0 flex-1 leading-snug">
                     <span className="font-extrabold text-orange-900">Chi tiết tạm tính:</span>{' '}
-                    {newContractForm.selectedCameraIds.length} thiết bị &times;{' '}
-                    {newContractForm.is6Hours ? 'Gói thuê 6 tiếng' : `${calculatedDays} ngày`}
+                    <span>
+                      {newContractForm.selectedCameraIds.length} thiết bị &times;{' '}
+                      {newContractForm.is6Hours ? 'Gói thuê 6 tiếng' : `${calculatedDays} ngày`}
+                    </span>
                   </div>
-                  <div className="font-mono font-black text-sm text-orange-700">
-                    {calculatedTotal.toLocaleString()} đ
+                  <div className="font-mono font-black text-sm sm:text-base text-orange-700 shrink-0 whitespace-nowrap text-right">
+                    {calculatedTotal.toLocaleString()}&nbsp;đ
                   </div>
                 </div>
               )}

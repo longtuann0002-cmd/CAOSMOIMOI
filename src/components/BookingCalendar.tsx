@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract, BankConfig, Customer } from '../types';
 import MoneyInput from './MoneyInput';
@@ -154,6 +154,7 @@ export default function BookingCalendar({
   });
 
   const [prevCalculatedTotal, setPrevCalculatedTotal] = useState(0);
+  const quickDocNoteInputRef = useRef<HTMLInputElement>(null);
 
   const calculatedDays = useMemo(() => {
     if (formData.is6Hours) return 1;
@@ -1237,8 +1238,36 @@ export default function BookingCalendar({
                       const nextData = { ...formData, customerDocType: val };
                       if (val === 'CCCD_And_1M') {
                         nextData.depositAmount = 1000000;
-                        if (!formData.customerDocNote || formData.customerDocNote === 'Giữ CCCD gốc') {
+                        if (!formData.customerDocNote || formData.customerDocNote === 'Giữ CCCD gốc' || formData.customerDocNote === 'Giữ GPLX gốc' || formData.customerDocNote === 'Giữ Hộ chiếu gốc' || formData.customerDocNote === 'Đặt cọc tiền mặt') {
                           nextData.customerDocNote = 'Giữ CCCD gốc + 1.000.000đ';
+                        }
+                      } else if (val === 'Other') {
+                        nextData.depositAmount = 0;
+                        if (formData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || formData.customerDocNote === 'Giữ CCCD gốc' || formData.customerDocNote === 'Giữ GPLX gốc' || formData.customerDocNote === 'Giữ Hộ chiếu gốc' || formData.customerDocNote === 'Đặt cọc tiền mặt') {
+                          nextData.customerDocNote = '';
+                        }
+                        setTimeout(() => {
+                          quickDocNoteInputRef.current?.focus();
+                        }, 60);
+                      } else if (val === 'CCCD') {
+                        nextData.depositAmount = 0;
+                        if (formData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ') {
+                          nextData.customerDocNote = 'Giữ CCCD gốc';
+                        }
+                      } else if (val === 'GPLX') {
+                        nextData.depositAmount = 0;
+                        if (formData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || formData.customerDocNote === 'Giữ CCCD gốc') {
+                          nextData.customerDocNote = 'Giữ GPLX gốc';
+                        }
+                      } else if (val === 'Passport') {
+                        nextData.depositAmount = 0;
+                        if (formData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || formData.customerDocNote === 'Giữ CCCD gốc') {
+                          nextData.customerDocNote = 'Giữ Hộ chiếu gốc';
+                        }
+                      } else if (val === 'CashDeposit') {
+                        nextData.depositAmount = calculatedRecommendedDeposit > 0 ? calculatedRecommendedDeposit : 1000000;
+                        if (formData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || formData.customerDocNote === 'Giữ CCCD gốc') {
+                          nextData.customerDocNote = 'Đặt cọc tiền mặt';
                         }
                       }
                       setFormData(nextData);
@@ -1254,13 +1283,18 @@ export default function BookingCalendar({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Ghi chú thế chấp</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Ghi chú thế chấp {formData.customerDocType === 'Other' && <span className="text-orange-600 font-bold">* (Viết ghi chú)</span>}
+                  </label>
                   <input
+                    ref={quickDocNoteInputRef}
                     type="text"
                     value={formData.customerDocNote}
                     onChange={e => setFormData({ ...formData, customerDocNote: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    placeholder="VD: Wave S BKS 29-X... + Thẻ SV"
+                    className={`w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all ${
+                      formData.customerDocType === 'Other' ? 'border-orange-400 bg-orange-50/20' : 'border-gray-300'
+                    }`}
+                    placeholder={formData.customerDocType === 'Other' ? 'Viết ghi chú thế chấp (VD: Xe máy, thẻ SV, laptop...)' : 'VD: Wave S BKS 29-X... + Thẻ SV'}
                   />
                 </div>
               </div>
@@ -1485,9 +1519,10 @@ export default function BookingCalendar({
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Tiền cọc thế chấp (VND)</label>
                   <MoneyInput
-                    value={formData.depositAmount || 0}
+                    value={formData.depositAmount ?? 0}
                     onChange={v => setFormData({ ...formData, depositAmount: v })}
-                    placeholder="VD: 5.000.000"
+                    placeholder="0"
+                    allowZero={true}
                     className="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
                     suffixColor="gray"
                   />
@@ -1542,8 +1577,8 @@ export default function BookingCalendar({
               </div>
 
               {/* TÍCH CHỌN: KHÁCH CHƯA THANH TOÁN 50% GIỮ MÁY */}
-              <div className="bg-gradient-to-r from-amber-50 to-amber-100/70 border-2 border-amber-300 rounded-xl p-3.5 shadow-3xs">
-                <label className="flex items-start gap-3 cursor-pointer select-none">
+              <div className="bg-gradient-to-r from-amber-50 to-amber-100/70 border-2 border-amber-300 rounded-xl p-2.5 sm:p-3.5 shadow-3xs">
+                <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={formData.paidAmount === 0}
@@ -1557,12 +1592,12 @@ export default function BookingCalendar({
                     className="w-5 h-5 text-amber-600 rounded border-amber-400 focus:ring-amber-500 mt-0.5 shrink-0 cursor-pointer accent-amber-600"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-extrabold text-amber-950 text-xs sm:text-sm leading-snug">
-                        ⏳ Khách chưa cọc 50% để giữ máy
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span className="font-extrabold text-amber-950 text-xs sm:text-sm leading-snug whitespace-nowrap">
+                        ⏳ Khách chưa cọc 50% giữ máy
                       </span>
                       {formData.paidAmount === 0 && (
-                        <span className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap shrink-0">
+                        <span className="bg-amber-600 text-white text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-bold whitespace-nowrap shrink-0">
                           ✓ Đang chọn
                         </span>
                       )}
@@ -1570,16 +1605,16 @@ export default function BookingCalendar({
                     <p className="text-[11px] text-amber-900 mt-1 leading-snug">
                       {formData.paidAmount === 0 ? (
                         <span>
-                          ⚠️ Đơn ghi nhận <strong>"Chưa cọc 50% giữ máy"</strong> — Cần thu cọc:{' '}
+                          ⚠️ Đơn chưa cọc — Cần thu:{' '}
                           <strong className="whitespace-nowrap font-bold text-amber-950">
-                            {(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ
-                          </strong>.
+                            {(Math.round(calculatedTotal * 0.5)).toLocaleString()}&nbsp;đ
+                          </strong>
                         </span>
                       ) : (
                         <span>
-                          ✓ Đã thanh toán trước 50% tiền cọc ({' '}
+                          ✓ Đã thanh toán trước 50% ({' '}
                           <strong className="whitespace-nowrap font-bold">
-                            {formData.paidAmount.toLocaleString()} đ
+                            {formData.paidAmount.toLocaleString()}&nbsp;đ
                           </strong>).
                         </span>
                       )}
@@ -1637,14 +1672,16 @@ export default function BookingCalendar({
 
               {/* Calculated price breakdown card */}
               {calculatedDays > 0 && calculatedTotal > 0 && (
-                <div className="bg-gradient-to-r from-orange-50 to-amber-50/40 border border-orange-100/85 rounded-xl p-3 text-xs text-orange-850 flex justify-between items-center font-medium shadow-2xs">
-                  <div>
+                <div className="bg-gradient-to-r from-orange-50 to-amber-50/40 border border-orange-100/85 rounded-xl p-2.5 sm:p-3 text-xs text-orange-850 flex items-center justify-between gap-3 font-medium shadow-2xs">
+                  <div className="min-w-0 flex-1 leading-snug">
                     <span className="font-extrabold text-orange-950">Báo giá tạm tính:</span>{' '}
-                    {formData.selectedCameraIds.length} thiết bị &times;{' '}
-                    {formData.is6Hours ? 'Gói thuê 6 tiếng' : `${calculatedDays} ngày (Đã áp dụng giảm giá)`}
+                    <span>
+                      {formData.selectedCameraIds.length} thiết bị &times;{' '}
+                      {formData.is6Hours ? 'Gói thuê 6 tiếng' : `${calculatedDays} ngày (Đã áp dụng giảm giá)`}
+                    </span>
                   </div>
-                  <div className="font-mono font-black text-sm text-orange-700">
-                    {calculatedTotal.toLocaleString()} đ
+                  <div className="font-mono font-black text-sm sm:text-base text-orange-700 shrink-0 whitespace-nowrap text-right">
+                    {calculatedTotal.toLocaleString()}&nbsp;đ
                   </div>
                 </div>
               )}
