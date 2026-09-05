@@ -69,6 +69,67 @@ export const getBankBin = (id: string): string => {
   return bins[id] || id;
 };
 
+export function QrCanvas({ 
+  src, 
+  alt = "QR thanh toán", 
+  className 
+}: { 
+  src: string; 
+  alt?: string; 
+  className?: string; 
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!src) {
+      setLoaded(false);
+      return;
+    }
+    let active = true;
+    const img = new Image();
+    if (!src.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
+    img.onload = () => {
+      if (!active) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      setLoaded(true);
+    };
+    img.onerror = () => {
+      if (!active) return;
+      setLoaded(false);
+    };
+    img.src = src;
+    return () => {
+      active = false;
+    };
+  }, [src]);
+
+  return (
+    <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
+      <canvas
+        ref={canvasRef}
+        width={240}
+        height={240}
+        className={className || "w-full h-full object-contain rounded"}
+      />
+      {!loaded && (
+        <img
+          src={src}
+          alt={alt}
+          className="absolute inset-0 w-full h-full object-contain rounded"
+        />
+      )}
+    </div>
+  );
+}
+
 export default function ContractManager({
   contracts,
   cameras,
@@ -263,7 +324,6 @@ export default function ContractManager({
     try {
       const dataUrl = await toPng(element, {
         backgroundColor: '#ffffff',
-        cacheBust: true,
         pixelRatio: 2,
         width: 420,
       });
@@ -271,7 +331,9 @@ export default function ContractManager({
       const link = document.createElement('a');
       link.download = filename;
       link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (err) {
       console.error('Lỗi khi xuất ảnh:', err);
       setCustomAlertMessage('Không thể tạo file ảnh. Vui lòng thử lại!');
@@ -1552,7 +1614,7 @@ export default function ContractManager({
                       </div>
 
                       <div className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-0.5">
-                        <img
+                        <QrCanvas
                           src={customQrImage || vietQrBase64 || vietQrUrl}
                           alt="Mã QR thanh toán"
                           className="w-full h-full object-contain rounded"

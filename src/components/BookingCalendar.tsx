@@ -8,7 +8,7 @@ import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../ut
 import { loadStoredData, saveStoredData } from '../utils/mockData';
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from '../utils/supabase';
 import { formatDMY } from '../utils/dateUtils';
-import { VIET_BANKS, getBankBin } from './ContractManager';
+import { VIET_BANKS, getBankBin, QrCanvas } from './ContractManager';
 
 // 20 fully distinct vivid palettes — ordered so adjacent entries look maximally different
 const CAMERA_COLOR_PALETTES = [
@@ -564,7 +564,6 @@ export default function BookingCalendar({
     try {
       const dataUrl = await toPng(element, {
         backgroundColor: '#ffffff',
-        cacheBust: true,
         pixelRatio: 2,
         width: 420,
       });
@@ -572,7 +571,9 @@ export default function BookingCalendar({
       const link = document.createElement('a');
       link.download = filename;
       link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (err) {
       console.error('Lỗi khi xuất ảnh:', err);
       setCustomAlertMessage('Không thể tạo file ảnh. Vui lòng thử lại!');
@@ -1907,7 +1908,7 @@ export default function BookingCalendar({
                       </div>
 
                       <div className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-0.5">
-                        <img
+                        <QrCanvas
                           src={customQrImage || vietQrBase64 || vietQrUrl}
                           alt="Mã QR thanh toán"
                           className="w-full h-full object-contain rounded"
