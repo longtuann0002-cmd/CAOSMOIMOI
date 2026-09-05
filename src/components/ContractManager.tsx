@@ -2281,7 +2281,7 @@ export default function ContractManager({
             </div>
             
             <p className="text-sm text-gray-500">
-              Bạn có chắc chắn muốn xóa vĩnh viễn hợp đồng này? Hành động này sẽ cập nhật lại trạng thái thiết bị và hồ sơ khách hàng, bản ghi này sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.
+              Bạn có chắc chắn muốn xóa vĩnh viễn hợp đồng này? Hành động này sẽ cập nhật lại trạng thái thiết bị và tự động xóa hồ sơ khách hàng tương ứng (nếu khách không còn đơn thuê nào khác).
             </p>
 
             <div className="flex justify-end gap-3 pt-2">
