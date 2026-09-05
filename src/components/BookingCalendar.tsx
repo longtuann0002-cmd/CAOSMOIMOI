@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract, BankConfig, Customer } from '../types';
 import MoneyInput from './MoneyInput';
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
@@ -1322,28 +1322,23 @@ export default function BookingCalendar({
                 <label className="block text-xs font-black text-gray-800 mb-2 flex items-center gap-1.5 uppercase tracking-wide">
                   <span>⏱️ Hình thức thuê & thời gian:</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
                   <button
                     type="button"
                     onClick={() => {
                        setFormData(prev => ({ ...prev, is6Hours: false }));
                     }}
-                    className={`p-3 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer border-2 text-center flex flex-col items-center justify-center gap-1 ${
+                    className={`py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer border-2 text-center flex flex-col items-center justify-center gap-1 ${
                       !formData.is6Hours
-                        ? 'bg-gradient-to-r from-orange-600 to-orange-500 text-white border-orange-600 shadow-md ring-2 ring-orange-300/60 scale-[1.02]'
-                        : 'bg-white hover:bg-orange-50 text-orange-950 border-orange-200 hover:border-orange-400 shadow-xs hover:shadow-sm'
+                        ? 'bg-gradient-to-r from-orange-600 to-orange-500 text-white border-orange-600 shadow-md ring-2 ring-orange-300/60 scale-[1.01]'
+                        : 'bg-white hover:bg-orange-50 text-gray-700 hover:text-orange-950 border-gray-200 hover:border-orange-300 shadow-xs'
                     }`}
                   >
-                    <div className="flex items-center gap-1.5 font-extrabold">
-                      <span className="text-base">📅</span>
-                      <span>Thuê theo ngày</span>
-                      {!formData.is6Hours && (
-                        <span className="text-[10px] bg-white/25 text-white px-1.5 py-0.2 rounded-full font-black">
-                          ✓
-                        </span>
-                      )}
+                    <div className="flex items-center gap-1.5 font-black whitespace-nowrap">
+                      <CalendarIcon className={`w-4 h-4 shrink-0 ${!formData.is6Hours ? 'text-white' : 'text-orange-600'}`} />
+                      <span className={!formData.is6Hours ? 'text-white' : 'text-gray-800'}>Thuê theo ngày</span>
                     </div>
-                    <span className={`text-[10px] sm:text-[11px] leading-tight ${!formData.is6Hours ? 'text-orange-100 font-semibold' : 'text-orange-800/80 font-medium'}`}>
+                    <span className={`text-[10px] sm:text-[11px] whitespace-nowrap leading-tight ${!formData.is6Hours ? 'text-orange-50 font-semibold' : 'text-gray-500 font-medium'}`}>
                       Tính theo mốc ngày lũy tiến
                     </span>
                   </button>
@@ -1359,22 +1354,17 @@ export default function BookingCalendar({
                         returnTime: add6Hours(prev.startTime || '08:00')
                       }));
                     }}
-                    className={`p-3 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer border-2 text-center flex flex-col items-center justify-center gap-1 ${
+                    className={`py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer border-2 text-center flex flex-col items-center justify-center gap-1 ${
                       formData.is6Hours
-                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-500 shadow-md ring-2 ring-amber-300/60 scale-[1.02]'
-                        : 'bg-white hover:bg-amber-50 text-amber-950 border-amber-200 hover:border-amber-400 shadow-xs hover:shadow-sm'
+                        ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-300/60 scale-[1.01]'
+                        : 'bg-white hover:bg-amber-50 text-gray-700 hover:text-amber-950 border-gray-200 hover:border-amber-300 shadow-xs'
                     }`}
                   >
-                    <div className="flex items-center gap-1.5 font-extrabold">
-                      <span className="text-base">⚡</span>
-                      <span>Thuê nhanh 6 tiếng</span>
-                      {formData.is6Hours && (
-                        <span className="text-[10px] bg-white/25 text-white px-1.5 py-0.2 rounded-full font-black">
-                          ✓
-                        </span>
-                      )}
+                    <div className="flex items-center gap-1.5 font-black whitespace-nowrap">
+                      <Zap className={`w-4 h-4 shrink-0 ${formData.is6Hours ? 'text-yellow-300 fill-yellow-300 drop-shadow-sm' : 'text-amber-600 fill-amber-500'}`} />
+                      <span className={formData.is6Hours ? 'text-white' : 'text-gray-800'}>Thuê nhanh 6 tiếng</span>
                     </div>
-                    <span className={`text-[10px] sm:text-[11px] leading-tight ${formData.is6Hours ? 'text-amber-100 font-semibold' : 'text-amber-800/80 font-medium'}`}>
+                    <span className={`text-[10px] sm:text-[11px] whitespace-nowrap leading-tight ${formData.is6Hours ? 'text-white font-semibold' : 'text-gray-500 font-medium'}`}>
                       Mức phí ngắn hạn trong ngày
                     </span>
                   </button>
@@ -1522,28 +1512,28 @@ export default function BookingCalendar({
                     className="border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
                     suffixColor="gray"
                   />
-                  <div className="flex gap-2 mt-1.5">
+                  <div className="grid grid-cols-2 gap-1.5 mt-1.5 w-full">
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, paidAmount: Math.round(calculatedTotal * 0.5) })}
-                      className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center whitespace-nowrap ${
+                      className={`w-full min-w-0 text-[10.5px] sm:text-[11px] font-bold py-1.5 px-1 rounded-lg border transition-all cursor-pointer text-center truncate ${
                         formData.paidAmount === Math.round(calculatedTotal * 0.5)
                           ? 'bg-amber-100 border-amber-300 text-amber-900 shadow-xs font-extrabold'
                           : 'bg-amber-50/50 hover:bg-amber-100/70 text-amber-800 border-amber-200'
                       }`}
-                      title="Thu trước 50% tiền thuê"
+                      title={`Cọc 50% (${(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)`}
                     >
                       Cọc 50% ({(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)
                     </button>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, paidAmount: 0 })}
-                      className={`flex-1 text-[11px] font-bold py-1.5 px-2 rounded-lg border transition-all cursor-pointer text-center whitespace-nowrap ${
+                      className={`w-full min-w-0 text-[10.5px] sm:text-[11px] font-bold py-1.5 px-1 rounded-lg border transition-all cursor-pointer text-center truncate ${
                         formData.paidAmount === 0
                           ? 'bg-gray-200 border-gray-400 text-gray-800 shadow-xs font-extrabold'
                           : 'bg-gray-50 hover:bg-gray-150 text-gray-700 border-gray-200'
                       }`}
-                      title="Không thu cọc giữ máy"
+                      title="Không thu cọc giữ máy (0 đ)"
                     >
                       Không cọc (0 đ)
                     </button>
