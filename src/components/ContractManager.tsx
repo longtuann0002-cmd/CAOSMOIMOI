@@ -145,6 +145,8 @@ export default function ContractManager({
     saveStoredData('rental_bank_config', newConfig);
   };
 
+  const [bankDraft, setBankDraft] = useState<BankConfig>(bankConfig);
+
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
   const handleExportImage = async (elementId: string, filename: string) => {
@@ -1313,8 +1315,8 @@ export default function ContractManager({
 
                 {/* Section 1: Customer details & Timings in Mobile Standardized Layout */}
                 <div className="bg-slate-50/80 p-3.5 border border-slate-200/80 rounded-xl space-y-3">
-                  {/* Customer Info & QR Code Row */}
-                  <div className="flex flex-col sm:flex-row gap-3 items-start justify-between">
+                  {/* Customer Info & QR Code Row (Synchronized side-by-side on both mobile and desktop) */}
+                  <div className={`flex ${editingCustomer ? 'flex-col sm:flex-row' : 'flex-row'} gap-2 sm:gap-3 items-start justify-between`}>
                     {/* Customer Info */}
                     <div className="space-y-1 min-w-0 flex-1 w-full">
                       <div className="flex items-center justify-between mb-0.5">
@@ -1442,14 +1444,14 @@ export default function ContractManager({
                       )}
                     </div>
 
-                    {/* QR Code Block on the Right */}
-                    <div className="shrink-0 self-center sm:self-start flex flex-col items-center bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/90 shadow-2xs">
-                      <div className="text-[9.5px] sm:text-[10px] font-extrabold uppercase text-gray-600 tracking-wider mb-1 flex items-center gap-1">
+                    {/* QR Code Block on the Right (Always side-by-side on both mobile and desktop) */}
+                    <div className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2.5 rounded-xl border border-slate-200/90 shadow-2xs w-[108px] sm:w-[126px]">
+                      <div className="text-[8.5px] sm:text-[10px] font-extrabold uppercase text-gray-600 tracking-wider mb-1 flex items-center gap-1">
                         <CreditCard className="w-3 h-3 text-orange-600" />
                         <span>QR THANH TOÁN</span>
                       </div>
 
-                      <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-1">
+                      <div className="w-[88px] h-[88px] sm:w-[106px] sm:h-[106px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-1">
                         <img
                           src={customQrImage || `https://img.vietqr.io/image/${getBankBin(bankConfig.bankId)}-${bankConfig.accountNo}-compact2.png?accountName=${encodeURIComponent(bankConfig.accountName)}`}
                           alt="Mã QR thanh toán"
@@ -1459,9 +1461,9 @@ export default function ContractManager({
                       </div>
 
                       {!isExporting && (
-                        <div className="mt-1 flex items-center gap-1.5" data-no-export="true">
-                          <label className="cursor-pointer text-[9.5px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2 py-0.5 rounded-md transition shadow-3xs flex items-center gap-1">
-                            <span>{customQrImage ? 'Đổi ảnh QR' : '+ Thêm ảnh QR'}</span>
+                        <div className="mt-1 flex items-center gap-1" data-no-export="true">
+                          <label className="cursor-pointer text-[8.5px] sm:text-[9.5px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-1.5 sm:px-2 py-0.5 rounded-md transition shadow-3xs flex items-center gap-0.5 whitespace-nowrap">
+                            <span>{customQrImage ? 'Đổi QR' : '+ Thêm QR'}</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -1473,18 +1475,34 @@ export default function ContractManager({
                             <button
                               type="button"
                               onClick={handleRemoveCustomQr}
-                              className="text-[9.5px] text-gray-500 hover:text-rose-600 px-1.5 py-0.5 rounded border border-gray-200 hover:border-rose-300 transition cursor-pointer"
+                              className="text-[8.5px] sm:text-[9.5px] text-gray-500 hover:text-rose-600 px-1 py-0.5 rounded border border-gray-200 hover:border-rose-300 transition cursor-pointer"
                               title="Xóa ảnh tự thêm, dùng lại mã VietQR"
                             >
-                              Xóa
+                              ✕
                             </button>
                           )}
                         </div>
                       )}
 
-                      <div className="text-center mt-1 text-[10px] font-mono leading-tight">
-                        <span className="font-bold text-gray-800">{bankConfig.bankId} • {bankConfig.accountNo}</span>
-                      </div>
+                      {!isExporting ? (
+                        <button
+                          type="button"
+                          data-no-export="true"
+                          onClick={() => {
+                            setBankDraft(bankConfig);
+                            setShowBankSettings(true);
+                          }}
+                          className="mt-1 text-[9px] sm:text-[10px] font-mono font-bold text-gray-800 hover:text-orange-600 bg-gray-50 hover:bg-orange-50 border border-gray-200 hover:border-orange-300 px-1.5 py-0.5 rounded transition cursor-pointer flex items-center justify-center gap-1 leading-tight w-full shadow-3xs"
+                          title="Bấm để sửa ngân hàng & số tài khoản"
+                        >
+                          <span className="truncate">{bankConfig.bankId} • {bankConfig.accountNo}</span>
+                          <Edit2 className="w-2.5 h-2.5 text-orange-500 shrink-0" />
+                        </button>
+                      ) : (
+                        <div className="text-center mt-1 text-[9px] sm:text-[10px] font-mono font-bold text-gray-800 leading-tight">
+                          {bankConfig.bankId} • {bankConfig.accountNo}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -2435,6 +2453,97 @@ export default function ContractManager({
                 className="bg-orange-600 text-white font-medium px-5 py-2 rounded-xl text-sm hover:bg-orange-700 transition-all cursor-pointer"
               >
                 Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+      {/* Bank & QR Settings Modal */}
+      {showBankSettings && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-scale-up border border-gray-100 p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-orange-50 text-orange-600 rounded-xl">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base text-gray-900">Sửa số tài khoản & QR</h3>
+                  <p className="text-[11px] text-gray-500">Thông tin nhận chuyển khoản của cửa hàng</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBankSettings(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Ngân hàng thụ hưởng</label>
+                <select
+                  value={bankDraft.bankId}
+                  onChange={e => setBankDraft({ ...bankDraft, bankId: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg p-2 text-xs font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white text-gray-800"
+                >
+                  {VIET_BANKS.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Số tài khoản *</label>
+                <input
+                  type="text"
+                  value={bankDraft.accountNo}
+                  onChange={e => setBankDraft({ ...bankDraft, accountNo: e.target.value })}
+                  placeholder="VD: 0387532321"
+                  className="w-full border border-gray-300 rounded-lg p-2 text-xs font-mono font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Tên chủ tài khoản (In hoa không dấu)</label>
+                <input
+                  type="text"
+                  value={bankDraft.accountName}
+                  onChange={e => setBankDraft({ ...bankDraft, accountName: e.target.value.toUpperCase() })}
+                  placeholder="VD: TIEM ANH NHA CAO"
+                  className="w-full border border-gray-300 rounded-lg p-2 text-xs font-mono font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white text-gray-900 uppercase"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowBankSettings(false)}
+                className="flex-1 px-3 py-2 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!bankDraft.accountNo.trim()) {
+                    setCustomAlertMessage('Vui lòng nhập số tài khoản!');
+                    return;
+                  }
+                  handleUpdateBankConfig({
+                    ...bankDraft,
+                    accountNo: bankDraft.accountNo.trim(),
+                    accountName: bankDraft.accountName.trim()
+                  });
+                  setShowBankSettings(false);
+                }}
+                className="flex-1 px-4 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1"
+              >
+                <Save className="w-3.5 h-3.5" /> Lưu số tài khoản
               </button>
             </div>
           </div>
