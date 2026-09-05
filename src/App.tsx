@@ -924,15 +924,48 @@ export default function App() {
       })
     );
 
-    // Decrement customer's rental count
-    setCustomers(prevCusts =>
-      prevCusts.map(cust => {
-        if (cust.phone === contractToDelete.customerPhone) {
-          return { ...cust, rentalCount: Math.max(0, cust.rentalCount - 1) };
-        }
-        return cust;
-      })
+    // Update or remove customer from customer list
+    const customerPhone = contractToDelete.customerPhone?.trim();
+    const customerId = contractToDelete.customerId;
+    const remainingContractsForCust = updatedContracts.filter(
+      c => (customerPhone && c.customerPhone?.trim() === customerPhone) || (customerId && c.customerId === customerId)
     );
+
+    if (remainingContractsForCust.length === 0) {
+      // Customer has no remaining contracts -> Delete from customer list!
+      setCustomers(prevCusts =>
+        prevCusts.filter(cust => {
+          if (customerPhone && cust.phone?.trim() === customerPhone) return false;
+          if (customerId && cust.id === customerId) return false;
+          return true;
+        })
+      );
+      addToast(
+        'Đã xóa hợp đồng và thông tin khách hàng',
+        'info',
+        `Đã xóa hợp đồng ${contractToDelete.contractCode} và tự động xóa hồ sơ khách hàng "${contractToDelete.customerName}" do không còn đơn thuê nào.`
+      );
+    } else {
+      // Customer still has other contracts -> update their rentalCount and totalSpent
+      const newTotalSpent = remainingContractsForCust.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+      setCustomers(prevCusts =>
+        prevCusts.map(cust => {
+          if ((customerPhone && cust.phone?.trim() === customerPhone) || (customerId && cust.id === customerId)) {
+            return {
+              ...cust,
+              rentalCount: remainingContractsForCust.length,
+              totalSpent: newTotalSpent
+            };
+          }
+          return cust;
+        })
+      );
+      addToast(
+        'Đã xóa hợp đồng thành công',
+        'info',
+        `Đã xóa hợp đồng ${contractToDelete.contractCode} và cập nhật lại thông tin khách hàng "${contractToDelete.customerName}".`
+      );
+    }
   };
 
   // Operations: CAMERAS
