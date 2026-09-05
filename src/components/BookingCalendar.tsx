@@ -7,7 +7,7 @@ import { toPng } from 'html-to-image';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
 import { formatDMY } from '../utils/dateUtils';
-import { VIET_BANKS } from './ContractManager';
+import { VIET_BANKS, getBankBin } from './ContractManager';
 
 // 20 fully distinct vivid palettes — ordered so adjacent entries look maximally different
 const CAMERA_COLOR_PALETTES = [
@@ -124,6 +124,27 @@ export default function BookingCalendar({
   );
   const [showQrForContractCode, setShowQrForContractCode] = useState<string | null>(null);
   const [calendarQrOption, setCalendarQrOption] = useState<'remaining' | 'deposit50' | 'full'>('remaining');
+
+  const [customQrImage, setCustomQrImage] = useState<string>(() =>
+    loadStoredData('custom_payment_qr_image', '')
+  );
+
+  const handleUploadCustomQr = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      setCustomQrImage(base64);
+      saveStoredData('custom_payment_qr_image', base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCustomQr = () => {
+    setCustomQrImage('');
+    saveStoredData('custom_payment_qr_image', '');
+  };
 
   const syncBankConfig = () => {
     const freshConfig = loadStoredData('rental_bank_config', {
@@ -1752,20 +1773,69 @@ export default function BookingCalendar({
 
                 {/* Section 1: Customer details & Timings */}
                 <div className="bg-slate-50/80 p-3.5 border border-slate-200/80 rounded-xl space-y-3">
-                  <div className="space-y-1 min-w-0">
-                    <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
-                    <p className="font-black text-gray-900 text-sm sm:text-base">{quickReceiptContract.customerName}</p>
-                    <p className="text-xs text-gray-600 font-mono font-bold">SĐT: {quickReceiptContract.customerPhone}</p>
-                    <div className="pt-0.5">
-                      <span className="text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md inline-block">
-                        Thế chấp: {renderDocTypeLabel(quickReceiptContract.customerDocType)}
-                      </span>
+                  {/* Customer Info & QR Code Row */}
+                  <div className="flex flex-col sm:flex-row gap-3 items-start justify-between">
+                    <div className="space-y-1 min-w-0 flex-1 w-full">
+                      <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
+                      <p className="font-black text-gray-900 text-sm sm:text-base">{quickReceiptContract.customerName}</p>
+                      <p className="text-xs text-gray-600 font-mono font-bold">SĐT: {quickReceiptContract.customerPhone}</p>
+                      <div className="pt-0.5">
+                        <span className="text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md inline-block">
+                          Thế chấp: {renderDocTypeLabel(quickReceiptContract.customerDocType)}
+                        </span>
+                      </div>
+                      {quickReceiptContract.customerDocNote && (
+                        <p className="text-xs text-amber-950 bg-amber-50 border border-amber-200 p-2 rounded-lg font-mono leading-relaxed mt-1">
+                          {quickReceiptContract.customerDocNote}
+                        </p>
+                      )}
                     </div>
-                    {quickReceiptContract.customerDocNote && (
-                      <p className="text-xs text-amber-950 bg-amber-50 border border-amber-200 p-2 rounded-lg font-mono leading-relaxed mt-1">
-                        {quickReceiptContract.customerDocNote}
-                      </p>
-                    )}
+
+                    {/* QR Code Block on the Right */}
+                    <div className="shrink-0 self-center sm:self-start flex flex-col items-center bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/90 shadow-2xs">
+                      <div className="text-[9.5px] sm:text-[10px] font-extrabold uppercase text-gray-600 tracking-wider mb-1 flex items-center gap-1">
+                        <CreditCard className="w-3 h-3 text-orange-600" />
+                        <span>QR THANH TOÁN</span>
+                      </div>
+
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-1">
+                        <img
+                          src={customQrImage || `https://img.vietqr.io/image/${getBankBin(bankConfig.bankId)}-${bankConfig.accountNo}-compact2.png?accountName=${encodeURIComponent(bankConfig.accountName)}`}
+                          alt="Mã QR thanh toán"
+                          className="w-full h-full object-contain rounded"
+                          crossOrigin="anonymous"
+                        />
+                      </div>
+
+                      {!isExportingReceipt && (
+                        <div className="mt-1 flex items-center gap-1.5" data-no-export="true">
+                          <label className="cursor-pointer text-[9.5px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-2 py-0.5 rounded-md transition shadow-3xs flex items-center gap-1">
+                            <span>{customQrImage ? 'Đổi ảnh QR' : '+ Thêm ảnh QR'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleUploadCustomQr}
+                            />
+                          </label>
+                          {customQrImage && (
+                            <button
+                              type="button"
+                              onClick={handleRemoveCustomQr}
+                              className="text-[9.5px] text-gray-500 hover:text-rose-600 px-1.5 py-0.5 rounded border border-gray-200 hover:border-rose-300 transition cursor-pointer"
+                              title="Xóa ảnh tự thêm, dùng lại mã VietQR"
+                            >
+                              Xóa
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="text-center mt-1 text-[9.5px] font-mono text-gray-500 leading-tight">
+                        <div className="font-bold text-gray-800">{bankConfig.bankId} • {bankConfig.accountNo}</div>
+                        <div className="text-[8.5px] text-gray-400 uppercase tracking-tight truncate max-w-[130px]">{bankConfig.accountName}</div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-1 pt-2.5 border-t border-gray-200">
