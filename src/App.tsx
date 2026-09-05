@@ -336,51 +336,65 @@ export default function App() {
   }, [loaded, customers]);
 
   // Auto-sync: Ensure every existing contract's customer is present in Customer Management
+  // Also removes auto-created customers whose phone/id no longer appears in any contract
   useEffect(() => {
-    if (!contracts || contracts.length === 0) return;
-
     setCustomers(prevCusts => {
-      const existingPhoneMap = new Map<string, Customer>();
-      prevCusts.forEach(c => {
-        if (c.phone) existingPhoneMap.set(c.phone.trim(), c);
+      // Build set of all phones currently in contracts
+      const contractPhones = new Set<string>();
+      const contractCustomerIds = new Set<string>();
+      contracts.forEach(contract => {
+        const phone = contract.customerPhone?.trim();
+        if (phone) contractPhones.add(phone);
+        if (contract.customerId) contractCustomerIds.add(contract.customerId);
       });
 
-      const newCustomersToAdd: Customer[] = [];
-      let hasChanges = false;
+      // Step 1: Remove orphaned customers (phone no longer in any contract)
+      const afterRemove = prevCusts.filter(cust => {
+        const phone = cust.phone?.trim();
+        if (phone && !contractPhones.has(phone)) return false;
+        if (!phone && !contractCustomerIds.has(cust.id)) return false;
+        return true;
+      });
 
+      // Rebuild phone map from remaining customers
+      const remainingPhoneMap = new Map<string, Customer>();
+      afterRemove.forEach(c => {
+        if (c.phone) remainingPhoneMap.set(c.phone.trim(), c);
+      });
+
+      // Step 2: Add customers for contracts that don't have a matching customer yet
+      const newCustomersToAdd: Customer[] = [];
       contracts.forEach(contract => {
         const phone = contract.customerPhone?.trim();
         if (!phone) return;
+        if (remainingPhoneMap.has(phone)) return;
 
-        if (!existingPhoneMap.has(phone)) {
-          const customerContracts = contracts.filter(c => c.customerPhone?.trim() === phone);
-          const totalSpent = customerContracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
-          const newCust: Customer = {
-            id: contract.customerId && !contract.customerId.startsWith('cust-') 
-              ? contract.customerId 
-              : `cust-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            name: contract.customerName?.trim() || 'Khách thuê',
-            phone: phone,
-            idNumber: (contract.customerDocType === 'CCCD' || contract.customerDocType === 'CCCD_And_1M') ? contract.customerDocNote?.match(/\d{9,12}/)?.[0] || '' : '',
-            email: '',
-            address: '',
-            trustLevel: 'High',
-            rentalCount: customerContracts.length || 1,
-            totalSpent: totalSpent,
-            notes: contract.customerDocNote 
-              ? `Hồ sơ tự động tạo từ đơn thuê ${contract.contractCode}. Cọc/Giấy tờ: ${contract.customerDocNote}`
-              : `Hồ sơ tự động tạo từ đơn thuê ${contract.contractCode}.`,
-            createdAt: contract.createdAt || new Date().toISOString()
-          };
-          existingPhoneMap.set(phone, newCust);
-          newCustomersToAdd.push(newCust);
-          hasChanges = true;
-        }
+        const customerContracts = contracts.filter(c => c.customerPhone?.trim() === phone);
+        const totalSpent = customerContracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+        const newCust: Customer = {
+          id: contract.customerId && !contract.customerId.startsWith('cust-') 
+            ? contract.customerId 
+            : `cust-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          name: contract.customerName?.trim() || 'Khách thuê',
+          phone: phone,
+          idNumber: (contract.customerDocType === 'CCCD' || contract.customerDocType === 'CCCD_And_1M') ? contract.customerDocNote?.match(/\d{9,12}/)?.[0] || '' : '',
+          email: '',
+          address: '',
+          trustLevel: 'High',
+          rentalCount: customerContracts.length || 1,
+          totalSpent: totalSpent,
+          notes: contract.customerDocNote 
+            ? `Hồ sơ tự động tạo từ đơn thuê ${contract.contractCode}. Cọc/Giấy tờ: ${contract.customerDocNote}`
+            : `Hồ sơ tự động tạo từ đơn thuê ${contract.contractCode}.`,
+          createdAt: contract.createdAt || new Date().toISOString()
+        };
+        remainingPhoneMap.set(phone, newCust);
+        newCustomersToAdd.push(newCust);
       });
 
-      if (hasChanges && newCustomersToAdd.length > 0) {
-        return [...prevCusts, ...newCustomersToAdd];
-      }
+      const finalList = [...afterRemove, ...newCustomersToAdd];
+      // Only trigger re-render if something actually changed
+      if (finalList.length !== prevCusts.length) return finalList;
       return prevCusts;
     });
   }, [contracts]);
