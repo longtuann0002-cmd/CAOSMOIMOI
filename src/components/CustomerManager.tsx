@@ -1098,14 +1098,14 @@ export default function CustomerManager({
                     return (
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
                         <div className="bg-white border border-gray-200 rounded-xl p-2.5 sm:p-3 shadow-3xs">
-                          <span className="text-[10px] sm:text-[11px] font-extrabold text-gray-500 block whitespace-nowrap tracking-wider [word-spacing:3px]">TỔNG GIÁ TRỊ ĐƠN</span>
+                          <span className="text-[10px] sm:text-[11px] font-extrabold text-gray-500 block whitespace-nowrap">TỔNG GIÁ TRỊ ĐƠN</span>
                           <span className="font-mono text-xs sm:text-base font-black text-gray-900 block mt-0.5 truncate">
                             {totalCustomerOriginal.toLocaleString()} đ
                           </span>
                         </div>
 
                         <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-2.5 sm:p-3 shadow-3xs">
-                          <span className="text-[10px] sm:text-[11px] font-extrabold text-emerald-800 block whitespace-nowrap tracking-wider [word-spacing:4px]">THỰC TẾ ĐÃ THU</span>
+                          <span className="text-[10px] sm:text-[11px] font-extrabold text-emerald-800 block whitespace-nowrap">THỰC TẾ ĐÃ THU</span>
                           <span className="font-mono text-xs sm:text-base font-black text-emerald-700 block mt-0.5 truncate">
                             {totalCustomerSpend.toLocaleString()} đ
                           </span>
@@ -1116,7 +1116,7 @@ export default function CustomerManager({
                             ? 'bg-amber-50 border-amber-300'
                             : 'bg-white border-gray-200'
                         }`}>
-                          <span className={`text-[10px] sm:text-[11px] font-extrabold block whitespace-nowrap tracking-wider [word-spacing:3px] ${
+                          <span className={`text-[10px] sm:text-[11px] font-extrabold block whitespace-nowrap ${
                             pendingDepositCount > 0 ? 'text-amber-800' : 'text-gray-500'
                           }`}>
                             CHỜ CỌC 50%
@@ -1133,7 +1133,7 @@ export default function CustomerManager({
                             ? 'bg-rose-50 border-rose-300'
                             : 'bg-emerald-50 border-emerald-300'
                         }`}>
-                          <span className={`text-[10px] sm:text-[11px] font-extrabold block whitespace-nowrap tracking-wider [word-spacing:3px] ${
+                          <span className={`text-[10px] sm:text-[11px] font-extrabold block whitespace-nowrap ${
                             totalCustomerDebt > 0 ? 'text-rose-800' : 'text-emerald-800'
                           }`}>
                             {totalCustomerDebt > 0 ? 'DƯ NỢ CHƯA THU' : 'TẤT TOÁN ĐỦ'}
