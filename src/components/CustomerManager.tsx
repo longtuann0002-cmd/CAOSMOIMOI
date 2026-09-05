@@ -1098,14 +1098,14 @@ export default function CustomerManager({
                     return (
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
                         <div className="bg-white border border-gray-200 rounded-xl p-2.5 sm:p-3 shadow-3xs">
-                          <span className="text-[10px] uppercase font-extrabold text-gray-400 block whitespace-nowrap">Tổng giá trị đơn</span>
+                          <span className="text-[10px] sm:text-[11px] font-extrabold text-gray-500 block whitespace-nowrap tracking-wider [word-spacing:3px]">TỔNG GIÁ TRỊ ĐƠN</span>
                           <span className="font-mono text-xs sm:text-base font-black text-gray-900 block mt-0.5 truncate">
                             {totalCustomerOriginal.toLocaleString()} đ
                           </span>
                         </div>
 
                         <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-2.5 sm:p-3 shadow-3xs">
-                          <span className="text-[10px] uppercase font-extrabold text-emerald-800 block whitespace-nowrap">Thực tế đã thu</span>
+                          <span className="text-[10px] sm:text-[11px] font-extrabold text-emerald-800 block whitespace-nowrap tracking-wider [word-spacing:4px]">THỰC TẾ ĐÃ THU</span>
                           <span className="font-mono text-xs sm:text-base font-black text-emerald-700 block mt-0.5 truncate">
                             {totalCustomerSpend.toLocaleString()} đ
                           </span>
@@ -1116,10 +1116,10 @@ export default function CustomerManager({
                             ? 'bg-amber-50 border-amber-300'
                             : 'bg-white border-gray-200'
                         }`}>
-                          <span className={`text-[10px] uppercase font-extrabold block whitespace-nowrap ${
-                            pendingDepositCount > 0 ? 'text-amber-800' : 'text-gray-400'
+                          <span className={`text-[10px] sm:text-[11px] font-extrabold block whitespace-nowrap tracking-wider [word-spacing:3px] ${
+                            pendingDepositCount > 0 ? 'text-amber-800' : 'text-gray-500'
                           }`}>
-                            Chờ cọc 50%
+                            CHỜ CỌC 50%
                           </span>
                           <span className={`font-mono text-xs sm:text-base font-black block mt-0.5 truncate ${
                             pendingDepositCount > 0 ? 'text-amber-700' : 'text-gray-500'
@@ -1133,10 +1133,10 @@ export default function CustomerManager({
                             ? 'bg-rose-50 border-rose-300'
                             : 'bg-emerald-50 border-emerald-300'
                         }`}>
-                          <span className={`text-[10px] uppercase font-extrabold block whitespace-nowrap ${
+                          <span className={`text-[10px] sm:text-[11px] font-extrabold block whitespace-nowrap tracking-wider [word-spacing:3px] ${
                             totalCustomerDebt > 0 ? 'text-rose-800' : 'text-emerald-800'
                           }`}>
-                            Dư nợ chưa thu
+                            {totalCustomerDebt > 0 ? 'DƯ NỢ CHƯA THU' : 'TẤT TOÁN ĐỦ'}
                           </span>
                           <span className={`font-mono text-xs sm:text-base font-black block mt-0.5 truncate ${
                             totalCustomerDebt > 0 ? 'text-rose-700' : 'text-emerald-700'
