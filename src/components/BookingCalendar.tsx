@@ -8,7 +8,7 @@ import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../ut
 import { loadStoredData, saveStoredData } from '../utils/mockData';
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from '../utils/supabase';
 import { formatDMY } from '../utils/dateUtils';
-import { VIET_BANKS, getBankBin, QrCanvas } from './ContractManager';
+import { VIET_BANKS, getBankBin, QrDisplay } from './ContractManager';
 
 // 20 fully distinct vivid palettes — ordered so adjacent entries look maximally different
 const CAMERA_COLOR_PALETTES = [
@@ -1908,9 +1908,10 @@ export default function BookingCalendar({
                       </div>
 
                       <div className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-0.5">
-                        <QrCanvas
-                          src={customQrImage || vietQrBase64 || vietQrUrl}
-                          alt="Mã QR thanh toán"
+                        <QrDisplay
+                          customImage={customQrImage}
+                          bin={getBankBin(bankConfig.bankId)}
+                          accountNo={bankConfig.accountNo}
                           className="w-full h-full object-contain rounded"
                         />
                       </div>

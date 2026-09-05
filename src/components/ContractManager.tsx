@@ -12,6 +12,7 @@ import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../ut
 import { loadStoredData, saveStoredData } from '../utils/mockData';
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from '../utils/supabase';
 import { formatDMY } from '../utils/dateUtils';
+import { generateVietQrString, generateQrSvg } from '../utils/vietqr';
 import { toPng } from 'html-to-image';
 
 interface ContractManagerProps {
@@ -69,66 +70,60 @@ export const getBankBin = (id: string): string => {
   return bins[id] || id;
 };
 
-export function QrCanvas({ 
-  src, 
-  alt = "QR thanh toán", 
+export function QrDisplay({ 
+  customImage,
+  bin,
+  accountNo,
   className 
 }: { 
-  src: string; 
-  alt?: string; 
+  customImage?: string;
+  bin: string;
+  accountNo: string;
   className?: string; 
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [svgContent, setSvgContent] = useState<string>('');
 
   useEffect(() => {
-    if (!src) {
-      setLoaded(false);
-      return;
-    }
+    if (customImage) return;
     let active = true;
-    const img = new Image();
-    if (!src.startsWith('data:')) {
-      img.crossOrigin = 'anonymous';
-    }
-    img.onload = () => {
-      if (!active) return;
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      setLoaded(true);
-    };
-    img.onerror = () => {
-      if (!active) return;
-      setLoaded(false);
-    };
-    img.src = src;
-    return () => {
-      active = false;
-    };
-  }, [src]);
+    const cleanAccount = (accountNo || '').trim();
+    if (!bin || !cleanAccount) return;
+    const qrString = generateVietQrString(bin, cleanAccount);
+    generateQrSvg(qrString).then(svg => {
+      if (active && svg) {
+        setSvgContent(svg);
+      }
+    });
+    return () => { active = false; };
+  }, [customImage, bin, accountNo]);
 
-  return (
-    <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
-      <canvas
-        ref={canvasRef}
-        width={240}
-        height={240}
+  if (customImage) {
+    return (
+      <img
+        src={customImage}
+        alt="Mã QR thanh toán"
         className={className || "w-full h-full object-contain rounded"}
       />
-      {!loaded && (
-        <img
-          src={src}
-          alt={alt}
-          className="absolute inset-0 w-full h-full object-contain rounded"
-        />
-      )}
+    );
+  }
+
+  if (svgContent) {
+    return (
+      <div
+        className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain rounded"
+        dangerouslySetInnerHTML={{ __html: svgContent }}
+      />
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex items-center justify-center text-[9px] text-gray-400 font-mono">
+      Đang tải QR...
     </div>
   );
 }
+
+export const QrCanvas = QrDisplay;
 
 export default function ContractManager({
   contracts,
@@ -1614,9 +1609,10 @@ export default function ContractManager({
                       </div>
 
                       <div className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-0.5">
-                        <QrCanvas
-                          src={customQrImage || vietQrBase64 || vietQrUrl}
-                          alt="Mã QR thanh toán"
+                        <QrDisplay
+                          customImage={customQrImage}
+                          bin={getBankBin(bankConfig.bankId)}
+                          accountNo={bankConfig.accountNo}
                           className="w-full h-full object-contain rounded"
                         />
                       </div>
