@@ -335,6 +335,56 @@ export default function App() {
     }
   }, [loaded, customers]);
 
+  // Auto-sync: Ensure every existing contract's customer is present in Customer Management
+  useEffect(() => {
+    if (!contracts || contracts.length === 0) return;
+
+    setCustomers(prevCusts => {
+      const existingPhoneMap = new Map<string, Customer>();
+      prevCusts.forEach(c => {
+        if (c.phone) existingPhoneMap.set(c.phone.trim(), c);
+      });
+
+      const newCustomersToAdd: Customer[] = [];
+      let hasChanges = false;
+
+      contracts.forEach(contract => {
+        const phone = contract.customerPhone?.trim();
+        if (!phone) return;
+
+        if (!existingPhoneMap.has(phone)) {
+          const customerContracts = contracts.filter(c => c.customerPhone?.trim() === phone);
+          const totalSpent = customerContracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+          const newCust: Customer = {
+            id: contract.customerId && !contract.customerId.startsWith('cust-') 
+              ? contract.customerId 
+              : `cust-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            name: contract.customerName?.trim() || 'Khách thuê',
+            phone: phone,
+            idNumber: (contract.customerDocType === 'CCCD' || contract.customerDocType === 'CCCD_And_1M') ? contract.customerDocNote?.match(/\d{9,12}/)?.[0] || '' : '',
+            email: '',
+            address: '',
+            trustLevel: 'High',
+            rentalCount: customerContracts.length || 1,
+            totalSpent: totalSpent,
+            notes: contract.customerDocNote 
+              ? `Hồ sơ tự động tạo từ đơn thuê ${contract.contractCode}. Cọc/Giấy tờ: ${contract.customerDocNote}`
+              : `Hồ sơ tự động tạo từ đơn thuê ${contract.contractCode}.`,
+            createdAt: contract.createdAt || new Date().toISOString()
+          };
+          existingPhoneMap.set(phone, newCust);
+          newCustomersToAdd.push(newCust);
+          hasChanges = true;
+        }
+      });
+
+      if (hasChanges && newCustomersToAdd.length > 0) {
+        return [...prevCusts, ...newCustomersToAdd];
+      }
+      return prevCusts;
+    });
+  }, [contracts]);
+
   useEffect(() => {
     if (!loaded) return;
     saveStoredData('expenses', expenses);
@@ -623,31 +673,45 @@ export default function App() {
       })
     );
 
-    // Increment customer count or add new customer if it has been completed
+    // Immediately add new customer to Customer Management or update existing customer's rental count
     setCustomers(prevCusts => {
-      const exists = prevCusts.some(
-        cust => cust.phone === newContract.customerPhone
+      const normalizedPhone = newContract.customerPhone?.trim();
+      const existingCust = prevCusts.find(
+        cust => (normalizedPhone && cust.phone?.trim() === normalizedPhone) || (cust.id === newContract.customerId)
       );
-      if (newContract.status === 'Completed' && !exists) {
+
+      if (!existingCust) {
         const newCustomer: Customer = {
-          id: `cust-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          name: newContract.customerName,
-          phone: newContract.customerPhone,
-          idNumber: newContract.customerDocType === 'CCCD' ? newContract.customerDocNote?.match(/\d+/)?.[0] || '' : '',
+          id: newContract.customerId && !newContract.customerId.startsWith('cust-') 
+            ? newContract.customerId 
+            : `cust-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          name: newContract.customerName?.trim() || 'Khách thuê',
+          phone: normalizedPhone || '',
+          idNumber: (newContract.customerDocType === 'CCCD' || newContract.customerDocType === 'CCCD_And_1M') ? newContract.customerDocNote?.match(/\d{9,12}/)?.[0] || '' : '',
           email: '',
           address: '',
-          trustLevel: 'Medium',
+          trustLevel: 'High',
           rentalCount: 1,
+          totalSpent: newContract.paidAmount || 0,
           notes: newContract.customerDocNote 
-            ? `Hồ sơ tự động tạo từ hợp đồng thuê xong ${newContract.contractCode}. Giấy tờ: ${newContract.customerDocNote}`
-            : `Hồ sơ tự động tạo từ hợp đồng thuê xong ${newContract.contractCode}.`
+            ? `Hồ sơ tự động tạo từ đơn thuê ${newContract.contractCode}. Cọc/Giấy tờ: ${newContract.customerDocNote}`
+            : `Hồ sơ tự động tạo từ đơn thuê ${newContract.contractCode}.`,
+          createdAt: newContract.createdAt || new Date().toISOString()
         };
-        return [...prevCusts, newCustomer];
+        return [newCustomer, ...prevCusts];
       }
 
+      // If customer already exists, increment rental count and update info
       return prevCusts.map(cust => {
-        if (cust.phone === newContract.customerPhone) {
-          return { ...cust, rentalCount: cust.rentalCount + 1 };
+        if (cust.id === existingCust.id || (normalizedPhone && cust.phone?.trim() === normalizedPhone)) {
+          return {
+            ...cust,
+            name: cust.name || newContract.customerName,
+            rentalCount: (cust.rentalCount || 0) + 1,
+            totalSpent: (cust.totalSpent || 0) + (newContract.paidAmount || 0),
+            idNumber: cust.idNumber || ((newContract.customerDocType === 'CCCD' || newContract.customerDocType === 'CCCD_And_1M') ? newContract.customerDocNote?.match(/\d{9,12}/)?.[0] || '' : ''),
+            notes: cust.notes || (newContract.customerDocNote ? `Cọc/Giấy tờ: ${newContract.customerDocNote}` : undefined)
+          };
         }
         return cust;
       });
@@ -656,7 +720,7 @@ export default function App() {
     addToast(
       'Tạo mới hợp đồng thành công!',
       'success',
-      `Mã hợp đồng: ${newContract.contractCode} | Khách hàng: ${newContract.customerName}`
+      `Mã hợp đồng: ${newContract.contractCode} | Khách hàng: ${newContract.customerName} (Đã lưu vào danh sách khách hàng)`
     );
   };
 
@@ -696,7 +760,7 @@ export default function App() {
               id: `cust-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
               name: c.customerName,
               phone: c.customerPhone,
-              idNumber: c.customerDocType === 'CCCD' ? c.customerDocNote?.match(/\d+/)?.[0] || '' : '',
+              idNumber: (c.customerDocType === 'CCCD' || c.customerDocType === 'CCCD_And_1M') ? c.customerDocNote?.match(/\d{9,12}/)?.[0] || '' : '',
               email: '',
               address: '',
               trustLevel: 'Medium',
@@ -793,10 +857,45 @@ export default function App() {
         return c;
       })
     );
+
+    // Also sync updated customer info into Customer Management
+    setCustomers(prevCusts => {
+      const normalizedPhone = customerPhone?.trim();
+      const existing = prevCusts.find(c => normalizedPhone && c.phone?.trim() === normalizedPhone);
+      if (existing) {
+        return prevCusts.map(c => {
+          if (c.id === existing.id) {
+            return {
+              ...c,
+              name: customerName || c.name,
+              idNumber: c.idNumber || ((customerDocType === 'CCCD' || customerDocType === 'CCCD_And_1M') ? customerDocNote?.match(/\d{9,12}/)?.[0] || '' : ''),
+              notes: c.notes || (customerDocNote ? `Cọc/Giấy tờ: ${customerDocNote}` : undefined)
+            };
+          }
+          return c;
+        });
+      } else if (normalizedPhone) {
+        const newCust: Customer = {
+          id: `cust-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          name: customerName?.trim() || 'Khách thuê',
+          phone: normalizedPhone,
+          idNumber: (customerDocType === 'CCCD' || customerDocType === 'CCCD_And_1M') ? customerDocNote?.match(/\d{9,12}/)?.[0] || '' : '',
+          email: '',
+          address: '',
+          trustLevel: 'High',
+          rentalCount: 1,
+          notes: customerDocNote ? `Cọc/Giấy tờ: ${customerDocNote}` : undefined,
+          createdAt: new Date().toISOString()
+        };
+        return [newCust, ...prevCusts];
+      }
+      return prevCusts;
+    });
+
     addToast(
       'Cập nhật thông tin khách hàng',
       'info',
-      `Thông tin khách hàng của hợp đồng đã được cập nhật thành công.`
+      `Thông tin khách hàng của hợp đồng đã được cập nhật thành công (Đã đồng bộ sang mục Khách hàng).`
     );
   };
 

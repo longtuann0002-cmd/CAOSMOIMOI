@@ -393,7 +393,7 @@ export default function CustomerManager({
               <div className="min-w-0">
                 <span className="text-[10px] sm:text-[11px] font-bold text-rose-800 uppercase tracking-wider block truncate">Dư Nợ Chưa Thu</span>
                 <span className="font-mono text-base sm:text-lg font-black text-rose-700 block truncate mt-0.5">
-                  {overallCustomerDebt.toLocaleString()}đ
+                  {overallCustomerDebt.toLocaleString()} đ
                 </span>
               </div>
             </div>
@@ -415,7 +415,7 @@ export default function CustomerManager({
               <div className="min-w-0">
                 <span className="text-[10px] sm:text-[11px] font-bold text-amber-800 uppercase tracking-wider block truncate">Chưa Cọc 50% Giữ Máy</span>
                 <span className="font-mono text-base sm:text-lg font-black text-amber-700 block truncate mt-0.5">
-                  {overallPendingDeposit.toLocaleString()}đ
+                  {overallPendingDeposit.toLocaleString()} đ
                 </span>
               </div>
             </div>
@@ -631,7 +631,7 @@ export default function CustomerManager({
                   <div className="bg-amber-50 border border-amber-300 rounded-lg px-2 py-1.5 space-y-0.5">
                     <div className="flex items-center justify-between text-xs gap-1">
                       <span className="font-bold text-amber-900 truncate text-[10.5px]">⏳ Chưa cọc</span>
-                      <span className="font-mono font-black text-amber-700 shrink-0 text-xs">+{financials.pendingDepositAmount.toLocaleString()}đ</span>
+                      <span className="font-mono font-black text-amber-700 shrink-0 text-xs">+{financials.pendingDepositAmount.toLocaleString()} đ</span>
                     </div>
                     <div className="text-[9.5px] text-amber-800 font-medium">({financials.pendingDepositCount} đơn chờ)</div>
                   </div>
@@ -641,14 +641,14 @@ export default function CustomerManager({
                   <div className="bg-rose-50 border border-rose-300 rounded-lg px-2 py-1.5 space-y-0.5">
                     <div className="flex items-center justify-between text-xs gap-1">
                       <span className="font-bold text-rose-900 truncate text-[10.5px]">⚠️ Dư nợ</span>
-                      <span className="font-mono font-black text-rose-700 shrink-0 text-xs">+{financials.totalDebt.toLocaleString()}đ</span>
+                      <span className="font-mono font-black text-rose-700 shrink-0 text-xs">+{financials.totalDebt.toLocaleString()} đ</span>
                     </div>
                     <div className="text-[9.5px] text-rose-700 font-medium">({financials.debtContractsCount} đơn nợ)</div>
                   </div>
                 ) : financials.pendingDepositCount === 0 ? (
                   <div className="bg-emerald-50 border border-emerald-300 rounded-lg px-2 py-1 flex items-center justify-between text-[10.5px] sm:text-xs">
                     <span className="text-emerald-900 font-bold">✓ Đủ tiền</span>
-                    <span className="font-mono text-emerald-700 font-bold">0đ</span>
+                    <span className="font-mono text-emerald-700 font-bold">0 đ</span>
                   </div>
                 ) : null}
 
@@ -1100,14 +1100,14 @@ export default function CustomerManager({
                         <div className="bg-white border border-gray-200 rounded-xl p-2.5 sm:p-3 shadow-3xs">
                           <span className="text-[10px] uppercase font-extrabold text-gray-400 block whitespace-nowrap">Tổng giá trị đơn</span>
                           <span className="font-mono text-xs sm:text-base font-black text-gray-900 block mt-0.5 truncate">
-                            {totalCustomerOriginal.toLocaleString()}đ
+                            {totalCustomerOriginal.toLocaleString()} đ
                           </span>
                         </div>
 
                         <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-2.5 sm:p-3 shadow-3xs">
                           <span className="text-[10px] uppercase font-extrabold text-emerald-800 block whitespace-nowrap">Thực tế đã thu</span>
                           <span className="font-mono text-xs sm:text-base font-black text-emerald-700 block mt-0.5 truncate">
-                            {totalCustomerSpend.toLocaleString()}đ
+                            {totalCustomerSpend.toLocaleString()} đ
                           </span>
                         </div>
 
@@ -1124,7 +1124,7 @@ export default function CustomerManager({
                           <span className={`font-mono text-xs sm:text-base font-black block mt-0.5 truncate ${
                             pendingDepositCount > 0 ? 'text-amber-700' : 'text-gray-500'
                           }`}>
-                            {pendingDepositAmount > 0 ? `+${pendingDepositAmount.toLocaleString()}đ` : '0đ'}
+                            {pendingDepositAmount > 0 ? `+${pendingDepositAmount.toLocaleString()} đ` : '0 đ'}
                           </span>
                         </div>
 
@@ -1141,7 +1141,7 @@ export default function CustomerManager({
                           <span className={`font-mono text-xs sm:text-base font-black block mt-0.5 truncate ${
                             totalCustomerDebt > 0 ? 'text-rose-700' : 'text-emerald-700'
                           }`}>
-                            {totalCustomerDebt > 0 ? `+${totalCustomerDebt.toLocaleString()}đ` : '0đ'}
+                            {totalCustomerDebt > 0 ? `+${totalCustomerDebt.toLocaleString()} đ` : '0 đ'}
                           </span>
                         </div>
                       </div>
@@ -1243,7 +1243,7 @@ export default function CustomerManager({
                                         <span className="truncate">{item.cameraName}</span>
                                       </div>
                                       <div className="text-right font-mono text-gray-600 font-medium shrink-0 text-[11px] sm:text-xs">
-                                        ({item.quantity}c) • {Math.round(item.dailyRate).toLocaleString()}đ {contract.is6Hours ? '/6h' : '/ngày'}
+                                        ({item.quantity}c) • {Math.round(item.dailyRate).toLocaleString()} đ {contract.is6Hours ? '/6h' : '/ngày'}
                                       </div>
                                     </div>
                                   ))}
@@ -1255,13 +1255,13 @@ export default function CustomerManager({
                                 <div className="bg-slate-50 border border-gray-200 p-2 rounded-xl">
                                   <div className="text-[10px] text-gray-400 font-extrabold uppercase">Tổng giá trị</div>
                                   <div className="font-mono text-xs sm:text-sm text-gray-800 font-extrabold">
-                                    {contract.totalPrice.toLocaleString()}đ
+                                    {contract.totalPrice.toLocaleString()} đ
                                   </div>
                                 </div>
                                 <div className="bg-emerald-50/40 border border-emerald-100 p-2 rounded-xl">
                                   <div className="text-[10px] text-emerald-600 font-extrabold uppercase">Đã thanh toán</div>
                                   <div className="font-mono text-xs sm:text-sm text-emerald-700 font-extrabold">
-                                    {contract.paidAmount.toLocaleString()}đ
+                                    {contract.paidAmount.toLocaleString()} đ
                                   </div>
                                 </div>
                                 <div className={`p-2 rounded-xl border ${
@@ -1277,12 +1277,12 @@ export default function CustomerManager({
                                   <div className={`font-mono text-xs sm:text-sm font-black ${
                                     remainingDebt > 0 && contract.status !== 'Cancelled' ? 'text-rose-700' : 'text-emerald-700'
                                   }`}>
-                                    {remainingDebt > 0 && contract.status !== 'Cancelled' ? `+${remainingDebt.toLocaleString()}đ` : '0đ (Đủ)'}
+                                    {remainingDebt > 0 && contract.status !== 'Cancelled' ? `+${remainingDebt.toLocaleString()} đ` : '0 đ (Đủ)'}
                                   </div>
                                 </div>
                                 <div className="bg-indigo-50/40 border border-indigo-100 p-2 rounded-xl">
                                   <div className="text-[10px] text-indigo-605 font-extrabold uppercase text-indigo-700">Thế chấp</div>
-                                  <div className="font-mono text-[11px] text-indigo-700 font-bold truncate" title={contract.customerDocNote || `${contract.customerDocType === 'CCCD_And_1M' ? 'Giữ CCCD + 1 triệu' : contract.customerDocType}: ${contract.depositAmount.toLocaleString()}đ`}>
+                                  <div className="font-mono text-[11px] text-indigo-700 font-bold truncate" title={contract.customerDocNote || `${contract.customerDocType === 'CCCD_And_1M' ? 'Giữ CCCD + 1 triệu' : contract.customerDocType}: ${contract.depositAmount.toLocaleString()} đ`}>
                                     {contract.customerDocNote || `${contract.customerDocType === 'CCCD_And_1M' ? 'CCCD + 1M' : contract.customerDocType}`}
                                   </div>
                                 </div>

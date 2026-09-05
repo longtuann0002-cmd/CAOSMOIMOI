@@ -748,7 +748,7 @@ export default function RevenueDashboard({
           </div>
           <div className="min-w-0 flex-1">
             <span className="text-gray-500 text-[9px] sm:text-xs font-bold block uppercase tracking-wider truncate">Tổng Doanh Thu</span>
-            <span className="font-mono text-xs sm:text-xl font-black text-gray-900 block truncate mt-0.5">{financials.totalRevenue.toLocaleString()}đ</span>
+            <span className="font-mono text-xs sm:text-xl font-black text-gray-900 block truncate mt-0.5">{financials.totalRevenue.toLocaleString()} đ</span>
             <span className="text-[9px] sm:text-[10px] text-green-600 font-bold block mt-0.5 truncate">Thực thu</span>
           </div>
         </div>
@@ -767,7 +767,7 @@ export default function RevenueDashboard({
               <span className="text-gray-500 text-[9px] sm:text-xs font-bold block uppercase tracking-wider truncate">Dư Nợ Chưa Thu</span>
               <span className="text-[8px] sm:text-[9px] text-rose-600 bg-rose-50 px-1 py-0.2 rounded font-black hidden sm:inline-block">Chi tiết ➔</span>
             </div>
-            <span className="font-mono text-xs sm:text-xl font-black text-rose-700 block truncate mt-0.5">{financials.totalReceivables.toLocaleString()}đ</span>
+            <span className="font-mono text-xs sm:text-xl font-black text-rose-700 block truncate mt-0.5">{financials.totalReceivables.toLocaleString()} đ</span>
             <span className="text-[9px] sm:text-[10px] text-rose-600 font-bold block mt-0.5 truncate flex items-center gap-1">
               <span>{receivableContracts.length} đơn nợ</span>
               <span className="text-gray-400 font-normal sm:hidden">• Xem ➔</span>
@@ -782,7 +782,7 @@ export default function RevenueDashboard({
           </div>
           <div className="min-w-0 flex-1">
             <span className="text-gray-500 text-[9px] sm:text-xs font-bold block uppercase tracking-wider truncate">Tổng Chi Phí Kho</span>
-            <span className="font-mono text-xs sm:text-xl font-black text-gray-900 block truncate mt-0.5">{financials.totalExpenses.toLocaleString()}đ</span>
+            <span className="font-mono text-xs sm:text-xl font-black text-gray-900 block truncate mt-0.5">{financials.totalExpenses.toLocaleString()} đ</span>
             <span className="text-[9px] sm:text-[10px] text-rose-600 block font-bold mt-0.5 truncate">Bảo dưỡng & máy</span>
           </div>
         </div>
@@ -794,7 +794,7 @@ export default function RevenueDashboard({
           </div>
           <div className="min-w-0 flex-1">
             <span className="text-gray-500 text-[9px] sm:text-xs font-bold block uppercase tracking-wider truncate font-sans">Lợi Nhuận Thuần</span>
-            <span className="font-mono text-xs sm:text-xl font-black text-gray-900 block truncate mt-0.5">{(financials.netProfit).toLocaleString()}đ</span>
+            <span className="font-mono text-xs sm:text-xl font-black text-gray-900 block truncate mt-0.5">{(financials.netProfit).toLocaleString()} đ</span>
             <span className="text-[9px] sm:text-[10px] text-indigo-600 font-bold block mt-0.5 truncate">Tạm tính ròng</span>
           </div>
         </div>

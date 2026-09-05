@@ -249,15 +249,15 @@ export default function ContractManager({
   const [newContractForm, setNewContractForm] = useState({
     customerName: '',
     customerPhone: '',
-    customerDocType: 'CCCD' as const,
-    customerDocNote: '',
+    customerDocType: 'CCCD_And_1M' as const,
+    customerDocNote: 'Giữ CCCD gốc + 1.000.000đ',
     selectedCameraIds: [] as string[],
     startDate: systemDate,
     endDate: systemDate,
     is6Hours: false,
     startTime: '08:00',
     returnTime: '14:00',
-    depositAmount: 0,
+    depositAmount: 1000000,
     paidAmount: 0,
     discountPercent: 0, // Tỷ lệ tự giảm giá (%)
     note: ''
@@ -615,14 +615,14 @@ export default function ContractManager({
     setNewContractForm({
       customerName: '',
       customerPhone: '',
-      customerDocType: 'CCCD',
-      customerDocNote: '',
+      customerDocType: 'CCCD_And_1M',
+      customerDocNote: 'Giữ CCCD gốc + 1.000.000đ',
       selectedCameraIds: [],
       startDate: systemDate,
       endDate: systemDate,
       is6Hours: false,
       returnTime: '18:00',
-      depositAmount: 0,
+      depositAmount: 1000000,
       paidAmount: 0,
       discountPercent: 0,
       note: ''
@@ -850,7 +850,7 @@ export default function ContractManager({
                             -{c.discountPercent}%
                           </span>
                         ) : null}
-                        {c.totalPrice.toLocaleString()}đ
+                        {c.totalPrice.toLocaleString()} đ
                       </span>
                     </div>
                     {c.status === 'Pending' ? (
@@ -859,12 +859,12 @@ export default function ContractManager({
                           <div className="flex items-center justify-between text-xs pb-1 border-b border-gray-100">
                             <span className="text-emerald-700 font-medium">Đã cọc 50% giữ máy:</span>
                             <span className="font-mono font-bold text-emerald-700">
-                              {c.paidAmount.toLocaleString()}đ
+                              {c.paidAmount.toLocaleString()} đ
                             </span>
                           </div>
                           <div className="pt-1 select-none flex items-center justify-between gap-2">
                             <div className="text-[10px] text-gray-400 font-medium">
-                              Cọc thế chấp: <strong className="text-gray-750">{c.depositAmount > 0 ? `${c.depositAmount.toLocaleString()}đ` : 'Không có'}</strong>
+                              Cọc thế chấp: <strong className="text-gray-750">{c.depositAmount > 0 ? `${c.depositAmount.toLocaleString()} đ` : 'Không có'}</strong>
                             </div>
                             <div>
                               <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-bold shadow-3xs">
@@ -878,22 +878,22 @@ export default function ContractManager({
                           <div className="flex items-center justify-between text-xs text-amber-850 bg-amber-50/40 px-1 rounded-sm">
                             <span className="font-medium">Cọc 50% giữ máy cần đóng:</span>
                             <span className="font-mono font-bold">
-                              {(Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()}đ
+                              {(Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()} đ
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-xs pb-1 border-b border-gray-100">
                             <span className="text-gray-500 font-medium">Thực tế đã thanh toán:</span>
                             <span className="font-mono font-bold text-gray-400">
-                              0đ
+                              0 đ
                             </span>
                           </div>
                           <div className="pt-1 select-none flex items-center justify-between gap-2">
                             <div className="text-[10px] text-gray-400 font-medium">
-                              Cọc thế chấp: <strong className="text-gray-750">{c.depositAmount > 0 ? `${c.depositAmount.toLocaleString()}đ` : 'Không có'}</strong>
+                              Cọc thế chấp: <strong className="text-gray-750">{c.depositAmount > 0 ? `${c.depositAmount.toLocaleString()} đ` : 'Không có'}</strong>
                             </div>
                             <div>
                               <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-md font-bold shadow-3xs">
-                                ⏳ Chưa cọc 50%: {(Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()}đ
+                                ⏳ Chưa cọc 50%: {(Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()} đ
                               </span>
                             </div>
                           </div>
@@ -904,7 +904,7 @@ export default function ContractManager({
                         <div className="flex items-center justify-between text-xs pb-1 border-b border-gray-100">
                           <span className="text-gray-500 font-medium">Đã thanh toán:</span>
                           <span className="font-mono font-bold text-emerald-600">
-                            {c.paidAmount.toLocaleString()}đ
+                            {c.paidAmount.toLocaleString()} đ
                           </span>
                         </div>
                         {/* Remaining debt & deposit details */}
@@ -1135,22 +1135,22 @@ export default function ContractManager({
                               -{c.discountPercent}%
                             </span>
                           ) : null}
-                          <span>{c.totalPrice.toLocaleString()}đ</span>
+                          <span>{c.totalPrice.toLocaleString()} đ</span>
                         </div>
                         <div className="text-[10px] text-gray-400 font-sans font-normal">
                           {c.status === 'Pending' ? (
                             (c.paidAmount || 0) >= Math.round((c.totalPrice || 0) * 0.5) || (c.paidAmount || 0) > 0 ? (
                               <span className="text-emerald-700 font-bold inline-block bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px]" title="Đã nhận đủ 50% tiền cọc giữ máy">
-                                ✓ Đã cọc 50%: {c.paidAmount.toLocaleString()}đ
+                                ✓ Đã cọc 50%: {c.paidAmount.toLocaleString()} đ
                               </span>
                             ) : (
                               <span className="text-amber-700 font-bold inline-block bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-[10px]" title="Khoản cọc giữ máy cần chuyển khoản để hoàn thiện duyệt lịch">
-                                ⏳ Cọc 50%: {(Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()}đ (Chưa đóng)
+                                ⏳ Cọc 50%: {(Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()} đ (Chưa đóng)
                               </span>
                             )
                           ) : (
                             <>
-                              Đã thanh toán: <span className="text-emerald-600 font-semibold">{c.paidAmount.toLocaleString()}đ</span>
+                              Đã thanh toán: <span className="text-emerald-600 font-semibold">{c.paidAmount.toLocaleString()} đ</span>
                             </>
                           )}
                         </div>
@@ -1908,25 +1908,33 @@ export default function ContractManager({
               </div>
 
               {/* Rental type toggle */}
-              <div className="bg-gray-50/50 p-2.5 rounded-xl border border-gray-150">
-                <label className="block text-xs font-bold text-gray-700 mb-1.5 flex items-center gap-1">
+              <div className="bg-gradient-to-r from-orange-50/50 via-amber-50/30 to-orange-50/50 p-3 rounded-2xl border-2 border-orange-100 shadow-xs">
+                <label className="block text-xs font-black text-gray-800 mb-2 flex items-center gap-1.5 uppercase tracking-wide">
                   <span>⏱️ Hình thức thuê & thời gian:</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => {
                       setNewContractForm(prev => ({ ...prev, is6Hours: false }));
                     }}
-                    className={`p-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer border text-center flex flex-col items-center justify-center gap-0.5 ${
+                    className={`p-3 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer border-2 text-center flex flex-col items-center justify-center gap-1 ${
                       !newContractForm.is6Hours
-                        ? 'bg-orange-600 text-white border-orange-600 shadow-xs'
-                        : 'bg-white hover:bg-gray-55 text-gray-650 border-gray-200'
+                        ? 'bg-gradient-to-r from-orange-600 to-orange-500 text-white border-orange-600 shadow-md ring-2 ring-orange-300/60 scale-[1.02]'
+                        : 'bg-white hover:bg-orange-50 text-orange-950 border-orange-200 hover:border-orange-400 shadow-xs hover:shadow-sm'
                     }`}
                   >
-                    <span>📅 Thuê theo ngày</span>
-                    <span className={`text-[10px] font-normal ${!newContractForm.is6Hours ? 'text-orange-100' : 'text-gray-400'}`}>
-                      Tính theo mốc ngày (ưu đãi lũy tiến)
+                    <div className="flex items-center gap-1.5 font-extrabold">
+                      <span className="text-base">📅</span>
+                      <span>Thuê theo ngày</span>
+                      {!newContractForm.is6Hours && (
+                        <span className="text-[10px] bg-white/25 text-white px-1.5 py-0.2 rounded-full font-black">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-[10px] sm:text-[11px] leading-tight ${!newContractForm.is6Hours ? 'text-orange-100 font-semibold' : 'text-orange-800/80 font-medium'}`}>
+                      Tính theo mốc ngày lũy tiến
                     </span>
                   </button>
 
@@ -1941,14 +1949,22 @@ export default function ContractManager({
                         returnTime: add6Hours(prev.startTime || '08:00')
                       }));
                     }}
-                    className={`p-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer border text-center flex flex-col items-center justify-center gap-0.5 ${
+                    className={`p-3 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer border-2 text-center flex flex-col items-center justify-center gap-1 ${
                       newContractForm.is6Hours
-                        ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                        : 'bg-white hover:bg-amber-50/30 text-amber-800 border-amber-200/50'
+                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-500 shadow-md ring-2 ring-amber-300/60 scale-[1.02]'
+                        : 'bg-white hover:bg-amber-50 text-amber-950 border-amber-200 hover:border-amber-400 shadow-xs hover:shadow-sm'
                     }`}
                   >
-                    <span>⚡ Thuê nhanh 6 tiếng</span>
-                    <span className={`text-[10px] font-normal ${newContractForm.is6Hours ? 'text-amber-100' : 'text-amber-650'}`}>
+                    <div className="flex items-center gap-1.5 font-extrabold">
+                      <span className="text-base">⚡</span>
+                      <span>Thuê nhanh 6 tiếng</span>
+                      {newContractForm.is6Hours && (
+                        <span className="text-[10px] bg-white/25 text-white px-1.5 py-0.2 rounded-full font-black">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-[10px] sm:text-[11px] leading-tight ${newContractForm.is6Hours ? 'text-amber-100 font-semibold' : 'text-amber-800/80 font-medium'}`}>
                       Mức phí ngắn hạn trong ngày
                     </span>
                   </button>
@@ -2108,7 +2124,7 @@ export default function ContractManager({
                       }`}
                       title="Thu trước 50% tiền thuê làm cọc giữ chỗ"
                     >
-                      Cọc 50% ({(Math.round(calculatedTotal * 0.5)).toLocaleString()}đ)
+                      Cọc 50% ({(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)
                     </button>
                     <button
                       type="button"
@@ -2120,7 +2136,7 @@ export default function ContractManager({
                       }`}
                       title="Không thu cọc giữ máy"
                     >
-                      Không cọc (0đ)
+                      Không cọc (0 đ)
                     </button>
                   </div>
                 </div>
@@ -2142,19 +2158,32 @@ export default function ContractManager({
                     className="w-5 h-5 text-amber-600 rounded border-amber-400 focus:ring-amber-500 mt-0.5 shrink-0 cursor-pointer accent-amber-600"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-extrabold text-amber-950 text-xs sm:text-sm leading-snug">⏳ Khách chưa thanh toán tiền cọc 50% để giữ máy</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-extrabold text-amber-950 text-xs sm:text-sm leading-snug">
+                        ⏳ Khách chưa cọc 50% để giữ máy
+                      </span>
                       {newContractForm.paidAmount === 0 && (
-                        <span className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black whitespace-nowrap shrink-0">
-                          ✓ Đang tích chọn
+                        <span className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap shrink-0">
+                          ✓ Đang chọn
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-amber-850 mt-1 leading-relaxed">
-                      {newContractForm.paidAmount === 0
-                        ? `⚠️ Đơn sẽ được ghi nhận là "Chưa cọc 50% giữ máy" với số tiền cần thu là ${(Math.round(calculatedTotal * 0.5)).toLocaleString()}đ.`
-                        : `✓ Khách đã thanh toán trước 50% tiền cọc (${newContractForm.paidAmount.toLocaleString()}đ).`
-                      }
+                    <p className="text-[11px] text-amber-900 mt-1 leading-snug">
+                      {newContractForm.paidAmount === 0 ? (
+                        <span>
+                          ⚠️ Đơn ghi nhận <strong>"Chưa cọc 50% giữ máy"</strong> — Cần thu cọc:{' '}
+                          <strong className="whitespace-nowrap font-bold text-amber-950">
+                            {(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ
+                          </strong>.
+                        </span>
+                      ) : (
+                        <span>
+                          ✓ Đã thanh toán trước 50% tiền cọc ({' '}
+                          <strong className="whitespace-nowrap font-bold">
+                            {newContractForm.paidAmount.toLocaleString()} đ
+                          </strong>).
+                        </span>
+                      )}
                     </p>
                   </div>
                 </label>
