@@ -9,7 +9,7 @@ import {
   Save, Clock, DollarSign, User, AlertTriangle, CheckCircle2, Zap 
 } from 'lucide-react';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../utils/pricing';
-import { loadStoredData, saveStoredData } from '../utils/mockData';
+import { loadStoredData, saveStoredData, cleanSystemNote } from '../utils/mockData';
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from '../utils/supabase';
 import { formatDMY } from '../utils/dateUtils';
 import { generateVietQrString, generateQrSvg } from '../utils/vietqr';
@@ -1128,14 +1128,14 @@ export default function ContractManager({
                       </div>
                     ) : (
                       <div className="flex items-start gap-1 group/note">
-                        {c.note ? (
+                        {cleanSystemNote(c.note) ? (
                           <div className="text-xs text-amber-800 bg-amber-50/50 border border-amber-100/80 px-3 py-2 rounded-xl flex items-start justify-between gap-1.5 w-full font-medium leading-relaxed relative pr-8">
-                            <span className="break-words">{c.note}</span>
+                            <span className="break-words">{cleanSystemNote(c.note)}</span>
                             <button
                               type="button"
                               onClick={() => {
                                 setEditingNoteId(c.id);
-                                setNoteDraft(c.note || '');
+                                setNoteDraft(cleanSystemNote(c.note));
                               }}
                               className="absolute right-2 top-2 p-1 text-gray-400 hover:text-orange-600 hover:bg-white rounded-md border border-gray-200 shadow-3xs transition-all cursor-pointer"
                               title="Chỉnh sửa ghi chú"
@@ -1251,13 +1251,13 @@ export default function ContractManager({
                             </div>
                           ) : (
                             <div className="flex items-start gap-1 group/note max-w-[215px]">
-                              {c.note ? (
+                              {cleanSystemNote(c.note) ? (
                                 <div className="text-xs text-amber-800 bg-amber-50/70 border border-amber-100/90 px-2 py-1 rounded-lg flex items-start justify-between gap-1 w-full font-medium leading-normal relative pr-6">
-                                  <span className="break-all" title={c.note}>{c.note}</span>
+                                  <span className="break-all" title={cleanSystemNote(c.note)}>{cleanSystemNote(c.note)}</span>
                                   <button
                                     onClick={() => {
                                       setEditingNoteId(c.id);
-                                      setNoteDraft(c.note || '');
+                                      setNoteDraft(cleanSystemNote(c.note));
                                     }}
                                     className="absolute right-1 top-1 p-0.5 text-gray-400 hover:text-orange-600 hover:bg-white rounded border border-gray-200 shadow-3xs transition-all cursor-pointer opacity-0 group-hover/note:opacity-100"
                                     title="Chỉnh sửa ghi chú"

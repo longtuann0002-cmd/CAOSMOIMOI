@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { RentalContract, Expense, Camera } from '../types';
+import { cleanSystemNote } from '../utils/mockData';
 import { 
   DollarSign, Landmark, TrendingUp, TrendingDown, ClipboardList, 
   Calendar, FileText, Activity, Info, PieChart, ShoppingBag, 
@@ -1941,9 +1942,9 @@ export default function RevenueDashboard({
                           ))}
                         </div>
 
-                        {c.note && (
+                        {cleanSystemNote(c.note) && (
                           <p className="text-[10.5px] text-gray-600 bg-amber-50/70 border border-amber-100 p-1.5 rounded font-medium italic">
-                            💬 {c.note}
+                            💬 {cleanSystemNote(c.note)}
                           </p>
                         )}
                       </div>
@@ -2025,9 +2026,9 @@ export default function RevenueDashboard({
                         ))}
                       </div>
 
-                      {c.note && (
+                      {cleanSystemNote(c.note) && (
                         <p className="text-[10.5px] text-gray-600 bg-amber-50/70 border border-amber-100 p-1.5 rounded font-medium italic">
-                          💬 {c.note}
+                          💬 {cleanSystemNote(c.note)}
                         </p>
                       )}
                     </div>

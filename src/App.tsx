@@ -4,6 +4,7 @@ import { Camera, RentalContract, Customer, Expense, ContractStatus } from './typ
 import {
   loadStoredData,
   saveStoredData,
+  cleanSystemNote,
   INITIAL_CAMERAS,
   INITIAL_CUSTOMERS,
   INITIAL_CONTRACTS,
@@ -516,7 +517,7 @@ export default function App() {
         }
 
         if (cloudContracts !== null) {
-          setContracts(cloudContracts);
+          setContracts((cloudContracts as RentalContract[]).map(c => ({ ...c, note: cleanSystemNote(c.note) })));
         } else {
           setContracts(loadStoredData('contracts', INITIAL_CONTRACTS));
         }
@@ -813,17 +814,10 @@ export default function App() {
     setContracts(prev =>
       prev.map(c => {
         if (c.id === id) {
-          let finalNote = note ? `${c.note || ''}\n[Trạng thái]: ${note}` : c.note;
           let finalPaidAmount = c.paidAmount;
 
           if (status === 'Active') {
-            const extra = c.totalPrice - c.paidAmount;
-            if (extra > 0) {
-              finalNote = `${finalNote || ''}\n[Hệ thống]: Khách nhận máy, thanh toán nốt ${extra.toLocaleString()}đ còn lại (Đặc tả 50% còn lại).`;
-              finalPaidAmount = c.totalPrice;
-            } else {
-              finalPaidAmount = c.totalPrice;
-            }
+            finalPaidAmount = c.totalPrice;
           } else if (paidAmount !== undefined) {
             finalPaidAmount = paidAmount;
           }
@@ -831,7 +825,7 @@ export default function App() {
           const updatedContract = {
             ...c,
             status,
-            note: finalNote,
+            note: cleanSystemNote(c.note),
             paidAmount: finalPaidAmount
           };
 

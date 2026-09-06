@@ -473,11 +473,26 @@ export const INITIAL_EXPENSES: Expense[] = [
   }
 ];
 
+export function cleanSystemNote(note?: string | null): string {
+  if (!note) return '';
+  return note
+    .replace(/\[Trạng thái\]:[^\[]*/gi, '')
+    .replace(/\[Hệ thống\]:[^\[]*/gi, '')
+    .trim();
+}
+
 export function loadStoredData<T>(key: string, defaultVal: T): T {
   try {
     const raw = localStorage.getItem(key);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (key === 'contracts' && Array.isArray(parsed)) {
+        return parsed.map((c: any) => ({
+          ...c,
+          note: cleanSystemNote(c.note)
+        })) as unknown as T;
+      }
+      return parsed;
     }
   } catch (e) {
     console.warn(`Error reading ${key} from localStorage`, e);
