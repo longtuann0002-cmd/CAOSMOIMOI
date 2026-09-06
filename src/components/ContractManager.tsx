@@ -1587,17 +1587,14 @@ export default function ContractManager({
 
                     {/* QR Code Block on the Right (Always side-by-side on both mobile and desktop) */}
                     <div 
-                      className="shrink-0 flex flex-col items-center bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/90 w-[106px] sm:w-[124px]" 
+                      className="shrink-0 flex flex-col items-center bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/90 w-[104px] sm:w-[124px]" 
                       style={{ borderRadius: '12px', boxShadow: 'none' }}
                     >
                       {/* Header row */}
                       <div className={`w-full flex items-center ${isExporting ? 'justify-center' : 'justify-between'} mb-1.5 px-0.5`}>
-                        <div className="flex items-center gap-1 min-w-0">
-                          <CreditCard className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-600 shrink-0" />
-                          <span className="text-[7.5px] sm:text-[9px] font-black uppercase text-gray-700 tracking-tight whitespace-nowrap">
-                            QR THANH TOÁN
-                          </span>
-                        </div>
+                        <span className="text-[8px] sm:text-[9.5px] font-black uppercase text-gray-700 tracking-wider whitespace-nowrap">
+                          QR THANH TOÁN
+                        </span>
                         {!isExporting && (
                           <button
                             type="button"
@@ -1609,7 +1606,7 @@ export default function ContractManager({
                             className="text-gray-400 hover:text-orange-600 p-0.5 rounded hover:bg-gray-100 transition shrink-0 cursor-pointer"
                             title="Cài đặt tài khoản ngân hàng"
                           >
-                            <Settings className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                            <Settings className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
@@ -1625,30 +1622,6 @@ export default function ContractManager({
                           className="w-full h-full object-contain rounded"
                         />
                       </div>
-
-                      {!isExporting && (
-                        <div className="mt-1.5 flex items-center gap-1" data-no-export="true">
-                          <label className="cursor-pointer text-[8px] sm:text-[9px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-1.5 py-0.5 rounded-md transition shadow-3xs flex items-center gap-0.5 whitespace-nowrap">
-                            <span>{customQrImage ? 'Đổi QR' : '+ Thêm QR'}</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={handleUploadCustomQr}
-                            />
-                          </label>
-                          {customQrImage && (
-                            <button
-                              type="button"
-                              onClick={handleRemoveCustomQr}
-                              className="text-[8px] sm:text-[9px] text-gray-500 hover:text-rose-600 px-1 py-0.5 rounded border border-gray-200 hover:border-rose-300 transition cursor-pointer"
-                              title="Xóa ảnh tự thêm, dùng lại mã VietQR"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -2662,6 +2635,33 @@ export default function ContractManager({
                   placeholder="VD: TIEM ANH NHA CAO"
                   className="w-full border border-gray-300 rounded-lg p-2 text-xs font-mono font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white text-gray-900 uppercase"
                 />
+              </div>
+
+              {/* Tùy chọn ảnh mã QR */}
+              <div className="pt-2 border-t border-gray-100">
+                <label className="block text-xs font-bold text-gray-700 mb-1">Ảnh mã QR tùy chỉnh (tùy chọn)</label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label className="cursor-pointer text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>{customQrImage ? 'Đổi ảnh QR' : 'Tải lên ảnh QR riêng'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleUploadCustomQr}
+                    />
+                  </label>
+                  {customQrImage && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveCustomQr}
+                      className="text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+                    >
+                      Dùng lại VietQR tự động
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">Mặc định hệ thống tự tạo mã VietQR theo số tài khoản ở trên.</p>
               </div>
             </div>
 
