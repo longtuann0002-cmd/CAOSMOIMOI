@@ -1455,7 +1455,7 @@ export default function ContractManager({
                 </div>
 
                 {/* Section 1: Customer details & Timings in Mobile Standardized Layout */}
-                <div className="bg-slate-50/80 p-2 sm:p-3.5 border border-slate-200/80 rounded-xl space-y-3">
+                <div className="bg-slate-50/80 p-2 sm:p-3.5 border border-slate-200/80 rounded-xl space-y-3" style={{overflow: 'visible'}}>
                   {/* Customer Info & QR Code Row (Synchronized side-by-side on both mobile and desktop) */}
                   <div className={`flex ${editingCustomer ? 'flex-col sm:flex-row' : 'flex-row'} flex-nowrap gap-2 sm:gap-3 items-start justify-between`}>
                     {/* Customer Info */}
@@ -1572,25 +1572,27 @@ export default function ContractManager({
                           <p className="font-black text-gray-900 text-sm sm:text-base">{selectedContract.customerName}</p>
                           <p className="text-xs text-gray-600 font-mono font-bold">SĐT: {selectedContract.customerPhone}</p>
                           <div className="pt-0.5">
-                            <span className="text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md inline-block">
-                              Thế chấp: {renderDocTypeLabel(selectedContract.customerDocType)}
+                            <span className="text-[10.5px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md inline-flex items-center gap-1 flex-wrap">
+                              <span>Thế chấp: {renderDocTypeLabel(selectedContract.customerDocType)}</span>
+                              {selectedContract.customerDocNote && (
+                                <>
+                                  <span className="text-amber-400 font-normal">•</span>
+                                  <span className="font-mono font-semibold">{selectedContract.customerDocNote}</span>
+                                </>
+                              )}
                             </span>
                           </div>
-                          {selectedContract.customerDocNote && (
-                            <p className="text-xs text-gray-700 font-mono leading-relaxed mt-1">
-                              {selectedContract.customerDocNote}
-                            </p>
-                          )}
                         </div>
                       )}
                     </div>
 
                     {/* QR Code Block on the Right (Always side-by-side on both mobile and desktop) */}
-                    <div className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2 rounded-xl border border-slate-200/90 shadow-2xs w-[88px] sm:w-[116px]">
-                      <div className="text-[7px] sm:text-[9.5px] font-extrabold uppercase text-gray-600 tracking-tight mb-1 flex items-center justify-between w-full">
-                        <div className="flex items-center gap-0.5 min-w-0">
-                          <CreditCard className="w-3 h-3 text-orange-600 shrink-0" />
-                          <span className="truncate">QR CHUYỂN KHOẢN</span>
+                    <div className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2 rounded-xl border border-slate-200/90 shadow-sm w-[92px] sm:w-[116px]" style={{borderRadius: '12px', isolation: 'isolate'}}>
+                      {/* Header row */}
+                      <div className="w-full flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-0.5 bg-orange-50 border border-orange-200 rounded-md px-1 py-0.5 min-w-0 flex-1">
+                          <CreditCard className="w-2.5 h-2.5 text-orange-600 shrink-0" />
+                          <span className="text-[8px] sm:text-[9px] font-extrabold uppercase text-orange-700 tracking-tight leading-none whitespace-nowrap">QR THANH TOÁN</span>
                         </div>
                         {!isExporting && (
                           <button
@@ -1600,7 +1602,7 @@ export default function ContractManager({
                               setBankDraft(bankConfig);
                               setShowBankSettings(true);
                             }}
-                            className="text-gray-400 hover:text-orange-600 p-0.5 rounded hover:bg-gray-100 transition cursor-pointer"
+                            className="ml-0.5 shrink-0 text-gray-400 hover:text-orange-600 p-0.5 rounded hover:bg-gray-100 transition cursor-pointer"
                             title="Cài đặt tài khoản ngân hàng"
                           >
                             <Settings className="w-2.5 h-2.5" />
@@ -1608,7 +1610,7 @@ export default function ContractManager({
                         )}
                       </div>
 
-                      <div className="w-[76px] h-[76px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-0.5">
+                      <div className="w-[76px] h-[76px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg border border-gray-200 flex items-center justify-center p-0.5" style={{overflow: 'hidden', borderRadius: '8px'}}>
                         <QrDisplay
                           customImage={customQrImage}
                           bin={getBankBin(bankConfig.bankId)}
