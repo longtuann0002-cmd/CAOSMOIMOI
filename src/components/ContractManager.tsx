@@ -1455,11 +1455,11 @@ export default function ContractManager({
                 </div>
 
                 {/* Section 1: Customer details & Timings in Mobile Standardized Layout */}
-                <div className="bg-slate-50/80 p-2.5 sm:p-3.5 border border-slate-200/80 rounded-xl space-y-3">
+                <div className="bg-slate-50/80 p-2 sm:p-3.5 border border-slate-200/80 rounded-xl space-y-3">
                   {/* Customer Info & QR Code Row (Synchronized side-by-side on both mobile and desktop) */}
                   <div className={`flex ${editingCustomer ? 'flex-col sm:flex-row' : 'flex-row'} flex-nowrap gap-2 sm:gap-3 items-start justify-between`}>
                     {/* Customer Info */}
-                    <div className="space-y-1 min-w-0 flex-1">
+                    <div className="space-y-1 min-w-0 flex-1 overflow-hidden">
                       <div className="flex items-center justify-between mb-0.5">
                         <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
                         {onUpdateContractCustomer && !editingCustomer && !isExporting && (
@@ -1577,7 +1577,7 @@ export default function ContractManager({
                             </span>
                           </div>
                           {selectedContract.customerDocNote && (
-                            <p className="text-xs text-amber-950 bg-amber-50 border border-amber-200 p-2 rounded-lg font-mono leading-relaxed mt-1">
+                            <p className="text-xs text-gray-700 font-mono leading-relaxed mt-1">
                               {selectedContract.customerDocNote}
                             </p>
                           )}
@@ -1586,11 +1586,11 @@ export default function ContractManager({
                     </div>
 
                     {/* QR Code Block on the Right (Always side-by-side on both mobile and desktop) */}
-                    <div className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2 rounded-xl border border-slate-200/90 shadow-2xs w-[92px] sm:w-[116px]">
-                      <div className="text-[8.5px] sm:text-[10px] font-extrabold uppercase text-gray-600 tracking-wider mb-1 flex items-center justify-between w-full">
-                        <div className="flex items-center gap-1">
+                    <div className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2 rounded-xl border border-slate-200/90 shadow-2xs w-[88px] sm:w-[116px]">
+                      <div className="text-[7px] sm:text-[9.5px] font-extrabold uppercase text-gray-600 tracking-tight mb-1 flex items-center justify-between w-full">
+                        <div className="flex items-center gap-0.5 min-w-0">
                           <CreditCard className="w-3 h-3 text-orange-600 shrink-0" />
-                          <span>QR TT</span>
+                          <span className="truncate">QR CHUYỂN KHOẢN</span>
                         </div>
                         {!isExporting && (
                           <button
@@ -1608,7 +1608,7 @@ export default function ContractManager({
                         )}
                       </div>
 
-                      <div className="w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-0.5">
+                      <div className="w-[76px] h-[76px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg overflow-hidden border border-gray-150 flex items-center justify-center p-0.5">
                         <QrDisplay
                           customImage={customQrImage}
                           bin={getBankBin(bankConfig.bankId)}
