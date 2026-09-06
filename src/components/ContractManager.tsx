@@ -1587,15 +1587,17 @@ export default function ContractManager({
 
                     {/* QR Code Block on the Right (Always side-by-side on both mobile and desktop) */}
                     <div 
-                      className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2 rounded-xl border border-slate-200/90 w-[94px] sm:w-[116px]" 
+                      className="shrink-0 flex flex-col items-center bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/90 w-[106px] sm:w-[124px]" 
                       style={{ borderRadius: '12px', boxShadow: 'none' }}
                     >
                       {/* Header row */}
-                      <div className="w-full flex items-center justify-center gap-1 mb-1 px-0.5 relative">
-                        <CreditCard className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-600 shrink-0" />
-                        <span className="text-[8.5px] sm:text-[9.5px] font-black uppercase text-gray-700 tracking-wider whitespace-nowrap">
-                          QR THANH TOÁN
-                        </span>
+                      <div className={`w-full flex items-center ${isExporting ? 'justify-center' : 'justify-between'} mb-1.5 px-0.5`}>
+                        <div className="flex items-center gap-1 min-w-0">
+                          <CreditCard className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-600 shrink-0" />
+                          <span className="text-[7.5px] sm:text-[9px] font-black uppercase text-gray-700 tracking-tight whitespace-nowrap">
+                            QR THANH TOÁN
+                          </span>
+                        </div>
                         {!isExporting && (
                           <button
                             type="button"
@@ -1604,16 +1606,16 @@ export default function ContractManager({
                               setBankDraft(bankConfig);
                               setShowBankSettings(true);
                             }}
-                            className="absolute -right-0.5 text-gray-400 hover:text-orange-600 p-0.5 rounded hover:bg-gray-100 transition cursor-pointer"
+                            className="text-gray-400 hover:text-orange-600 p-0.5 rounded hover:bg-gray-100 transition shrink-0 cursor-pointer"
                             title="Cài đặt tài khoản ngân hàng"
                           >
-                            <Settings className="w-2.5 h-2.5" />
+                            <Settings className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                           </button>
                         )}
                       </div>
 
                       <div 
-                        className="w-[78px] h-[78px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg border border-gray-200 flex items-center justify-center p-0.5" 
+                        className="w-[84px] h-[84px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg border border-gray-200 flex items-center justify-center p-0.5" 
                         style={{ overflow: 'hidden', borderRadius: '8px', boxShadow: 'none' }}
                       >
                         <QrDisplay
@@ -1625,7 +1627,7 @@ export default function ContractManager({
                       </div>
 
                       {!isExporting && (
-                        <div className="mt-1 flex items-center gap-1" data-no-export="true">
+                        <div className="mt-1.5 flex items-center gap-1" data-no-export="true">
                           <label className="cursor-pointer text-[8px] sm:text-[9px] font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-1.5 py-0.5 rounded-md transition shadow-3xs flex items-center gap-0.5 whitespace-nowrap">
                             <span>{customQrImage ? 'Đổi QR' : '+ Thêm QR'}</span>
                             <input
