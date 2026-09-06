@@ -1873,26 +1873,28 @@ export default function BookingCalendar({
                       <p className="font-black text-gray-900 text-sm sm:text-base">{quickReceiptContract.customerName}</p>
                       <p className="text-xs text-gray-600 font-mono font-bold">SĐT: {quickReceiptContract.customerPhone}</p>
                       <div className="pt-0.5">
-                        <span className="text-[10.5px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md inline-flex items-center gap-1 flex-wrap">
-                          <span>Thế chấp: {renderDocTypeLabel(quickReceiptContract.customerDocType)}</span>
-                          {quickReceiptContract.customerDocNote && (
-                            <>
-                              <span className="text-amber-400 font-normal">•</span>
-                              <span className="font-mono font-semibold">{quickReceiptContract.customerDocNote}</span>
-                            </>
-                          )}
-                        </span>
+                        <div className="inline-flex items-center gap-1.5 bg-amber-50/90 border border-amber-200/90 px-2 py-0.5 rounded-lg text-amber-950 max-w-full">
+                          <span className="text-[10px] font-extrabold text-amber-800 uppercase shrink-0">Thế chấp:</span>
+                          <span className="text-[10.5px] font-bold font-mono text-gray-800 truncate">
+                            {quickReceiptContract.customerDocType === 'Other'
+                              ? (quickReceiptContract.customerDocNote?.trim() || 'Tài sản khác')
+                              : `${renderDocTypeLabel(quickReceiptContract.customerDocType)}${quickReceiptContract.customerDocNote?.trim() ? ` (${quickReceiptContract.customerDocNote.trim()})` : ''}`}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
                     {/* QR Code Block on the Right (Always side-by-side on both mobile and desktop) */}
-                    <div className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2 rounded-xl border border-slate-200/90 shadow-sm w-[92px] sm:w-[116px]" style={{borderRadius: '12px', isolation: 'isolate'}}>
+                    <div 
+                      className="shrink-0 flex flex-col items-center bg-white p-1.5 sm:p-2 rounded-xl border border-slate-200/90 w-[94px] sm:w-[116px]" 
+                      style={{ borderRadius: '12px', boxShadow: 'none' }}
+                    >
                       {/* Header row */}
-                      <div className="w-full flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-0.5 bg-orange-50 border border-orange-200 rounded-md px-1 py-0.5 min-w-0 flex-1">
-                          <CreditCard className="w-2.5 h-2.5 text-orange-600 shrink-0" />
-                          <span className="text-[8px] sm:text-[9px] font-extrabold uppercase text-orange-700 tracking-tight leading-none whitespace-nowrap">QR THANH TOÁN</span>
-                        </div>
+                      <div className="w-full flex items-center justify-center gap-1 mb-1 px-0.5 relative">
+                        <CreditCard className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-600 shrink-0" />
+                        <span className="text-[8.5px] sm:text-[9.5px] font-black uppercase text-gray-700 tracking-wider whitespace-nowrap">
+                          QR THANH TOÁN
+                        </span>
                         {!isExportingReceipt && (
                           <button
                             type="button"
@@ -1901,7 +1903,7 @@ export default function BookingCalendar({
                               setBankDraft(bankConfig);
                               setShowBankSettings(true);
                             }}
-                            className="ml-0.5 shrink-0 text-gray-400 hover:text-orange-600 p-0.5 rounded hover:bg-gray-100 transition cursor-pointer"
+                            className="absolute -right-0.5 text-gray-400 hover:text-orange-600 p-0.5 rounded hover:bg-gray-100 transition cursor-pointer"
                             title="Cài đặt tài khoản ngân hàng"
                           >
                             <Settings className="w-2.5 h-2.5" />
@@ -1909,7 +1911,10 @@ export default function BookingCalendar({
                         )}
                       </div>
 
-                      <div className="w-[76px] h-[76px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg border border-gray-200 flex items-center justify-center p-0.5" style={{overflow: 'hidden', borderRadius: '8px'}}>
+                      <div 
+                        className="w-[78px] h-[78px] sm:w-[100px] sm:h-[100px] bg-white rounded-lg border border-gray-200 flex items-center justify-center p-0.5" 
+                        style={{ overflow: 'hidden', borderRadius: '8px', boxShadow: 'none' }}
+                      >
                         <QrDisplay
                           customImage={customQrImage}
                           bin={getBankBin(bankConfig.bankId)}
