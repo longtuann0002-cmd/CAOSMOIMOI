@@ -60,7 +60,14 @@ import {
   Trash2,
   Save,
   FileDown,
-  FileUp
+  FileUp,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  Bell,
+  Palette,
+  ChevronDown,
+  Plus
 } from 'lucide-react';
 
 const DEFAULT_USERS = [
@@ -244,6 +251,34 @@ export default function App() {
   // Active view tab state (default to 'calendar' as shown in screenshot)
   const [activeTab, setActiveTab] = useState<'calendar' | 'contracts' | 'equipment' | 'revenue' | 'customers' | 'expenses'>('calendar');
 
+  // Modern Sidebar Collapsible State (remembered in localStorage)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('camlease_sidebar_collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('camlease_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  // Header Quick Search State
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('');
+  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setSearchDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Toasts state & actions
   const [toasts, setToasts] = useState<ToastType[]>([]);
 
@@ -310,6 +345,34 @@ export default function App() {
 
     return closestDate;
   });
+
+  const searchResults = useMemo(() => {
+    const q = headerSearchQuery.trim().toLowerCase();
+    if (!q) return { contracts: [], cameras: [], customers: [] };
+
+    const matchedContracts = contracts.filter(c => 
+      c.contractCode.toLowerCase().includes(q) ||
+      c.customerName.toLowerCase().includes(q) ||
+      c.customerPhone.toLowerCase().includes(q)
+    ).slice(0, 4);
+
+    const matchedCameras = cameras.filter(cam => 
+      cam.name.toLowerCase().includes(q) ||
+      cam.shortName.toLowerCase().includes(q) ||
+      cam.serialNumber.toLowerCase().includes(q)
+    ).slice(0, 4);
+
+    const matchedCustomers = customers.filter(cust => 
+      cust.name.toLowerCase().includes(q) ||
+      cust.phone.toLowerCase().includes(q)
+    ).slice(0, 4);
+
+    return { contracts: matchedContracts, cameras: matchedCameras, customers: matchedCustomers };
+  }, [headerSearchQuery, contracts, cameras, customers]);
+
+  const pendingOrOverdueContractsCount = useMemo(() => {
+    return contracts.filter(c => c.status === 'Pending' || c.status === 'Overdue').length;
+  }, [contracts]);
 
   // Sync data states to local storage and Supabase
   useEffect(() => {
@@ -1874,196 +1937,354 @@ export default function App() {
     );
   }
 
-  return (
-    <div className="h-[100dvh] bg-slate-50 flex font-sans select-none antialiased w-full overflow-hidden">
-      
-      {/* PERSISTENT LEFT SIDEBAR - Visible on medium screens and up */}
-      <aside className="hidden md:flex flex-col w-20 lg:w-[280px] bg-[#0b0f19] text-white shrink-0 h-[100dvh] sticky top-0 border-r border-slate-800/40 transition-all duration-300">
-        
-        {/* Top Header Section: Tiệm ảnh Caos logo */}
-        <div 
-          onClick={() => setShowLogoModal(true)}
-          className="px-3 py-6 lg:px-6 border-b border-slate-800/40 flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-3.5 cursor-pointer hover:bg-white/5 transition duration-300"
-          title="Thay đổi Logo & Thương hiệu"
-        >
-          {logoIconType === 'upload' && logoBase64 ? (
-            <div className="w-14 h-14 rounded-full overflow-hidden border border-slate-800 flex items-center justify-center bg-white shrink-0 shadow-md relative">
-              <img src={logoBase64} alt="Custom Logo" className="w-full h-full object-cover animate-fade-in" />
-            </div>
-          ) : (
-            <span 
-              className="w-14 h-14 rounded-full text-white shrink-0 shadow-md flex items-center justify-center font-bold"
-              style={{ backgroundColor: logoIconColor }}
-            >
-              {logoIconType === 'aperture' && <Aperture className="w-8 h-8" />}
-              {logoIconType === 'film' && <Film className="w-8 h-8" />}
-              {logoIconType === 'sparkles' && <Sparkles className="w-8 h-8 text-yellow-300" />}
-              {logoIconType === 'smile' && <Smile className="w-8 h-8" />}
-              {logoIconType === 'image' && <ImageIcon className="w-8 h-8" />}
-              {(logoIconType === 'camera' || logoIconType === 'upload') && <CameraIcon className="w-8 h-8" />}
-            </span>
-          )}
-          <div className="leading-tight hidden lg:block min-w-0">
-            <span 
-              className="font-display font-black text-white tracking-tight block uppercase leading-snug break-words"
-              style={{ fontSize: `${logoFontSize || 15.5}px` }}
-            >
-              {logoText || 'TIỆM ẢNH NHÀ CAOS'}
-            </span>
-            <span className="text-[10px] text-slate-400 font-bold block tracking-wider uppercase mt-0.5">
-              {logoSubtitle || 'CHO THUÊ MÁY ẢNH GIÁ RẺ'}
-            </span>
+  const renderNavItem = (
+    tabId: 'calendar' | 'contracts' | 'equipment' | 'customers' | 'revenue' | 'expenses',
+    label: string,
+    description: string,
+    IconComponent: React.ComponentType<{ className?: string }>,
+    badgeCount?: number
+  ) => {
+    const isActive = activeTab === tabId;
+    return (
+      <button
+        key={tabId}
+        type="button"
+        onClick={() => setActiveTab(tabId)}
+        className={`w-full group/nav relative rounded-xl transition-all duration-200 flex items-center p-2.5 cursor-pointer ${
+          sidebarCollapsed ? 'justify-center' : 'justify-between'
+        } ${
+          isActive
+            ? 'bg-orange-500/10 text-orange-950 font-bold border border-orange-200/70 shadow-xs'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
+        }`}
+        title={sidebarCollapsed ? label : undefined}
+      >
+        {/* Left vertical accent bar when active */}
+        {isActive && (
+          <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-orange-600" />
+        )}
+
+        <div className={`flex items-center gap-3 min-w-0 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+          <div className={`p-1 rounded-lg shrink-0 transition-colors ${
+            isActive ? 'text-orange-600 bg-orange-100/80 shadow-2xs' : 'text-slate-500 group-hover/nav:text-slate-800'
+          }`}>
+            <IconComponent className="w-5 h-5 stroke-[2.2]" />
           </div>
+
+          {!sidebarCollapsed && (
+            <div className="leading-tight text-left min-w-0">
+              <span className={`block text-[13px] tracking-tight ${isActive ? 'font-black text-slate-900' : 'font-bold text-slate-700'}`}>
+                {label}
+              </span>
+              <span className={`text-[10.5px] block truncate font-normal ${isActive ? 'text-orange-700/80 font-medium' : 'text-slate-400'}`}>
+                {description}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Menu Title */}
-        <div className="px-6 pt-5 pb-2 text-[11px] font-black uppercase tracking-widest text-slate-500 hidden lg:block">
-          Menu chính
+        {/* Badge count */}
+        {!sidebarCollapsed && badgeCount !== undefined && badgeCount > 0 && (
+          <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-2xs shrink-0">
+            {badgeCount}
+          </span>
+        )}
+
+        {/* Floating Tooltip in collapsed mode */}
+        {sidebarCollapsed && (
+          <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-xl shadow-2xl whitespace-nowrap opacity-0 pointer-events-none group-hover/nav:opacity-100 transition-opacity z-50 flex items-center gap-1.5">
+            <span>{label}</span>
+            {badgeCount !== undefined && badgeCount > 0 && (
+              <span className="bg-rose-500 text-white text-[9px] px-1.5 py-0.2 rounded-full">
+                {badgeCount}
+              </span>
+            )}
+          </div>
+        )}
+      </button>
+    );
+  };
+
+  return (
+    <div className="h-[100dvh] bg-[#f8fafc] flex font-sans select-none antialiased w-full overflow-hidden">
+      
+      {/* MODERN FLOATING/DOCKED GLASSMORPHIC SIDEBAR - Web Desktop / Laptop / Tablet */}
+      <aside 
+        className={`hidden md:flex flex-col bg-white/85 backdrop-blur-2xl border-r border-slate-200/80 shrink-0 h-[100dvh] sticky top-0 z-40 transition-all duration-300 ease-in-out shadow-[0_0_30px_rgba(0,0,0,0.02)] select-none ${
+          sidebarCollapsed ? 'w-[76px]' : 'w-[260px] lg:w-[272px]'
+        }`}
+      >
+        
+        {/* Top Header: Logo + Toggle button */}
+        <div className={`p-4 flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} border-b border-slate-100/90 relative`}>
+          <div 
+            onClick={() => setShowLogoModal(true)}
+            className={`flex items-center gap-3 cursor-pointer group/logo transition-all ${sidebarCollapsed ? 'justify-center' : 'min-w-0 flex-1'}`}
+            title="Thay đổi Logo & Thương hiệu"
+          >
+            {logoIconType === 'upload' && logoBase64 ? (
+              <div className="w-10 h-10 rounded-2xl overflow-hidden border border-slate-200/80 flex items-center justify-center bg-white shrink-0 shadow-xs group-hover/logo:scale-105 group-hover/logo:shadow-md transition-all">
+                <img src={logoBase64} alt="Logo" className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div 
+                className="w-10 h-10 rounded-2xl text-white shrink-0 shadow-xs flex items-center justify-center font-bold group-hover/logo:scale-105 transition-transform"
+                style={{ backgroundColor: logoIconColor }}
+              >
+                {logoIconType === 'aperture' && <Aperture className="w-5.5 h-5.5" />}
+                {logoIconType === 'film' && <Film className="w-5.5 h-5.5" />}
+                {logoIconType === 'sparkles' && <Sparkles className="w-5.5 h-5.5 text-yellow-300" />}
+                {logoIconType === 'smile' && <Smile className="w-5.5 h-5.5" />}
+                {logoIconType === 'image' && <ImageIcon className="w-5.5 h-5.5" />}
+                {(logoIconType === 'camera' || logoIconType === 'upload') && <CameraIcon className="w-5.5 h-5.5" />}
+              </div>
+            )}
+
+            {!sidebarCollapsed && (
+              <div className="leading-tight min-w-0">
+                <span 
+                  className="font-display font-black text-slate-900 tracking-tight block uppercase truncate"
+                  style={{ fontSize: `${Math.min(logoFontSize || 15.5, 14.5)}px` }}
+                >
+                  {logoText || 'TIỆM ẢNH NHÀ CAOS'}
+                </span>
+                <span className="text-[9.5px] text-orange-600 font-extrabold block tracking-wider uppercase truncate mt-0.5">
+                  {logoSubtitle || 'CHO THUÊ MÁY ẢNH GIÁ RẺ'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Toggle Sidebar Button */}
+          {!sidebarCollapsed ? (
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0 ml-1.5"
+              title="Thu nhỏ thanh điều hướng"
+            >
+              <PanelLeftClose className="w-4.5 h-4.5" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="absolute -right-3 top-5 w-6 h-6 bg-white border border-slate-200 rounded-full shadow-md flex items-center justify-center text-slate-500 hover:text-orange-600 hover:scale-110 transition cursor-pointer z-50"
+              title="Mở rộng thanh điều hướng"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
-        <div className="pt-2 pb-1 border-b border-slate-800/25 md:block lg:hidden"></div>
 
-        {/* Sidebar Nav Items */}
-        <nav className="flex-1 px-2.5 lg:px-4 space-y-2 lg:space-y-1.5 overflow-y-auto scrollbar-none py-3">
-          
-          {/* Calendar (Lịch máy) */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('calendar')}
-            className={`w-full rounded-xl transition-all flex flex-col lg:flex-row items-center justify-center lg:justify-between p-2 lg:p-3.5 cursor-pointer min-h-[52px] lg:min-h-0 ${
-              activeTab === 'calendar'
-                ? 'bg-orange-600 text-white shadow-md font-semibold font-bold'
-                : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-            }`}
-          >
-            <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
-              <Calendar className={`w-5 h-5 lg:w-5.5 lg:h-5.5 shrink-0 ${activeTab === 'calendar' ? 'text-white' : 'text-slate-400'}`} />
-              <div className="leading-tight hidden lg:block text-left">
-                <span className="block text-[13.5px] font-extrabold tracking-tight">Lịch máy</span>
-                <span className={`text-[11px] block mt-0.5 ${activeTab === 'calendar' ? 'text-orange-100 font-medium' : 'text-slate-500'}`}>Xem lịch đặt thiết bị</span>
+        {/* Sidebar Nav Items Grouped by Category */}
+        <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto scrollbar-none">
+          {/* Group 1: VẬN HÀNH */}
+          <div>
+            {!sidebarCollapsed ? (
+              <div className="px-3 pb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Vận hành
               </div>
-              <span className="text-[9.5px] font-bold block lg:hidden uppercase tracking-tight scale-90 whitespace-nowrap opacity-80">Lịch</span>
+            ) : (
+              <div className="w-6 h-px bg-slate-200 mx-auto my-1.5" />
+            )}
+            <div className="space-y-1">
+              {renderNavItem('calendar', 'Lịch máy', 'Đặt & xếp lịch máy', Calendar)}
+              {renderNavItem('contracts', 'Đơn thuê', 'Hợp đồng & trạng thái', FileText, pendingOrOverdueContractsCount)}
+              {renderNavItem('equipment', 'Kho thiết bị', 'Kho máy, lens & đèn', CameraIcon)}
             </div>
-            {activeTab === 'calendar' && <ChevronRight className="w-4.5 h-4.5 text-white hidden lg:block" />}
-          </button>
+          </div>
 
-          {/* Contracts (Đơn thuê) */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('contracts')}
-            className={`w-full rounded-xl transition-all flex flex-col lg:flex-row items-center justify-center lg:justify-between p-2 lg:p-3.5 cursor-pointer min-h-[52px] lg:min-h-0 ${
-              activeTab === 'contracts'
-                ? 'bg-orange-600 text-white shadow-md font-semibold font-bold'
-                : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-            }`}
-          >
-            <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
-              <FileText className={`w-5 h-5 lg:w-5.5 lg:h-5.5 shrink-0 ${activeTab === 'contracts' ? 'text-white' : 'text-slate-400'}`} />
-              <div className="leading-tight hidden lg:block text-left">
-                <span className="block text-[13.5px] font-extrabold tracking-tight">Đơn thuê</span>
-                <span className={`text-[11px] block mt-0.5 ${activeTab === 'contracts' ? 'text-orange-100 font-medium' : 'text-slate-500'}`}>Hợp đồng & trạng thái</span>
+          {/* Group 2: DỮ LIỆU & TÀI CHÍNH */}
+          <div>
+            {!sidebarCollapsed ? (
+              <div className="px-3 pb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Khách & Tài chính
               </div>
-              <span className="text-[9.5px] font-bold block lg:hidden uppercase tracking-tight scale-90 whitespace-nowrap opacity-80">Đơn</span>
+            ) : (
+              <div className="w-6 h-px bg-slate-200 mx-auto my-1.5" />
+            )}
+            <div className="space-y-1">
+              {renderNavItem('customers', 'Khách hàng', 'Hồ sơ đối tác thuê', Users)}
+              {renderNavItem('revenue', 'Doanh thu', 'Báo cáo tài chính', TrendingUp)}
+              {renderNavItem('expenses', 'Khoản chi', 'Chi phí vận hành', DollarSign)}
             </div>
-            {activeTab === 'contracts' && <ChevronRight className="w-4.5 h-4.5 text-white hidden lg:block" />}
-          </button>
+          </div>
 
-          {/* Equipment (Thiết bị) */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('equipment')}
-            className={`w-full rounded-xl transition-all flex flex-col lg:flex-row items-center justify-center lg:justify-between p-2 lg:p-3.5 cursor-pointer min-h-[52px] lg:min-h-0 ${
-              activeTab === 'equipment'
-                ? 'bg-orange-600 text-white shadow-md font-semibold font-bold'
-                : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-            }`}
-          >
-            <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
-              <CameraIcon className={`w-5 h-5 lg:w-5.5 lg:h-5.5 shrink-0 ${activeTab === 'equipment' ? 'text-white' : 'text-slate-400'}`} />
-              <div className="leading-tight hidden lg:block text-left">
-                <span className="block text-[13.5px] font-extrabold tracking-tight">Thiết bị</span>
-                <span className={`text-[11px] block mt-0.5 ${activeTab === 'equipment' ? 'text-orange-100 font-medium' : 'text-slate-500'}`}>Kho máy & lens</span>
+          {/* Group 3: HỆ THỐNG & CÀI ĐẶT */}
+          <div>
+            {!sidebarCollapsed ? (
+              <div className="px-3 pb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Hệ thống
               </div>
-              <span className="text-[9.5px] font-bold block lg:hidden uppercase tracking-tight scale-90 whitespace-nowrap opacity-80">Thiết bị</span>
-            </div>
-            {activeTab === 'equipment' && <ChevronRight className="w-4.5 h-4.5 text-white hidden lg:block" />}
-          </button>
+            ) : (
+              <div className="w-6 h-px bg-slate-200 mx-auto my-1.5" />
+            )}
+            <div className="space-y-1">
+              {/* Logo / Branding */}
+              <button
+                type="button"
+                onClick={() => setShowLogoModal(true)}
+                className={`w-full group/nav relative rounded-xl transition-all duration-200 flex items-center p-2.5 cursor-pointer ${
+                  sidebarCollapsed ? 'justify-center' : 'justify-start gap-3'
+                } text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium`}
+                title={sidebarCollapsed ? 'Logo & Thương hiệu' : undefined}
+              >
+                <div className="p-1 rounded-lg text-slate-500 group-hover/nav:text-orange-600 transition-colors">
+                  <Palette className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                {!sidebarCollapsed && (
+                  <div className="leading-tight text-left min-w-0">
+                    <span className="block text-[13px] font-bold text-slate-700">Thương hiệu</span>
+                    <span className="text-[10.5px] block text-slate-400 font-normal">Tùy chỉnh Logo & Tên</span>
+                  </div>
+                )}
+                {/* Floating Tooltip in collapsed mode */}
+                {sidebarCollapsed && (
+                  <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg shadow-xl whitespace-nowrap opacity-0 pointer-events-none group-hover/nav:opacity-100 transition-opacity z-50">
+                    Logo & Thương hiệu
+                  </span>
+                )}
+              </button>
 
-          {/* Customers (Khách hàng) */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('customers')}
-            className={`w-full rounded-xl transition-all flex flex-col lg:flex-row items-center justify-center lg:justify-between p-2 lg:p-3.5 cursor-pointer min-h-[52px] lg:min-h-0 ${
-              activeTab === 'customers'
-                ? 'bg-orange-600 text-white shadow-md font-semibold font-bold'
-                : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-            }`}
-          >
-            <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
-              <Users className={`w-5 h-5 lg:w-5.5 lg:h-5.5 shrink-0 ${activeTab === 'customers' ? 'text-white' : 'text-slate-400'}`} />
-              <div className="leading-tight hidden lg:block text-left">
-                <span className="block text-[13.5px] font-extrabold tracking-tight">Khách hàng</span>
-                <span className={`text-[11px] block mt-0.5 ${activeTab === 'customers' ? 'text-orange-100 font-medium' : 'text-slate-500'}`}>Hồ sơ đối tác</span>
-              </div>
-              <span className="text-[9.5px] font-bold block lg:hidden uppercase tracking-tight scale-90 whitespace-nowrap opacity-80">Khách</span>
+              {/* Backup & Restore */}
+              <button
+                type="button"
+                onClick={() => setShowBackupModal(true)}
+                className={`w-full group/nav relative rounded-xl transition-all duration-200 flex items-center p-2.5 cursor-pointer ${
+                  sidebarCollapsed ? 'justify-center' : 'justify-start gap-3'
+                } text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium`}
+                title={sidebarCollapsed ? 'Sao lưu & Khôi phục' : undefined}
+              >
+                <div className="p-1 rounded-lg text-slate-500 group-hover/nav:text-orange-600 transition-colors">
+                  <Database className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                {!sidebarCollapsed && (
+                  <div className="leading-tight text-left min-w-0">
+                    <span className="block text-[13px] font-bold text-slate-700">Sao lưu dữ liệu</span>
+                    <span className="text-[10.5px] block text-slate-400 font-normal">Xuất & khôi phục JSON</span>
+                  </div>
+                )}
+                {/* Floating Tooltip in collapsed mode */}
+                {sidebarCollapsed && (
+                  <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg shadow-xl whitespace-nowrap opacity-0 pointer-events-none group-hover/nav:opacity-100 transition-opacity z-50">
+                    Sao lưu & Khôi phục
+                  </span>
+                )}
+              </button>
             </div>
-            {activeTab === 'customers' && <ChevronRight className="w-4.5 h-4.5 text-white hidden lg:block" />}
-          </button>
-
-          {/* Revenue (Doanh thu) */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('revenue')}
-            className={`w-full rounded-xl transition-all flex flex-col lg:flex-row items-center justify-center lg:justify-between p-2 lg:p-3.5 cursor-pointer min-h-[52px] lg:min-h-0 ${
-              activeTab === 'revenue'
-                ? 'bg-orange-600 text-white shadow-md font-semibold'
-                : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-            }`}
-          >
-            <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
-              <TrendingUp className={`w-5 h-5 lg:w-5.5 lg:h-5.5 shrink-0 ${activeTab === 'revenue' ? 'text-white' : 'text-slate-400'}`} />
-              <div className="leading-tight hidden lg:block text-left">
-                <span className="block text-[13.5px] font-extrabold tracking-tight">Doanh thu</span>
-                <span className={`text-[11px] block mt-0.5 ${activeTab === 'revenue' ? 'text-orange-100 font-medium' : 'text-slate-500'}`}>Báo cáo tài chính</span>
-              </div>
-              <span className="text-[9.5px] font-bold block lg:hidden uppercase tracking-tight scale-90 whitespace-nowrap opacity-80">D.Thu</span>
-            </div>
-            {activeTab === 'revenue' && <ChevronRight className="w-4.5 h-4.5 text-white hidden lg:block" />}
-          </button>
-
-          {/* Expenses (Khoản chi) */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('expenses')}
-            className={`w-full rounded-xl transition-all flex flex-col lg:flex-row items-center justify-center lg:justify-between p-2 lg:p-3.5 cursor-pointer min-h-[52px] lg:min-h-0 ${
-              activeTab === 'expenses'
-                ? 'bg-orange-600 text-white shadow-md font-semibold font-bold'
-                : 'text-slate-400 hover:text-white hover:bg-white/5 font-medium'
-            }`}
-          >
-            <div className="flex flex-col lg:flex-row items-center gap-1 lg:gap-3">
-              <DollarSign className={`w-5 h-5 lg:w-5.5 lg:h-5.5 shrink-0 ${activeTab === 'expenses' ? 'text-white' : 'text-slate-400'}`} />
-              <div className="leading-tight hidden lg:block text-left">
-                <span className="block text-[13.5px] font-extrabold tracking-tight">Khoản chi</span>
-                <span className={`text-[11px] block mt-0.5 ${activeTab === 'expenses' ? 'text-orange-100 font-medium' : 'text-slate-500'}`}>Chi phí phát sinh</span>
-              </div>
-              <span className="text-[9.5px] font-bold block lg:hidden uppercase tracking-tight scale-90 whitespace-nowrap opacity-80">Chi</span>
-            </div>
-            {activeTab === 'expenses' && <ChevronRight className="w-4.5 h-4.5 text-white hidden lg:block" />}
-          </button>
-
+          </div>
         </nav>
+
+        {/* Bottom User Profile Section (Pinned at Bottom) */}
+        <div className="p-3 border-t border-slate-100/90 relative">
+          <div 
+            onClick={() => setSidebarDropdownOpen(!sidebarDropdownOpen)}
+            className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} p-2 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer group/prof`}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative shrink-0">
+                <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-2xs">
+                  <img 
+                    src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover" 
+                  />
+                </div>
+                {/* Online status indicator */}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+              </div>
+
+              {!sidebarCollapsed && (
+                <div className="min-w-0 text-left leading-tight">
+                  <span className="font-extrabold text-xs text-slate-900 block truncate group-hover/prof:text-orange-600 transition-colors">
+                    {currentUser?.fullName || 'Quản trị viên'}
+                  </span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className="text-[10px] text-slate-400 font-mono block truncate">
+                      @{currentUser?.username || 'admin'}
+                    </span>
+                    <span className={`text-[8.5px] font-extrabold uppercase px-1 py-0.2 rounded ${
+                      currentUser?.role === 'admin' 
+                        ? 'bg-orange-100 text-orange-700' 
+                        : 'bg-emerald-100 text-emerald-700'
+                    }`}>
+                      {currentUser?.role === 'admin' ? 'Admin' : 'Staff'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {!sidebarCollapsed && (
+              <ChevronDown className={`w-4 h-4 text-slate-400 group-hover/prof:text-slate-700 transition-transform ${sidebarDropdownOpen ? 'rotate-180' : ''}`} />
+            )}
+          </div>
+
+          {/* User Profile Popup Menu in Sidebar */}
+          {sidebarDropdownOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setSidebarDropdownOpen(false)} />
+              <div className={`absolute ${sidebarCollapsed ? 'left-full ml-2 bottom-2' : 'left-3 right-3 bottom-full mb-2'} bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 text-left text-xs text-slate-800 animate-fade-in divide-y divide-slate-100 w-56`}>
+                <div className="px-3.5 py-2">
+                  <p className="font-black text-slate-900 text-xs truncate">{currentUser?.fullName}</p>
+                  <p className="text-[10.5px] text-slate-400 font-mono truncate">@{currentUser?.username} • {currentUser?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}</p>
+                </div>
+                <div className="py-1">
+                  <button
+                    type="button"
+                    onClick={() => { setSidebarDropdownOpen(false); setShowChangePasswordModal(true); }}
+                    className="w-full px-3.5 py-2 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2"
+                  >
+                    <Key className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Đổi mật khẩu</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSidebarDropdownOpen(false); setShowChangeAvatarModal(true); }}
+                    className="w-full px-3.5 py-2 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2"
+                  >
+                    <Smile className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Đổi ảnh đại diện</span>
+                  </button>
+                  {currentUser?.role === 'admin' && (
+                    <button
+                      type="button"
+                      onClick={() => { setSidebarDropdownOpen(false); setShowManageUsersModal(true); }}
+                      className="w-full px-3.5 py-2 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2"
+                    >
+                      <Users className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Quản lý tài khoản</span>
+                    </button>
+                  )}
+                </div>
+                <div className="py-1">
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full px-3.5 py-2 hover:bg-rose-50 text-rose-600 font-bold text-left transition flex items-center gap-2"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </aside>
 
       {/* RIGHT MAIN WORKSPACE PANORAMA */}
       <div className="flex-grow flex flex-col min-w-0 h-[100dvh] overflow-hidden">
         
-        {/* TOP PATH HEADER BAR */}
-        <header className="bg-white border-b border-gray-150 sticky top-0 z-30 pt-[max(8px,env(safe-area-inset-top,8px))] pb-2.5 px-3.5 sm:px-6 sm:py-3 flex items-center justify-between select-none shrink-0">
-          {/* Breadcrumb path (Desktop) / Section Icon & Tab Title (Mobile) */}
-          <div className="flex items-center gap-2 min-w-0">
+        {/* TOP PATH HEADER BAR - Frosted Glassmorphism Header */}
+        <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/70 sticky top-0 z-30 pt-[max(8px,env(safe-area-inset-top,8px))] pb-2.5 px-3.5 sm:px-6 sm:py-3 flex items-center justify-between select-none shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+          
+          {/* Left Greeting & Context */}
+          <div className="flex items-center gap-3 min-w-0">
             {/* Mobile Header Title (Compact) */}
             <div className="md:hidden flex items-center gap-2 min-w-0">
-              <div className="w-7.5 h-7.5 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-3xs shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-3xs shrink-0">
                 {activeTab === 'calendar' && <Calendar className="w-4 h-4 stroke-[2.2]" />}
                 {activeTab === 'contracts' && <FileText className="w-4 h-4 stroke-[2.2]" />}
                 {activeTab === 'equipment' && <CameraIcon className="w-4 h-4 stroke-[2.2]" />}
@@ -2086,29 +2307,166 @@ export default function App() {
               </div>
             </div>
 
-            {/* Desktop Breadcrumb */}
-            <div className="hidden md:flex items-center gap-2 text-xs font-bold text-gray-500">
-              <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Hệ thống</span>
-              <span className="text-slate-300">›</span>
-              <span className="text-gray-900 font-black uppercase tracking-wider text-[10.5px] bg-gray-100/90 px-2.5 py-1 rounded-lg border border-gray-200/60">
-                {activeTab === 'calendar' && 'Lịch máy'}
-                {activeTab === 'contracts' && 'Hợp đồng & Đơn thuê'}
-                {activeTab === 'equipment' && 'Kho thiết bị'}
-                {activeTab === 'revenue' && 'Báo cáo doanh thu'}
-                {activeTab === 'customers' && 'Hồ sơ khách hàng'}
-                {activeTab === 'expenses' && 'Nhật ký khoản chi'}
-              </span>
+            {/* Desktop Modern Greeting & Breadcrumb */}
+            <div className="hidden md:flex flex-col min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm lg:text-base font-black text-slate-900 tracking-tight">
+                  Xin chào, {currentUser?.fullName?.split(' ').slice(-1)[0] || currentUser?.fullName || 'Bạn'} 👋
+                </h2>
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                  {activeTab === 'calendar' && 'Lịch máy'}
+                  {activeTab === 'contracts' && 'Hợp đồng'}
+                  {activeTab === 'equipment' && 'Kho thiết bị'}
+                  {activeTab === 'revenue' && 'Báo cáo'}
+                  {activeTab === 'customers' && 'Khách hàng'}
+                  {activeTab === 'expenses' && 'Khoản chi'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                {activeTab === 'calendar' && 'Xếp lịch thuê camera, lens theo thời gian thực'}
+                {activeTab === 'contracts' && 'Theo dõi tiến trình hợp đồng, giao nhận máy và thanh toán'}
+                {activeTab === 'equipment' && 'Quản lý tình trạng sẵn sàng và giá thuê từng thiết bị'}
+                {activeTab === 'revenue' && 'Tổng hợp biểu đồ doanh thu, lợi nhuận và thu tiền'}
+                {activeTab === 'customers' && 'Danh bạ thông tin khách hàng, CCCD và lịch sử thuê'}
+                {activeTab === 'expenses' && 'Nhật ký các khoản chi tiêu vận hành và mua sắm'}
+              </p>
             </div>
           </div>
 
+          {/* Center: Smart Quick Search Bar (Pill style as in Reference 1 & 2) */}
+          <div ref={searchContainerRef} className="hidden lg:block relative z-40">
+            <div className="relative w-72 xl:w-84">
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <Search className="w-4 h-4" />
+              </span>
+              <input
+                type="text"
+                value={headerSearchQuery}
+                onFocus={() => setSearchDropdownOpen(true)}
+                onChange={(e) => {
+                  setHeaderSearchQuery(e.target.value);
+                  setSearchDropdownOpen(true);
+                }}
+                placeholder="Tìm khách, số ĐT, thiết bị..."
+                className="w-full pl-9.5 pr-8 py-1.5 bg-slate-100/90 hover:bg-slate-100 border border-slate-200/90 rounded-full text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-orange-500 focus:bg-white focus:ring-3 focus:ring-orange-500/10 transition-all shadow-3xs"
+              />
+              {headerSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHeaderSearchQuery('');
+                    setSearchDropdownOpen(false);
+                  }}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Search Dropdown Results */}
+            {searchDropdownOpen && headerSearchQuery.trim() && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-2 z-50 text-xs text-slate-800 animate-fade-in max-h-96 overflow-y-auto">
+                {searchResults.contracts.length === 0 && searchResults.cameras.length === 0 && searchResults.customers.length === 0 ? (
+                  <div className="py-4 text-center text-slate-400 text-xs">
+                    Không tìm thấy kết quả phù hợp
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {/* Contracts results */}
+                    {searchResults.contracts.length > 0 && (
+                      <div>
+                        <div className="px-2 py-1 text-[10px] font-black uppercase text-slate-400">Đơn thuê ({searchResults.contracts.length})</div>
+                        {searchResults.contracts.map(c => (
+                          <div
+                            key={c.id}
+                            onClick={() => {
+                              setActiveTab('contracts');
+                              setSearchDropdownOpen(false);
+                            }}
+                            className="p-2 rounded-xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition"
+                          >
+                            <div className="min-w-0">
+                              <span className="font-black text-slate-900 block truncate">{c.customerName} ({c.contractCode})</span>
+                              <span className="text-[10.5px] text-slate-500 font-mono block">SĐT: {c.customerPhone}</span>
+                            </div>
+                            <span className="text-[10px] font-extrabold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full shrink-0">
+                              {c.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Cameras results */}
+                    {searchResults.cameras.length > 0 && (
+                      <div>
+                        <div className="px-2 py-1 text-[10px] font-black uppercase text-slate-400">Thiết bị ({searchResults.cameras.length})</div>
+                        {searchResults.cameras.map(cam => (
+                          <div
+                            key={cam.id}
+                            onClick={() => {
+                              setActiveTab('equipment');
+                              setSearchDropdownOpen(false);
+                            }}
+                            className="p-2 rounded-xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition"
+                          >
+                            <div className="min-w-0">
+                              <span className="font-black text-slate-900 block truncate">{cam.name}</span>
+                              <span className="text-[10.5px] text-slate-500 font-mono block">SN: {cam.serialNumber || 'N/A'}</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
+                              {cam.status === 'Available' ? 'Sẵn sàng' : 'Đang thuê'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Customers results */}
+                    {searchResults.customers.length > 0 && (
+                      <div>
+                        <div className="px-2 py-1 text-[10px] font-black uppercase text-slate-400">Khách hàng ({searchResults.customers.length})</div>
+                        {searchResults.customers.map(cust => (
+                          <div
+                            key={cust.id}
+                            onClick={() => {
+                              setActiveTab('customers');
+                              setSearchDropdownOpen(false);
+                            }}
+                            className="p-2 rounded-xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition"
+                          >
+                            <span className="font-black text-slate-900 block truncate">{cust.name}</span>
+                            <span className="text-[10.5px] text-slate-500 font-mono block">{cust.phone}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Right Tools: Date badge + Quick action button + Notification + Profile */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Quick Action Button: + Đặt lịch */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('calendar')}
+              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-orange-600 hover:bg-orange-700 text-white text-xs font-black shadow-xs hover:shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Đặt lịch</span>
+            </button>
+
             {/* System Date Badge */}
             <div 
-              className="bg-orange-50 border border-orange-200/80 text-orange-950 px-2.5 sm:px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-[11px] sm:text-xs font-black shrink-0 select-none shadow-3xs"
+              className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/80 text-orange-950 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-[11px] sm:text-xs font-black shrink-0 select-none shadow-3xs"
               title="Ngày hoạt động của hệ thống"
             >
               <Calendar className="w-3.5 h-3.5 text-orange-600 shrink-0" />
-              <span className="hidden sm:inline">Hệ thống:</span>
+              <span className="hidden sm:inline text-orange-800/80 font-bold">Hôm nay:</span>
               <span className="font-mono font-black">{formatDMY(systemDate)}</span>
             </div>
             
@@ -2120,12 +2478,12 @@ export default function App() {
               setSystemDate={setSystemDate}
             />
 
-            {/* Profile Dropdown for safety / logout */}
+            {/* Header Profile Dropdown Button */}
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden border border-gray-200/80 bg-white flex items-center justify-center cursor-pointer shadow-3xs active:scale-95 transition-transform"
+                className="w-9 h-9 sm:w-9.5 sm:h-9.5 rounded-full overflow-hidden border border-slate-200 bg-white flex items-center justify-center cursor-pointer shadow-3xs active:scale-95 transition-transform"
               >
                 <img 
                   src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'} 
@@ -2137,51 +2495,54 @@ export default function App() {
               {profileDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40 cursor-default" onClick={() => setProfileDropdownOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 text-left text-xs text-gray-800 animate-fade-in">
-                    <div className="px-3 py-2 border-b border-gray-150 font-bold block bg-gray-50 text-gray-900 leading-snug">
+                  <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 text-left text-xs text-slate-800 animate-fade-in divide-y divide-slate-100">
+                    <div className="px-4 py-2.5 font-bold block bg-slate-50/80 text-slate-900 leading-snug rounded-t-xl">
                       {currentUser?.fullName}
-                      <span className="block text-[10px] text-gray-400 mt-0.5 font-normal select-all">@{currentUser?.username}</span>
+                      <span className="block text-[10.5px] text-slate-400 mt-0.5 font-normal select-all">@{currentUser?.username} • {currentUser?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}</span>
                     </div>
                     
-                    {/* General profile links */}
-                    <button
-                      type="button"
-                      onClick={() => { setProfileDropdownOpen(false); setShowChangePasswordModal(true); }}
-                      className="w-full px-3 py-2 hover:bg-orange-50 text-left font-bold block"
-                    >
-                      Đổi mật khẩu
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setProfileDropdownOpen(false); setShowChangeAvatarModal(true); }}
-                      className="w-full px-3 py-2 hover:bg-orange-50 text-left font-bold block"
-                    >
-                      Đổi ảnh đại diện
-                    </button>
-                    {currentUser?.role === 'admin' && (
+                    <div className="py-1">
                       <button
                         type="button"
-                        onClick={() => { setProfileDropdownOpen(false); setShowManageUsersModal(true); }}
-                        className="w-full px-3 py-2 hover:bg-orange-50 text-left font-bold block"
+                        onClick={() => { setProfileDropdownOpen(false); setShowChangePasswordModal(true); }}
+                        className="w-full px-4 py-2 hover:bg-orange-50 text-left font-bold block text-slate-700 hover:text-orange-600 transition"
                       >
-                        Quản lý tài khoản
+                        Đổi mật khẩu
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => { setProfileDropdownOpen(false); setShowBackupModal(true); }}
-                      className="w-full px-3 py-2 hover:bg-orange-50 text-left text-orange-600 font-extrabold block"
-                    >
-                      Sao lưu & Khôi phục
-                    </button>
-                    <div className="border-t border-gray-150/85 my-1" />
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="w-full px-3 py-2 hover:bg-rose-50 text-rose-600 font-bold text-left block"
-                    >
-                      Đăng xuất
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => { setProfileDropdownOpen(false); setShowChangeAvatarModal(true); }}
+                        className="w-full px-4 py-2 hover:bg-orange-50 text-left font-bold block text-slate-700 hover:text-orange-600 transition"
+                      >
+                        Đổi ảnh đại diện
+                      </button>
+                      {currentUser?.role === 'admin' && (
+                        <button
+                          type="button"
+                          onClick={() => { setProfileDropdownOpen(false); setShowManageUsersModal(true); }}
+                          className="w-full px-4 py-2 hover:bg-orange-50 text-left font-bold block text-slate-700 hover:text-orange-600 transition"
+                        >
+                          Quản lý tài khoản
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => { setProfileDropdownOpen(false); setShowBackupModal(true); }}
+                        className="w-full px-4 py-2 hover:bg-orange-50 text-left text-orange-600 font-extrabold block transition"
+                      >
+                        Sao lưu & Khôi phục
+                      </button>
+                    </div>
+
+                    <div className="py-1">
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="w-full px-4 py-2 hover:bg-rose-50 text-rose-600 font-bold text-left block transition"
+                      >
+                        Đăng xuất
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
