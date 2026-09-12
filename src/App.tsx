@@ -190,6 +190,7 @@ export default function App() {
   // Dropdown / Modal Controls for Profile & Account Administration
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [sidebarDropdownOpen, setSidebarDropdownOpen] = useState(false);
+  const [settingsExpanded, setSettingsExpanded] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showManageUsersModal, setShowManageUsersModal] = useState(false);
   const [showChangeAvatarModal, setShowChangeAvatarModal] = useState(false);
@@ -1972,27 +1973,34 @@ export default function App() {
         type="button"
         onClick={() => setActiveTab(tabId)}
         className={`w-full group/nav relative rounded-2xl transition-all duration-200 flex items-center cursor-pointer ${
-          sidebarCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2.5'
+          sidebarCollapsed ? 'justify-center p-2' : 'justify-between px-3 py-2.5'
         } ${
           isActive
-            ? 'bg-white text-orange-600 shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-slate-200/80 font-bold'
-            : 'text-slate-400 hover:text-slate-800 hover:bg-white/70 border border-transparent font-medium'
+            ? 'bg-white text-slate-950 shadow-[0_4px_18px_rgba(234,88,12,0.14),0_1px_3px_rgba(0,0,0,0.04)] border border-orange-200/90 font-bold'
+            : 'text-slate-700 hover:text-slate-950 hover:bg-white/80 border border-transparent font-medium hover:shadow-xs'
         }`}
         title={sidebarCollapsed ? label : undefined}
       >
+        {/* Left vertical accent indicator on active item */}
+        {isActive && !sidebarCollapsed && (
+          <span className="absolute left-1 top-2.5 bottom-2.5 w-1 rounded-full bg-gradient-to-b from-orange-500 to-amber-500 shadow-xs" />
+        )}
+
         <div className={`flex items-center gap-3 min-w-0 ${sidebarCollapsed ? 'justify-center' : ''}`}>
-          <div className={`p-1 rounded-xl shrink-0 transition-colors ${
-            isActive ? 'text-orange-600' : 'text-slate-400 group-hover/nav:text-slate-700'
+          <div className={`w-9.5 h-9.5 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+            isActive 
+              ? 'bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/25 scale-102' 
+              : 'bg-slate-100/90 text-slate-600 group-hover/nav:bg-orange-50 group-hover/nav:text-orange-600 group-hover/nav:scale-105'
           }`}>
             <IconComponent className="w-5 h-5 stroke-[2.2]" />
           </div>
 
           {!sidebarCollapsed && (
             <div className="leading-tight text-left min-w-0">
-              <span className={`block text-[13px] tracking-tight ${isActive ? 'font-extrabold text-slate-900' : 'font-bold text-slate-700'}`}>
+              <span className={`block text-[13.5px] tracking-tight ${isActive ? 'font-black text-slate-950' : 'font-bold text-slate-800 group-hover/nav:text-slate-950'}`}>
                 {label}
               </span>
-              <span className={`text-[10px] block truncate ${isActive ? 'text-orange-600/80 font-semibold' : 'text-slate-400 font-normal'}`}>
+              <span className={`text-[10px] block truncate ${isActive ? 'text-orange-600 font-bold' : 'text-slate-400 font-medium group-hover/nav:text-slate-500'}`}>
                 {description}
               </span>
             </div>
@@ -2113,7 +2121,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Section 2: CÀI ĐẶT & HỆ THỐNG */}
+          {/* Section 2: CÀI ĐẶT & HỆ THỐNG - Ẩn đi, bấm chọn mới hiện ra */}
           <div>
             {!sidebarCollapsed ? (
               <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -2122,57 +2130,120 @@ export default function App() {
             ) : (
               <div className="w-5 h-px bg-slate-200 mx-auto my-1.5" />
             )}
-            <div className="space-y-1">
-              {/* Logo / Branding */}
-              <button
-                type="button"
-                onClick={() => setShowLogoModal(true)}
-                className={`w-full group/nav relative rounded-2xl transition-all duration-200 flex items-center cursor-pointer ${
-                  sidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2.5'
-                } text-slate-400 hover:text-slate-800 hover:bg-white/70 border border-transparent font-medium`}
-                title={sidebarCollapsed ? 'Thương hiệu & Logo' : undefined}
-              >
-                <div className="p-1 rounded-xl text-slate-400 group-hover/nav:text-orange-600 transition-colors">
-                  <Palette className="w-5 h-5 stroke-[2.2]" />
-                </div>
-                {!sidebarCollapsed && (
-                  <div className="leading-tight text-left min-w-0">
-                    <span className="block text-[13px] font-bold text-slate-700">Thương hiệu</span>
-                    <span className="text-[10px] block text-slate-400 font-normal">Tùy chỉnh Logo & Tên</span>
-                  </div>
-                )}
-                {sidebarCollapsed && (
-                  <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg shadow-xl whitespace-nowrap opacity-0 pointer-events-none group-hover/nav:opacity-100 transition-opacity z-50">
-                    Thương hiệu & Logo
-                  </span>
-                )}
-              </button>
 
-              {/* Backup & Restore */}
-              <button
-                type="button"
-                onClick={() => setShowBackupModal(true)}
-                className={`w-full group/nav relative rounded-2xl transition-all duration-200 flex items-center cursor-pointer ${
-                  sidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2.5'
-                } text-slate-400 hover:text-slate-800 hover:bg-white/70 border border-transparent font-medium`}
-                title={sidebarCollapsed ? 'Sao lưu dữ liệu' : undefined}
-              >
-                <div className="p-1 rounded-xl text-slate-400 group-hover/nav:text-orange-600 transition-colors">
-                  <Database className="w-5 h-5 stroke-[2.2]" />
-                </div>
-                {!sidebarCollapsed && (
-                  <div className="leading-tight text-left min-w-0">
-                    <span className="block text-[13px] font-bold text-slate-700">Sao lưu dữ liệu</span>
-                    <span className="text-[10px] block text-slate-400 font-normal">Xuất & khôi phục JSON</span>
+            {!sidebarCollapsed ? (
+              /* Expanded Sidebar Accordion */
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setSettingsExpanded(!settingsExpanded)}
+                  className={`w-full group/nav relative rounded-2xl transition-all duration-200 flex items-center justify-between px-3 py-2.5 cursor-pointer ${
+                    settingsExpanded
+                      ? 'bg-slate-100/90 text-slate-900 font-bold border border-slate-200/80 shadow-3xs'
+                      : 'text-slate-700 hover:text-slate-950 hover:bg-white/80 border border-transparent font-medium hover:shadow-xs'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-9.5 h-9.5 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                      settingsExpanded 
+                        ? 'bg-orange-500 text-white shadow-xs' 
+                        : 'bg-slate-100/90 text-slate-600 group-hover/nav:bg-orange-50 group-hover/nav:text-orange-600 group-hover/nav:scale-105'
+                    }`}>
+                      <Settings className="w-5 h-5 stroke-[2.2]" />
+                    </div>
+                    <div className="leading-tight text-left min-w-0">
+                      <span className="block text-[13.5px] font-bold text-slate-800 group-hover/nav:text-slate-950">
+                        Cài đặt
+                      </span>
+                      <span className="text-[10px] block truncate font-medium text-slate-400 group-hover/nav:text-slate-500">
+                        Thương hiệu & Sao lưu
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-slate-400 group-hover/nav:text-slate-700 transition-transform duration-200 shrink-0 ${
+                    settingsExpanded ? 'rotate-180 text-orange-600' : ''
+                  }`} />
+                </button>
+
+                {/* Sub-items: ONLY shown when settingsExpanded is true */}
+                {settingsExpanded && (
+                  <div className="pl-3 pr-1 py-1 space-y-1 bg-slate-50/80 rounded-2xl border border-slate-200/70 mt-1.5 animate-fade-in">
+                    <button
+                      type="button"
+                      onClick={() => setShowLogoModal(true)}
+                      className="w-full rounded-xl px-3 py-2 text-left flex items-center gap-2.5 hover:bg-white text-slate-700 hover:text-orange-600 font-bold text-xs transition cursor-pointer hover:shadow-3xs"
+                    >
+                      <Palette className="w-4 h-4 text-slate-500 shrink-0" />
+                      <div>
+                        <span className="block leading-tight">Thương hiệu & Logo</span>
+                        <span className="text-[9.5px] text-slate-400 font-normal block">Tùy chỉnh logo, tên quán</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowBackupModal(true)}
+                      className="w-full rounded-xl px-3 py-2 text-left flex items-center gap-2.5 hover:bg-white text-slate-700 hover:text-orange-600 font-bold text-xs transition cursor-pointer hover:shadow-3xs"
+                    >
+                      <Database className="w-4 h-4 text-slate-500 shrink-0" />
+                      <div>
+                        <span className="block leading-tight">Sao lưu dữ liệu</span>
+                        <span className="text-[9.5px] text-slate-400 font-normal block">Xuất & nạp bản sao lưu</span>
+                      </div>
+                    </button>
                   </div>
                 )}
-                {sidebarCollapsed && (
-                  <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg shadow-xl whitespace-nowrap opacity-0 pointer-events-none group-hover/nav:opacity-100 transition-opacity z-50">
-                    Sao lưu dữ liệu
-                  </span>
+              </div>
+            ) : (
+              /* Collapsed Rail Mode - Squircle button with popup */
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setSettingsExpanded(!settingsExpanded)}
+                  className={`w-full group/nav relative rounded-2xl transition-all duration-200 flex items-center justify-center p-2 cursor-pointer ${
+                    settingsExpanded
+                      ? 'bg-orange-500 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-950 hover:bg-white/80'
+                  }`}
+                  title="Cài đặt"
+                >
+                  <div className={`w-9.5 h-9.5 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                    settingsExpanded 
+                      ? 'bg-orange-500 text-white' 
+                      : 'bg-slate-100/90 text-slate-600 group-hover/nav:bg-orange-50 group-hover/nav:text-orange-600'
+                  }`}>
+                    <Settings className="w-5 h-5 stroke-[2.2]" />
+                  </div>
+                </button>
+
+                {settingsExpanded && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setSettingsExpanded(false)} />
+                    <div className="absolute left-full ml-3 top-0 w-48 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 text-left text-xs animate-fade-in divide-y divide-slate-100">
+                      <div className="px-3 py-1.5 font-extrabold text-[11px] text-slate-400 uppercase tracking-wider">Cài đặt</div>
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => { setSettingsExpanded(false); setShowLogoModal(true); }}
+                          className="w-full px-3 py-2 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2 cursor-pointer"
+                        >
+                          <Palette className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Thương hiệu & Logo</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setSettingsExpanded(false); setShowBackupModal(true); }}
+                          className="w-full px-3 py-2 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2 cursor-pointer"
+                        >
+                          <Database className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Sao lưu dữ liệu</span>
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 )}
-              </button>
-            </div>
+              </div>
+            )}
           </div>
         </nav>
 

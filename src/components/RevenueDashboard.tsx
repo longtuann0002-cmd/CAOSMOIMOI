@@ -367,7 +367,7 @@ export default function RevenueDashboard({
           }
         }
 
-        const itemEstPrice = is6H ? (item.dailyRate * 0.6 * item.quantity) : (item.dailyRate * durationDays * item.quantity);
+        const itemEstPrice = is6H ? (item.dailyRate * (item.quantity || 1)) : (item.dailyRate * durationDays * (item.quantity || 1));
         let itemRevenue = itemEstPrice;
         if (c.totalPrice > 0 && c.paidAmount !== undefined) {
           itemRevenue = Math.round((itemEstPrice / c.totalPrice) * c.paidAmount);
