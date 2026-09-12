@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Component, useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract, Customer, Expense, ContractStatus } from './types';
 import {
@@ -90,17 +90,28 @@ const PRESET_AVATARS = [
   'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=faces'
 ];
 
+interface TabErrorBoundaryProps {
+  children: React.ReactNode;
+  tabName: string;
+}
+
+interface TabErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
 // Graceful Error Boundary for Tab Switching
-class TabErrorBoundary extends React.Component<
-  { children: React.ReactNode; tabName: string },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: { children: React.ReactNode; tabName: string }) {
+class TabErrorBoundary extends Component<TabErrorBoundaryProps, TabErrorBoundaryState> {
+  state: TabErrorBoundaryState = { hasError: false, error: null };
+  props: TabErrorBoundaryProps;
+  setState!: (state: Partial<TabErrorBoundaryState>) => void;
+
+  constructor(props: TabErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.props = props;
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(error: Error): TabErrorBoundaryState {
     return { hasError: true, error };
   }
 
