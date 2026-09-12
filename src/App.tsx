@@ -2336,16 +2336,6 @@ export default function App() {
 
           {/* Right: Clean Minimal Actions (Search, Date, Notification, +Đặt lịch, Profile) */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            {/* Quick Action Button: + Đặt lịch */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('calendar')}
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold shadow-xs hover:shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Đặt lịch</span>
-            </button>
-
             {/* System Date Badge */}
             <div 
               className="hidden sm:flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 text-slate-700 px-3 py-1.5 rounded-full text-xs font-bold select-none shadow-3xs"
@@ -2374,77 +2364,6 @@ export default function App() {
               systemDate={systemDate}
               setSystemDate={setSystemDate}
             />
-
-            {/* Header Profile Dropdown Button */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center cursor-pointer shadow-3xs active:scale-95 transition-transform"
-                title={currentUser?.fullName || 'Tài khoản'}
-              >
-                <img 
-                  src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'} 
-                  alt="Avatar" 
-                  className="w-full h-full object-cover" 
-                />
-              </button>
-              
-              {profileDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-40 cursor-default" onClick={() => setProfileDropdownOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 text-left text-xs text-slate-800 animate-fade-in divide-y divide-slate-100">
-                    <div className="px-4 py-2.5 font-bold block bg-slate-50/80 text-slate-900 leading-snug rounded-t-xl">
-                      {currentUser?.fullName}
-                      <span className="block text-[10.5px] text-slate-400 mt-0.5 font-normal select-all">@{currentUser?.username} • {currentUser?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}</span>
-                    </div>
-                    
-                    <div className="py-1">
-                      <button
-                        type="button"
-                        onClick={() => { setProfileDropdownOpen(false); setShowChangePasswordModal(true); }}
-                        className="w-full px-4 py-2 hover:bg-orange-50 text-left font-bold block text-slate-700 hover:text-orange-600 transition"
-                      >
-                        Đổi mật khẩu
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setProfileDropdownOpen(false); setShowChangeAvatarModal(true); }}
-                        className="w-full px-4 py-2 hover:bg-orange-50 text-left font-bold block text-slate-700 hover:text-orange-600 transition"
-                      >
-                        Đổi ảnh đại diện
-                      </button>
-                      {currentUser?.role === 'admin' && (
-                        <button
-                          type="button"
-                          onClick={() => { setProfileDropdownOpen(false); setShowManageUsersModal(true); }}
-                          className="w-full px-4 py-2 hover:bg-orange-50 text-left font-bold block text-slate-700 hover:text-orange-600 transition"
-                        >
-                          Quản lý tài khoản
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => { setProfileDropdownOpen(false); setShowBackupModal(true); }}
-                        className="w-full px-4 py-2 hover:bg-orange-50 text-left text-orange-600 font-extrabold block transition"
-                      >
-                        Sao lưu & Khôi phục
-                      </button>
-                    </div>
-
-                    <div className="py-1">
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="w-full px-4 py-2 hover:bg-rose-50 text-rose-600 font-bold text-left block transition"
-                      >
-                        Đăng xuất
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </header>
 
@@ -2501,20 +2420,6 @@ export default function App() {
 
         {/* MAIN BODY AREA */}
         <main className="flex-grow w-full px-3 sm:px-6 md:px-8 py-3 sm:py-6 pb-24 md:pb-6 overflow-y-auto" style={{ paddingBottom: 'max(96px, calc(env(safe-area-inset-bottom, 0px) + 76px))' }}>
-          {/* Welcoming Modern Greeting Banner (Matching Reference Image) */}
-          <div className="hidden md:block mb-6 pt-1">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              Xin chào, {currentUser?.fullName?.split(' ').slice(-1)[0] || currentUser?.fullName || 'Bạn'} 👋
-            </h1>
-            <p className="text-xs text-slate-400 font-medium mt-1">
-              {activeTab === 'calendar' && 'Theo dõi và sắp xếp lịch thuê máy ảnh, thiết bị thời gian thực.'}
-              {activeTab === 'contracts' && 'Quản lý trạng thái hợp đồng, bàn giao thiết bị và tiến trình thanh toán.'}
-              {activeTab === 'equipment' && 'Kiểm soát kho máy ảnh, ống kính và tình trạng sẵn sàng của thiết bị.'}
-              {activeTab === 'revenue' && 'Báo cáo tổng hợp doanh thu, biểu đồ tài chính và lợi nhuận hệ thống.'}
-              {activeTab === 'customers' && 'Hồ sơ danh bạ khách hàng, thông tin CCCD và lịch sử các lần thuê.'}
-              {activeTab === 'expenses' && 'Nhật ký các khoản chi phí vận hành và đầu tư trang thiết bị.'}
-            </p>
-          </div>
 
           <div className="w-full">
             {activeTab === 'calendar' && (
