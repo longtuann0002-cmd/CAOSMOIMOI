@@ -310,6 +310,8 @@ export default function RevenueDashboard({
         durationDays: number;
         quantity: number;
         itemDailyRate: number;
+        discountPercent?: number;
+        originalItemPrice: number;
         itemRevenue: number;
         contractPaidAmount: number;
         contractTotalPrice: number;
@@ -341,6 +343,7 @@ export default function RevenueDashboard({
       const durationDays = is6H 
         ? 0.5 
         : Math.max(1, Math.ceil((new Date(c.endDate).getTime() - new Date(c.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      const discountPct = Math.max(0, Math.min(100, c.discountPercent || 0));
 
       c.items.forEach(item => {
         let entry = map.get(item.cameraId);
@@ -368,9 +371,11 @@ export default function RevenueDashboard({
         }
 
         const itemEstPrice = is6H ? (item.dailyRate * (item.quantity || 1)) : (item.dailyRate * durationDays * (item.quantity || 1));
-        let itemRevenue = itemEstPrice;
+        const itemDiscountedEstPrice = Math.round(itemEstPrice * (1 - discountPct / 100));
+
+        let itemRevenue = itemDiscountedEstPrice;
         if (c.totalPrice > 0 && c.paidAmount !== undefined) {
-          itemRevenue = Math.round((itemEstPrice / c.totalPrice) * c.paidAmount);
+          itemRevenue = Math.round((itemDiscountedEstPrice / c.totalPrice) * c.paidAmount);
         }
 
         entry.rentalCount += 1;
@@ -388,6 +393,8 @@ export default function RevenueDashboard({
           durationDays,
           quantity: item.quantity || 1,
           itemDailyRate: item.dailyRate,
+          discountPercent: discountPct,
+          originalItemPrice: itemEstPrice,
           itemRevenue,
           contractPaidAmount: c.paidAmount,
           contractTotalPrice: c.totalPrice,
@@ -1677,6 +1684,11 @@ export default function RevenueDashboard({
                                   x{booking.quantity}c
                                 </span>
                               )}
+                              {booking.discountPercent && booking.discountPercent > 0 ? (
+                                <span className="text-[9.5px] sm:text-[10px] font-black text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                                  🏷️ Giảm {booking.discountPercent}%
+                                </span>
+                              ) : null}
                             </div>
 
                             <div className="flex items-center gap-1.5 pt-0.5">
@@ -1704,11 +1716,22 @@ export default function RevenueDashboard({
                             </span>
                           </div>
 
-                          <div className="text-right shrink-0">
+                          <div className="text-right shrink-0 flex items-center sm:block">
                             <span className="text-[10px] text-gray-500 mr-1 font-bold">Thu từ máy:</span>
-                            <span className="font-mono font-black text-orange-600 text-xs sm:text-sm">
-                              {booking.itemRevenue.toLocaleString()}đ
-                            </span>
+                            {booking.discountPercent && booking.discountPercent > 0 && booking.originalItemPrice > booking.itemRevenue ? (
+                              <span className="inline-flex sm:inline-flex items-baseline gap-1">
+                                <span className="font-mono text-gray-400 line-through text-[10px] sm:text-[11px] font-semibold">
+                                  {booking.originalItemPrice.toLocaleString()}đ
+                                </span>
+                                <span className="font-mono font-black text-orange-600 text-xs sm:text-sm">
+                                  {booking.itemRevenue.toLocaleString()}đ
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="font-mono font-black text-orange-600 text-xs sm:text-sm">
+                                {booking.itemRevenue.toLocaleString()}đ
+                              </span>
+                            )}
                           </div>
                         </div>
 

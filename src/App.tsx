@@ -1973,34 +1973,30 @@ export default function App() {
         type="button"
         onClick={() => setActiveTab(tabId)}
         className={`w-full group/nav relative rounded-2xl transition-all duration-200 flex items-center cursor-pointer ${
-          sidebarCollapsed ? 'justify-center p-2' : 'justify-between px-3 py-2.5'
+          sidebarCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2.5'
         } ${
           isActive
-            ? 'bg-white text-slate-950 shadow-[0_4px_18px_rgba(234,88,12,0.14),0_1px_3px_rgba(0,0,0,0.04)] border border-orange-200/90 font-bold'
-            : 'text-slate-700 hover:text-slate-950 hover:bg-white/80 border border-transparent font-medium hover:shadow-xs'
+            ? 'bg-white text-slate-900 shadow-[0_4px_20px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)] ring-1 ring-slate-900/5'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
         }`}
         title={sidebarCollapsed ? label : undefined}
       >
-        {/* Left vertical accent indicator on active item */}
-        {isActive && !sidebarCollapsed && (
-          <span className="absolute left-1 top-2.5 bottom-2.5 w-1 rounded-full bg-gradient-to-b from-orange-500 to-amber-500 shadow-xs" />
-        )}
-
         <div className={`flex items-center gap-3 min-w-0 ${sidebarCollapsed ? 'justify-center' : ''}`}>
-          <div className={`w-9.5 h-9.5 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+          {/* Modern Minimal Icon Pill */}
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
             isActive 
-              ? 'bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/25 scale-102' 
-              : 'bg-slate-100/90 text-slate-600 group-hover/nav:bg-orange-50 group-hover/nav:text-orange-600 group-hover/nav:scale-105'
+              ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30' 
+              : 'text-slate-500 group-hover/nav:text-slate-800 group-hover/nav:bg-white/80'
           }`}>
-            <IconComponent className="w-5 h-5 stroke-[2.2]" />
+            <IconComponent className={`w-[19px] h-[19px] ${isActive ? 'stroke-[2.2]' : 'stroke-[1.8] group-hover/nav:stroke-[2]'}`} />
           </div>
 
           {!sidebarCollapsed && (
             <div className="leading-tight text-left min-w-0">
-              <span className={`block text-[13.5px] tracking-tight ${isActive ? 'font-black text-slate-950' : 'font-bold text-slate-800 group-hover/nav:text-slate-950'}`}>
+              <span className={`block text-[13.5px] tracking-tight transition-colors ${isActive ? 'font-black text-slate-900' : 'font-semibold text-slate-700 group-hover/nav:text-slate-900'}`}>
                 {label}
               </span>
-              <span className={`text-[10px] block truncate ${isActive ? 'text-orange-600 font-bold' : 'text-slate-400 font-medium group-hover/nav:text-slate-500'}`}>
+              <span className={`text-[11px] block truncate transition-colors ${isActive ? 'text-slate-500 font-medium' : 'text-slate-400 font-normal group-hover/nav:text-slate-500'}`}>
                 {description}
               </span>
             </div>
@@ -2139,23 +2135,23 @@ export default function App() {
                   onClick={() => setSettingsExpanded(!settingsExpanded)}
                   className={`w-full group/nav relative rounded-2xl transition-all duration-200 flex items-center justify-between px-3 py-2.5 cursor-pointer ${
                     settingsExpanded
-                      ? 'bg-slate-100/90 text-slate-900 font-bold border border-slate-200/80 shadow-3xs'
-                      : 'text-slate-700 hover:text-slate-950 hover:bg-white/80 border border-transparent font-medium hover:shadow-xs'
+                      ? 'bg-white text-slate-900 shadow-[0_4px_20px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)] ring-1 ring-slate-900/5'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-9.5 h-9.5 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
                       settingsExpanded 
-                        ? 'bg-orange-500 text-white shadow-xs' 
-                        : 'bg-slate-100/90 text-slate-600 group-hover/nav:bg-orange-50 group-hover/nav:text-orange-600 group-hover/nav:scale-105'
+                        ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30' 
+                        : 'text-slate-500 group-hover/nav:text-slate-800 group-hover/nav:bg-white/80'
                     }`}>
-                      <Settings className="w-5 h-5 stroke-[2.2]" />
+                      <Settings className={`w-[19px] h-[19px] ${settingsExpanded ? 'stroke-[2.2]' : 'stroke-[1.8] group-hover/nav:stroke-[2]'}`} />
                     </div>
                     <div className="leading-tight text-left min-w-0">
-                      <span className="block text-[13.5px] font-bold text-slate-800 group-hover/nav:text-slate-950">
+                      <span className={`block text-[13.5px] tracking-tight transition-colors ${settingsExpanded ? 'font-black text-slate-900' : 'font-semibold text-slate-700 group-hover/nav:text-slate-900'}`}>
                         Cài đặt
                       </span>
-                      <span className="text-[10px] block truncate font-medium text-slate-400 group-hover/nav:text-slate-500">
+                      <span className={`text-[11px] block truncate transition-colors ${settingsExpanded ? 'text-slate-500 font-medium' : 'text-slate-400 font-normal group-hover/nav:text-slate-500'}`}>
                         Thương hiệu & Sao lưu
                       </span>
                     </div>
