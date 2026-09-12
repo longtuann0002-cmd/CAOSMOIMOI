@@ -275,20 +275,30 @@ export default function App() {
     });
   };
 
-  // Header Quick Search State
+  // Modern Spotlight Search State
   const [headerSearchQuery, setHeaderSearchQuery] = useState('');
-  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
-        setSearchDropdownOpen(false);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSearchModalOpen(prev => !prev);
+      }
+      if (e.key === 'Escape') {
+        setIsSearchModalOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (isSearchModalOpen) {
+      setTimeout(() => searchInputRef.current?.focus(), 60);
+    }
+  }, [isSearchModalOpen]);
 
   // Toasts state & actions
   const [toasts, setToasts] = useState<ToastType[]>([]);
@@ -1961,33 +1971,28 @@ export default function App() {
         key={tabId}
         type="button"
         onClick={() => setActiveTab(tabId)}
-        className={`w-full group/nav relative rounded-xl transition-all duration-200 flex items-center p-2.5 cursor-pointer ${
-          sidebarCollapsed ? 'justify-center' : 'justify-between'
+        className={`w-full group/nav relative rounded-2xl transition-all duration-200 flex items-center cursor-pointer ${
+          sidebarCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2.5'
         } ${
           isActive
-            ? 'bg-orange-500/10 text-orange-950 font-bold border border-orange-200/70 shadow-xs'
-            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
+            ? 'bg-white text-orange-600 shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-slate-200/80 font-bold'
+            : 'text-slate-400 hover:text-slate-800 hover:bg-white/70 border border-transparent font-medium'
         }`}
         title={sidebarCollapsed ? label : undefined}
       >
-        {/* Left vertical accent bar when active */}
-        {isActive && (
-          <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-orange-600" />
-        )}
-
         <div className={`flex items-center gap-3 min-w-0 ${sidebarCollapsed ? 'justify-center' : ''}`}>
-          <div className={`p-1 rounded-lg shrink-0 transition-colors ${
-            isActive ? 'text-orange-600 bg-orange-100/80 shadow-2xs' : 'text-slate-500 group-hover/nav:text-slate-800'
+          <div className={`p-1 rounded-xl shrink-0 transition-colors ${
+            isActive ? 'text-orange-600' : 'text-slate-400 group-hover/nav:text-slate-700'
           }`}>
             <IconComponent className="w-5 h-5 stroke-[2.2]" />
           </div>
 
           {!sidebarCollapsed && (
             <div className="leading-tight text-left min-w-0">
-              <span className={`block text-[13px] tracking-tight ${isActive ? 'font-black text-slate-900' : 'font-bold text-slate-700'}`}>
+              <span className={`block text-[13px] tracking-tight ${isActive ? 'font-extrabold text-slate-900' : 'font-bold text-slate-700'}`}>
                 {label}
               </span>
-              <span className={`text-[10.5px] block truncate font-normal ${isActive ? 'text-orange-700/80 font-medium' : 'text-slate-400'}`}>
+              <span className={`text-[10px] block truncate ${isActive ? 'text-orange-600/80 font-semibold' : 'text-slate-400 font-normal'}`}>
                 {description}
               </span>
             </div>
@@ -1996,7 +2001,7 @@ export default function App() {
 
         {/* Badge count */}
         {!sidebarCollapsed && badgeCount !== undefined && badgeCount > 0 && (
-          <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-2xs shrink-0">
+          <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-xs shrink-0">
             {badgeCount}
           </span>
         )}
@@ -2017,29 +2022,28 @@ export default function App() {
   };
 
   return (
-    <div className="h-[100dvh] bg-[#f8fafc] flex font-sans select-none antialiased w-full overflow-hidden">
+    <div className="h-[100dvh] bg-[#f4f5f8] flex font-sans select-none antialiased w-full overflow-hidden p-0 md:p-3 md:gap-3">
       
-      {/* MODERN FLOATING/DOCKED GLASSMORPHIC SIDEBAR - Web Desktop / Laptop / Tablet */}
+      {/* MODERN FLOATING RAIL / EXPANDABLE SIDEBAR - Matching Reference Design */}
       <aside 
-        className={`hidden md:flex flex-col bg-white/85 backdrop-blur-2xl border-r border-slate-200/80 shrink-0 h-[100dvh] sticky top-0 z-40 transition-all duration-300 ease-in-out shadow-[0_0_30px_rgba(0,0,0,0.02)] select-none ${
-          sidebarCollapsed ? 'w-[76px]' : 'w-[260px] lg:w-[272px]'
+        className={`hidden md:flex flex-col shrink-0 h-full py-2 select-none z-30 transition-all duration-300 ${
+          sidebarCollapsed ? 'w-[72px]' : 'w-[245px] lg:w-[255px]'
         }`}
       >
-        
-        {/* Top Header: Logo + Toggle button */}
-        <div className={`p-4 flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} border-b border-slate-100/90 relative`}>
+        {/* Brand Logo & Toggle Header */}
+        <div className={`p-2 flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} mb-3 relative`}>
           <div 
             onClick={() => setShowLogoModal(true)}
-            className={`flex items-center gap-3 cursor-pointer group/logo transition-all ${sidebarCollapsed ? 'justify-center' : 'min-w-0 flex-1'}`}
+            className={`flex items-center gap-2.5 cursor-pointer group/logo transition-all ${sidebarCollapsed ? 'justify-center' : 'min-w-0 flex-1'}`}
             title="Thay đổi Logo & Thương hiệu"
           >
             {logoIconType === 'upload' && logoBase64 ? (
-              <div className="w-10 h-10 rounded-2xl overflow-hidden border border-slate-200/80 flex items-center justify-center bg-white shrink-0 shadow-xs group-hover/logo:scale-105 group-hover/logo:shadow-md transition-all">
+              <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-200/80 flex items-center justify-center bg-white shrink-0 shadow-xs group-hover/logo:scale-105 group-hover/logo:shadow-md transition-all">
                 <img src={logoBase64} alt="Logo" className="w-full h-full object-cover" />
               </div>
             ) : (
               <div 
-                className="w-10 h-10 rounded-2xl text-white shrink-0 shadow-xs flex items-center justify-center font-bold group-hover/logo:scale-105 transition-transform"
+                className="w-11 h-11 rounded-2xl text-white shrink-0 shadow-xs flex items-center justify-center font-bold group-hover/logo:scale-105 transition-transform"
                 style={{ backgroundColor: logoIconColor }}
               >
                 {logoIconType === 'aperture' && <Aperture className="w-5.5 h-5.5" />}
@@ -2055,11 +2059,11 @@ export default function App() {
               <div className="leading-tight min-w-0">
                 <span 
                   className="font-display font-black text-slate-900 tracking-tight block uppercase truncate"
-                  style={{ fontSize: `${Math.min(logoFontSize || 15.5, 14.5)}px` }}
+                  style={{ fontSize: `${Math.min(logoFontSize || 15.5, 14)}px` }}
                 >
                   {logoText || 'TIỆM ẢNH NHÀ CAOS'}
                 </span>
-                <span className="text-[9.5px] text-orange-600 font-extrabold block tracking-wider uppercase truncate mt-0.5">
+                <span className="text-[9px] text-orange-600 font-extrabold block tracking-wider uppercase truncate mt-0.5">
                   {logoSubtitle || 'CHO THUÊ MÁY ẢNH GIÁ RẺ'}
                 </span>
               </div>
@@ -2071,10 +2075,10 @@ export default function App() {
             <button
               type="button"
               onClick={toggleSidebar}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0 ml-1.5"
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white/80 transition cursor-pointer shrink-0"
               title="Thu nhỏ thanh điều hướng"
             >
-              <PanelLeftClose className="w-4.5 h-4.5" />
+              <PanelLeftClose className="w-4 h-4" />
             </button>
           ) : (
             <button
@@ -2088,72 +2092,58 @@ export default function App() {
           )}
         </div>
 
-        {/* Sidebar Nav Items Grouped by Category */}
-        <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto scrollbar-none">
-          {/* Group 1: VẬN HÀNH */}
+        {/* Sidebar Nav Items */}
+        <nav className="flex-1 px-1 py-1 space-y-4 overflow-y-auto scrollbar-none">
+          {/* Section 1: MENU */}
           <div>
             {!sidebarCollapsed ? (
-              <div className="px-3 pb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                Vận hành
+              <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Menu
               </div>
             ) : (
-              <div className="w-6 h-px bg-slate-200 mx-auto my-1.5" />
+              <div className="w-5 h-px bg-slate-200 mx-auto my-1.5" />
             )}
             <div className="space-y-1">
-              {renderNavItem('calendar', 'Lịch máy', 'Đặt & xếp lịch máy', Calendar)}
+              {renderNavItem('calendar', 'Lịch máy', 'Xếp lịch máy & lens', Calendar)}
               {renderNavItem('contracts', 'Đơn thuê', 'Hợp đồng & trạng thái', FileText, pendingOrOverdueContractsCount)}
               {renderNavItem('equipment', 'Kho thiết bị', 'Kho máy, lens & đèn', CameraIcon)}
-            </div>
-          </div>
-
-          {/* Group 2: DỮ LIỆU & TÀI CHÍNH */}
-          <div>
-            {!sidebarCollapsed ? (
-              <div className="px-3 pb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                Khách & Tài chính
-              </div>
-            ) : (
-              <div className="w-6 h-px bg-slate-200 mx-auto my-1.5" />
-            )}
-            <div className="space-y-1">
-              {renderNavItem('customers', 'Khách hàng', 'Hồ sơ đối tác thuê', Users)}
-              {renderNavItem('revenue', 'Doanh thu', 'Báo cáo tài chính', TrendingUp)}
+              {renderNavItem('customers', 'Khách hàng', 'Hồ sơ khách thuê', Users)}
+              {renderNavItem('revenue', 'Doanh thu', 'Báo cáo & lợi nhuận', TrendingUp)}
               {renderNavItem('expenses', 'Khoản chi', 'Chi phí vận hành', DollarSign)}
             </div>
           </div>
 
-          {/* Group 3: HỆ THỐNG & CÀI ĐẶT */}
+          {/* Section 2: CÀI ĐẶT & HỆ THỐNG */}
           <div>
             {!sidebarCollapsed ? (
-              <div className="px-3 pb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                Hệ thống
+              <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Cài đặt
               </div>
             ) : (
-              <div className="w-6 h-px bg-slate-200 mx-auto my-1.5" />
+              <div className="w-5 h-px bg-slate-200 mx-auto my-1.5" />
             )}
             <div className="space-y-1">
               {/* Logo / Branding */}
               <button
                 type="button"
                 onClick={() => setShowLogoModal(true)}
-                className={`w-full group/nav relative rounded-xl transition-all duration-200 flex items-center p-2.5 cursor-pointer ${
-                  sidebarCollapsed ? 'justify-center' : 'justify-start gap-3'
-                } text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium`}
-                title={sidebarCollapsed ? 'Logo & Thương hiệu' : undefined}
+                className={`w-full group/nav relative rounded-2xl transition-all duration-200 flex items-center cursor-pointer ${
+                  sidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2.5'
+                } text-slate-400 hover:text-slate-800 hover:bg-white/70 border border-transparent font-medium`}
+                title={sidebarCollapsed ? 'Thương hiệu & Logo' : undefined}
               >
-                <div className="p-1 rounded-lg text-slate-500 group-hover/nav:text-orange-600 transition-colors">
+                <div className="p-1 rounded-xl text-slate-400 group-hover/nav:text-orange-600 transition-colors">
                   <Palette className="w-5 h-5 stroke-[2.2]" />
                 </div>
                 {!sidebarCollapsed && (
                   <div className="leading-tight text-left min-w-0">
                     <span className="block text-[13px] font-bold text-slate-700">Thương hiệu</span>
-                    <span className="text-[10.5px] block text-slate-400 font-normal">Tùy chỉnh Logo & Tên</span>
+                    <span className="text-[10px] block text-slate-400 font-normal">Tùy chỉnh Logo & Tên</span>
                   </div>
                 )}
-                {/* Floating Tooltip in collapsed mode */}
                 {sidebarCollapsed && (
                   <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg shadow-xl whitespace-nowrap opacity-0 pointer-events-none group-hover/nav:opacity-100 transition-opacity z-50">
-                    Logo & Thương hiệu
+                    Thương hiệu & Logo
                   </span>
                 )}
               </button>
@@ -2162,24 +2152,23 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowBackupModal(true)}
-                className={`w-full group/nav relative rounded-xl transition-all duration-200 flex items-center p-2.5 cursor-pointer ${
-                  sidebarCollapsed ? 'justify-center' : 'justify-start gap-3'
-                } text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium`}
-                title={sidebarCollapsed ? 'Sao lưu & Khôi phục' : undefined}
+                className={`w-full group/nav relative rounded-2xl transition-all duration-200 flex items-center cursor-pointer ${
+                  sidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2.5'
+                } text-slate-400 hover:text-slate-800 hover:bg-white/70 border border-transparent font-medium`}
+                title={sidebarCollapsed ? 'Sao lưu dữ liệu' : undefined}
               >
-                <div className="p-1 rounded-lg text-slate-500 group-hover/nav:text-orange-600 transition-colors">
+                <div className="p-1 rounded-xl text-slate-400 group-hover/nav:text-orange-600 transition-colors">
                   <Database className="w-5 h-5 stroke-[2.2]" />
                 </div>
                 {!sidebarCollapsed && (
                   <div className="leading-tight text-left min-w-0">
                     <span className="block text-[13px] font-bold text-slate-700">Sao lưu dữ liệu</span>
-                    <span className="text-[10.5px] block text-slate-400 font-normal">Xuất & khôi phục JSON</span>
+                    <span className="text-[10px] block text-slate-400 font-normal">Xuất & khôi phục JSON</span>
                   </div>
                 )}
-                {/* Floating Tooltip in collapsed mode */}
                 {sidebarCollapsed && (
                   <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg shadow-xl whitespace-nowrap opacity-0 pointer-events-none group-hover/nav:opacity-100 transition-opacity z-50">
-                    Sao lưu & Khôi phục
+                    Sao lưu dữ liệu
                   </span>
                 )}
               </button>
@@ -2187,22 +2176,26 @@ export default function App() {
           </div>
         </nav>
 
-        {/* Bottom User Profile Section (Pinned at Bottom) */}
-        <div className="p-3 border-t border-slate-100/90 relative">
+        {/* Section 3: TÀI KHOẢN (Bottom Profile Card) */}
+        <div className="pt-2 relative">
+          {!sidebarCollapsed && (
+            <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Tài khoản
+            </div>
+          )}
           <div 
             onClick={() => setSidebarDropdownOpen(!sidebarDropdownOpen)}
-            className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} p-2 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer group/prof`}
+            className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} p-2 rounded-2xl hover:bg-white/80 transition-all cursor-pointer group/prof`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="relative shrink-0">
-                <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-2xs">
+                <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200 bg-white shadow-2xs">
                   <img 
                     src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'} 
                     alt="Avatar" 
                     className="w-full h-full object-cover" 
                   />
                 </div>
-                {/* Online status indicator */}
                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
               </div>
 
@@ -2236,7 +2229,7 @@ export default function App() {
           {sidebarDropdownOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setSidebarDropdownOpen(false)} />
-              <div className={`absolute ${sidebarCollapsed ? 'left-full ml-2 bottom-2' : 'left-3 right-3 bottom-full mb-2'} bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 text-left text-xs text-slate-800 animate-fade-in divide-y divide-slate-100 w-56`}>
+              <div className={`absolute ${sidebarCollapsed ? 'left-full ml-2 bottom-2' : 'left-1 right-1 bottom-full mb-2'} bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 text-left text-xs text-slate-800 animate-fade-in divide-y divide-slate-100 w-56`}>
                 <div className="px-3.5 py-2">
                   <p className="font-black text-slate-900 text-xs truncate">{currentUser?.fullName}</p>
                   <p className="text-[10.5px] text-slate-400 font-mono truncate">@{currentUser?.username} • {currentUser?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}</p>
@@ -2285,15 +2278,15 @@ export default function App() {
         </div>
       </aside>
 
-      {/* RIGHT MAIN WORKSPACE PANORAMA */}
-      <div className="flex-grow flex flex-col min-w-0 h-[100dvh] overflow-hidden">
+      {/* RIGHT MAIN WORKSPACE CANVAS - Grand Floating Sheet Matching Reference Image */}
+      <div className="flex-grow flex flex-col min-w-0 h-full bg-white rounded-none md:rounded-[28px] border-0 md:border md:border-slate-200/70 md:shadow-[0_4px_30px_rgba(0,0,0,0.03)] overflow-hidden relative">
         
-        {/* TOP PATH HEADER BAR - Frosted Glassmorphism Header */}
-        <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/70 sticky top-0 z-30 pt-[max(8px,env(safe-area-inset-top,8px))] pb-2.5 px-3.5 sm:px-6 sm:py-3 flex items-center justify-between select-none shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+        {/* SLEEK MINIMAL HEADER BAR */}
+        <header className="px-4 sm:px-6 py-3.5 flex items-center justify-between border-b border-slate-100/90 select-none shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-30">
           
-          {/* Left Greeting & Context */}
+          {/* Left: Mobile Title or Desktop Breadcrumb */}
           <div className="flex items-center gap-3 min-w-0">
-            {/* Mobile Header Title (Compact) */}
+            {/* Mobile Header Title */}
             <div className="md:hidden flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-3xs shrink-0">
                 {activeTab === 'calendar' && <Calendar className="w-4 h-4 stroke-[2.2]" />}
@@ -2318,154 +2311,36 @@ export default function App() {
               </div>
             </div>
 
-            {/* Desktop Modern Greeting & Breadcrumb */}
-            <div className="hidden md:flex flex-col min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm lg:text-base font-black text-slate-900 tracking-tight">
-                  Xin chào, {currentUser?.fullName?.split(' ').slice(-1)[0] || currentUser?.fullName || 'Bạn'} 👋
-                </h2>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+            {/* Desktop Clean Breadcrumb (As seen in Reference: Maham > Overview) */}
+            <div className="hidden md:flex items-center gap-2 text-xs">
+              <span className="text-slate-400 font-medium">Tiệm ảnh Nhà Caos</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-300 stroke-[2.5]" />
+              <div className="flex items-center gap-1.5 text-slate-800 font-extrabold bg-slate-100/70 px-2.5 py-1 rounded-xl border border-slate-200/50">
+                {activeTab === 'calendar' && <Calendar className="w-3.5 h-3.5 text-orange-600" />}
+                {activeTab === 'contracts' && <FileText className="w-3.5 h-3.5 text-orange-600" />}
+                {activeTab === 'equipment' && <CameraIcon className="w-3.5 h-3.5 text-orange-600" />}
+                {activeTab === 'customers' && <Users className="w-3.5 h-3.5 text-orange-600" />}
+                {activeTab === 'revenue' && <TrendingUp className="w-3.5 h-3.5 text-orange-600" />}
+                {activeTab === 'expenses' && <DollarSign className="w-3.5 h-3.5 text-orange-600" />}
+                <span>
                   {activeTab === 'calendar' && 'Lịch máy'}
-                  {activeTab === 'contracts' && 'Hợp đồng'}
+                  {activeTab === 'contracts' && 'Đơn thuê'}
                   {activeTab === 'equipment' && 'Kho thiết bị'}
-                  {activeTab === 'revenue' && 'Báo cáo'}
                   {activeTab === 'customers' && 'Khách hàng'}
+                  {activeTab === 'revenue' && 'Doanh thu'}
                   {activeTab === 'expenses' && 'Khoản chi'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                {activeTab === 'calendar' && 'Xếp lịch thuê camera, lens theo thời gian thực'}
-                {activeTab === 'contracts' && 'Theo dõi tiến trình hợp đồng, giao nhận máy và thanh toán'}
-                {activeTab === 'equipment' && 'Quản lý tình trạng sẵn sàng và giá thuê từng thiết bị'}
-                {activeTab === 'revenue' && 'Tổng hợp biểu đồ doanh thu, lợi nhuận và thu tiền'}
-                {activeTab === 'customers' && 'Danh bạ thông tin khách hàng, CCCD và lịch sử thuê'}
-                {activeTab === 'expenses' && 'Nhật ký các khoản chi tiêu vận hành và mua sắm'}
-              </p>
             </div>
           </div>
 
-          {/* Center: Smart Quick Search Bar (Pill style as in Reference 1 & 2) */}
-          <div ref={searchContainerRef} className="hidden lg:block relative z-40">
-            <div className="relative w-72 xl:w-84">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <Search className="w-4 h-4" />
-              </span>
-              <input
-                type="text"
-                value={headerSearchQuery}
-                onFocus={() => setSearchDropdownOpen(true)}
-                onChange={(e) => {
-                  setHeaderSearchQuery(e.target.value);
-                  setSearchDropdownOpen(true);
-                }}
-                placeholder="Tìm khách, số ĐT, thiết bị..."
-                className="w-full pl-9.5 pr-8 py-1.5 bg-slate-100/90 hover:bg-slate-100 border border-slate-200/90 rounded-full text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-orange-500 focus:bg-white focus:ring-3 focus:ring-orange-500/10 transition-all shadow-3xs"
-              />
-              {headerSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHeaderSearchQuery('');
-                    setSearchDropdownOpen(false);
-                  }}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Search Dropdown Results */}
-            {searchDropdownOpen && headerSearchQuery.trim() && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-2 z-50 text-xs text-slate-800 animate-fade-in max-h-96 overflow-y-auto">
-                {searchResults.contracts.length === 0 && searchResults.cameras.length === 0 && searchResults.customers.length === 0 ? (
-                  <div className="py-4 text-center text-slate-400 text-xs">
-                    Không tìm thấy kết quả phù hợp
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {/* Contracts results */}
-                    {searchResults.contracts.length > 0 && (
-                      <div>
-                        <div className="px-2 py-1 text-[10px] font-black uppercase text-slate-400">Đơn thuê ({searchResults.contracts.length})</div>
-                        {searchResults.contracts.map(c => (
-                          <div
-                            key={c.id}
-                            onClick={() => {
-                              setActiveTab('contracts');
-                              setSearchDropdownOpen(false);
-                            }}
-                            className="p-2 rounded-xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition"
-                          >
-                            <div className="min-w-0">
-                              <span className="font-black text-slate-900 block truncate">{c.customerName} ({c.contractCode})</span>
-                              <span className="text-[10.5px] text-slate-500 font-mono block">SĐT: {c.customerPhone}</span>
-                            </div>
-                            <span className="text-[10px] font-extrabold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full shrink-0">
-                              {c.status}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Cameras results */}
-                    {searchResults.cameras.length > 0 && (
-                      <div>
-                        <div className="px-2 py-1 text-[10px] font-black uppercase text-slate-400">Thiết bị ({searchResults.cameras.length})</div>
-                        {searchResults.cameras.map(cam => (
-                          <div
-                            key={cam.id}
-                            onClick={() => {
-                              setActiveTab('equipment');
-                              setSearchDropdownOpen(false);
-                            }}
-                            className="p-2 rounded-xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition"
-                          >
-                            <div className="min-w-0">
-                              <span className="font-black text-slate-900 block truncate">{cam.name}</span>
-                              <span className="text-[10.5px] text-slate-500 font-mono block">SN: {cam.serialNumber || 'N/A'}</span>
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
-                              {cam.status === 'Available' ? 'Sẵn sàng' : 'Đang thuê'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Customers results */}
-                    {searchResults.customers.length > 0 && (
-                      <div>
-                        <div className="px-2 py-1 text-[10px] font-black uppercase text-slate-400">Khách hàng ({searchResults.customers.length})</div>
-                        {searchResults.customers.map(cust => (
-                          <div
-                            key={cust.id}
-                            onClick={() => {
-                              setActiveTab('customers');
-                              setSearchDropdownOpen(false);
-                            }}
-                            className="p-2 rounded-xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition"
-                          >
-                            <span className="font-black text-slate-900 block truncate">{cust.name}</span>
-                            <span className="text-[10.5px] text-slate-500 font-mono block">{cust.phone}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Right Tools: Date badge + Quick action button + Notification + Profile */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Right: Clean Minimal Actions (Search, Date, Notification, +Đặt lịch, Profile) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Quick Action Button: + Đặt lịch */}
             <button
               type="button"
               onClick={() => setActiveTab('calendar')}
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-orange-600 hover:bg-orange-700 text-white text-xs font-black shadow-xs hover:shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold shadow-xs hover:shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Đặt lịch</span>
@@ -2473,14 +2348,25 @@ export default function App() {
 
             {/* System Date Badge */}
             <div 
-              className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/80 text-orange-950 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-[11px] sm:text-xs font-black shrink-0 select-none shadow-3xs"
+              className="hidden sm:flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 text-slate-700 px-3 py-1.5 rounded-full text-xs font-bold select-none shadow-3xs"
               title="Ngày hoạt động của hệ thống"
             >
               <Calendar className="w-3.5 h-3.5 text-orange-600 shrink-0" />
-              <span className="hidden sm:inline text-orange-800/80 font-bold">Hôm nay:</span>
-              <span className="font-mono font-black">{formatDMY(systemDate)}</span>
+              <span className="text-slate-400 font-medium">Hôm nay:</span>
+              <span className="font-mono font-black text-slate-800">{formatDMY(systemDate)}</span>
             </div>
-            
+
+            {/* Clean Minimal Search Button (Spotlight Trigger) */}
+            <button
+              type="button"
+              onClick={() => setIsSearchModalOpen(true)}
+              className="w-9 h-9 rounded-xl border border-slate-200/80 hover:bg-slate-50 text-slate-500 hover:text-slate-900 flex items-center justify-center transition cursor-pointer shadow-3xs group"
+              title="Tìm kiếm nhanh (Ctrl + K)"
+            >
+              <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            </button>
+
+            {/* Notification Center */}
             <NotificationCenter
               contracts={contracts}
               cameras={cameras}
@@ -2494,7 +2380,8 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="w-9 h-9 sm:w-9.5 sm:h-9.5 rounded-full overflow-hidden border border-slate-200 bg-white flex items-center justify-center cursor-pointer shadow-3xs active:scale-95 transition-transform"
+                className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center cursor-pointer shadow-3xs active:scale-95 transition-transform"
+                title={currentUser?.fullName || 'Tài khoản'}
               >
                 <img 
                   src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'} 
@@ -2561,7 +2448,7 @@ export default function App() {
           </div>
         </header>
 
-        {/* MOBILE NAVIGATION BAR - Modern Apple/iOS Balanced Glassmorphic Tab Bar */}
+        {/* MOBILE NAVIGATION BAR */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-gray-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] pb-[max(8px,env(safe-area-inset-bottom,4px))] pt-2 px-2 flex justify-between items-center select-none">
           {[
             { id: 'calendar', label: 'Lịch máy', icon: Calendar },
@@ -2586,7 +2473,6 @@ export default function App() {
                   isActive ? 'text-orange-600' : 'text-gray-400 active:text-gray-700'
                 }`}
               >
-                {/* Active Indicator Background Pill */}
                 <div className="relative flex items-center justify-center">
                   <div className={`p-1.5 rounded-xl transition-all duration-200 ${
                     isActive 
@@ -2596,7 +2482,6 @@ export default function App() {
                     <tab.icon className="w-5 h-5 stroke-[2.2]" />
                   </div>
 
-                  {/* Notification Dot / Badge */}
                   {tab.badge && tab.badge > 0 ? (
                     <span className="absolute -top-1 -right-1.5 bg-rose-600 text-white text-[8.5px] font-black min-w-4 h-4 px-1 rounded-full flex items-center justify-center shadow-xs border-2 border-white animate-pulse">
                       {tab.badge > 9 ? '9+' : tab.badge}
@@ -2616,25 +2501,19 @@ export default function App() {
 
         {/* MAIN BODY AREA */}
         <main className="flex-grow w-full px-3 sm:px-6 md:px-8 py-3 sm:py-6 pb-24 md:pb-6 overflow-y-auto" style={{ paddingBottom: 'max(96px, calc(env(safe-area-inset-bottom, 0px) + 76px))' }}>
-          {/* Header row in main panel content (Desktop only to avoid duplicate title taking space on mobile) */}
-          <div className="hidden md:flex flex-row items-center justify-between gap-2 pb-3 mb-5 border-b border-gray-150">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#ea580c] font-display">HỆ THỐNG VẬN HÀNH</span>
-              <h1 className="text-2xl font-black text-gray-950 tracking-tight">
-                {activeTab === 'calendar' && 'Lịch máy'}
-                {activeTab === 'contracts' && 'Hợp đồng & Đơn thuê'}
-                {activeTab === 'equipment' && 'Kho thiết bị'}
-                {activeTab === 'revenue' && 'Báo cáo doanh thu'}
-                {activeTab === 'customers' && 'Hồ sơ khách hàng'}
-                {activeTab === 'expenses' && 'Nhật ký khoản chi'}
-              </h1>
-            </div>
-            
-            <div className="text-xs text-gray-500 font-bold bg-white border border-gray-150 px-3.5 py-1.5 rounded-xl shadow-3xs flex items-center gap-1.5 select-none">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse inline-block"></span>
-              <span>Cập nhật mới nhất:</span>
-              <span className="text-gray-800 font-extrabold">Hôm nay</span>
-            </div>
+          {/* Welcoming Modern Greeting Banner (Matching Reference Image) */}
+          <div className="hidden md:block mb-6 pt-1">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+              Xin chào, {currentUser?.fullName?.split(' ').slice(-1)[0] || currentUser?.fullName || 'Bạn'} 👋
+            </h1>
+            <p className="text-xs text-slate-400 font-medium mt-1">
+              {activeTab === 'calendar' && 'Theo dõi và sắp xếp lịch thuê máy ảnh, thiết bị thời gian thực.'}
+              {activeTab === 'contracts' && 'Quản lý trạng thái hợp đồng, bàn giao thiết bị và tiến trình thanh toán.'}
+              {activeTab === 'equipment' && 'Kiểm soát kho máy ảnh, ống kính và tình trạng sẵn sàng của thiết bị.'}
+              {activeTab === 'revenue' && 'Báo cáo tổng hợp doanh thu, biểu đồ tài chính và lợi nhuận hệ thống.'}
+              {activeTab === 'customers' && 'Hồ sơ danh bạ khách hàng, thông tin CCCD và lịch sử các lần thuê.'}
+              {activeTab === 'expenses' && 'Nhật ký các khoản chi phí vận hành và đầu tư trang thiết bị.'}
+            </p>
           </div>
 
           <div className="w-full">
@@ -2735,6 +2614,133 @@ export default function App() {
         </main>
 
       </div>
+
+      {/* SPOTLIGHT QUICK SEARCH MODAL */}
+      {isSearchModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-16 sm:pt-24 px-4 animate-fade-in">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity" onClick={() => setIsSearchModalOpen(false)} />
+          <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-200/90 overflow-hidden z-50 animate-fade-in divide-y divide-slate-100">
+            <div className="p-4 flex items-center gap-3">
+              <Search className="w-5 h-5 text-slate-400 shrink-0" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={headerSearchQuery}
+                onChange={e => setHeaderSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm hợp đồng, khách hàng, số điện thoại, thiết bị..."
+                className="w-full bg-transparent text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-hidden"
+              />
+              {headerSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setHeaderSearchQuery('')}
+                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              <span className="text-[10px] font-bold text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded-md">
+                ESC
+              </span>
+            </div>
+
+            {/* Results Area */}
+            <div className="max-h-96 overflow-y-auto p-3">
+              {!headerSearchQuery.trim() ? (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  Nhập từ khóa để tìm kiếm nhanh theo mã đơn, khách hàng hoặc thiết bị...
+                </div>
+              ) : searchResults.contracts.length === 0 && searchResults.cameras.length === 0 && searchResults.customers.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  Không tìm thấy kết quả phù hợp với "<span className="font-semibold text-slate-600">{headerSearchQuery}</span>"
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Contracts */}
+                  {searchResults.contracts.length > 0 && (
+                    <div>
+                      <div className="px-2 pb-1 text-[10px] font-black uppercase text-slate-400">Đơn thuê ({searchResults.contracts.length})</div>
+                      {searchResults.contracts.map(c => (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            setActiveTab('contracts');
+                            setIsSearchModalOpen(false);
+                            setHeaderSearchQuery('');
+                          }}
+                          className="p-2.5 rounded-2xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition group"
+                        >
+                          <div className="min-w-0">
+                            <span className="font-black text-slate-900 block truncate group-hover:text-orange-600 transition-colors">
+                              {c.customerName} ({c.contractCode})
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-mono block">SĐT: {c.customerPhone}</span>
+                          </div>
+                          <span className="text-[10px] font-extrabold text-orange-600 bg-orange-100/80 px-2 py-0.5 rounded-full shrink-0">
+                            {c.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Cameras */}
+                  {searchResults.cameras.length > 0 && (
+                    <div>
+                      <div className="px-2 pb-1 text-[10px] font-black uppercase text-slate-400">Thiết bị ({searchResults.cameras.length})</div>
+                      {searchResults.cameras.map(cam => (
+                        <div
+                          key={cam.id}
+                          onClick={() => {
+                            setActiveTab('equipment');
+                            setIsSearchModalOpen(false);
+                            setHeaderSearchQuery('');
+                          }}
+                          className="p-2.5 rounded-2xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition group"
+                        >
+                          <div className="min-w-0">
+                            <span className="font-black text-slate-900 block truncate group-hover:text-orange-600 transition-colors">
+                              {cam.name}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-mono block">SN: {cam.serialNumber || 'N/A'}</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
+                            {cam.status === 'Available' ? 'Sẵn sàng' : 'Đang thuê'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Customers */}
+                  {searchResults.customers.length > 0 && (
+                    <div>
+                      <div className="px-2 pb-1 text-[10px] font-black uppercase text-slate-400">Khách hàng ({searchResults.customers.length})</div>
+                      {searchResults.customers.map(cust => (
+                        <div
+                          key={cust.id}
+                          onClick={() => {
+                            setActiveTab('customers');
+                            setIsSearchModalOpen(false);
+                            setHeaderSearchQuery('');
+                          }}
+                          className="p-2.5 rounded-2xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition group"
+                        >
+                          <span className="font-black text-slate-900 block truncate group-hover:text-orange-600 transition-colors">
+                            {cust.name}
+                          </span>
+                          <span className="text-[11px] text-slate-400 font-mono block">{cust.phone}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Modern Logo Customization Modal */}
       {showLogoModal && typeof document !== 'undefined' && createPortal(
