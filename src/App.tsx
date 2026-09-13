@@ -2026,7 +2026,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-[100dvh] bg-[#f4f5f8] flex font-sans select-none antialiased w-full overflow-hidden p-0 md:p-3 md:gap-3">
+    <div className="h-[100dvh] bg-white md:bg-[#f4f5f8] flex font-sans select-none antialiased w-full overflow-hidden p-0 md:p-3 md:gap-3">
       
       {/* MODERN FLOATING RAIL / EXPANDABLE SIDEBAR - Matching Reference Design */}
       <aside 
@@ -2349,33 +2349,29 @@ export default function App() {
       <div className="flex-grow flex flex-col min-w-0 h-full bg-white rounded-none md:rounded-[28px] border-0 md:border md:border-slate-200/70 md:shadow-[0_4px_30px_rgba(0,0,0,0.03)] overflow-hidden relative">
         
         {/* SLEEK MINIMAL HEADER BAR */}
-        <header className="px-4 sm:px-6 pt-[max(22px,calc(env(safe-area-inset-top,0px)+14px))] pb-3 sm:py-3.5 flex items-center justify-between border-b border-slate-100/90 select-none shrink-0 bg-white/90 backdrop-blur-md sticky top-0 z-30">
+        <header className="px-4 sm:px-6 pt-[max(22px,calc(env(safe-area-inset-top,0px)+14px))] pb-3 sm:py-3.5 flex items-center justify-between border-b border-slate-100/90 select-none shrink-0 bg-white backdrop-blur-md sticky top-0 z-30">
           
-          {/* Left: Mobile Title or Desktop Breadcrumb */}
+          {/* Left: Mobile Logo or Desktop Breadcrumb */}
           <div className="flex items-center gap-3 min-w-0">
-            {/* Mobile Header Title */}
-            <div className="md:hidden flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-3xs shrink-0">
-                {activeTab === 'calendar' && <Calendar className="w-4 h-4 stroke-[2.2]" />}
-                {activeTab === 'contracts' && <FileText className="w-4 h-4 stroke-[2.2]" />}
-                {activeTab === 'equipment' && <CameraIcon className="w-4 h-4 stroke-[2.2]" />}
-                {activeTab === 'revenue' && <TrendingUp className="w-4 h-4 stroke-[2.2]" />}
-                {activeTab === 'customers' && <Users className="w-4 h-4 stroke-[2.2]" />}
-                {activeTab === 'expenses' && <DollarSign className="w-4 h-4 stroke-[2.2]" />}
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-[13px] font-black text-gray-900 tracking-tight truncate leading-tight">
-                  {activeTab === 'calendar' && 'Lịch máy'}
-                  {activeTab === 'contracts' && 'Đơn thuê'}
-                  {activeTab === 'equipment' && 'Kho thiết bị'}
-                  {activeTab === 'revenue' && 'Doanh thu'}
-                  {activeTab === 'customers' && 'Khách hàng'}
-                  {activeTab === 'expenses' && 'Khoản chi'}
-                </h1>
-                <span className="text-[9px] font-bold text-gray-400 block leading-tight truncate">
-                  {logoText || 'TIỆM ẢNH NHÀ CAOS'}
-                </span>
-              </div>
+            {/* Mobile: Round Shop Logo */}
+            <div className="md:hidden flex items-center shrink-0">
+              {logoIconType === 'upload' && logoBase64 ? (
+                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-orange-200 shadow-xs">
+                  <img src={logoBase64} alt="Logo" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div
+                  className="w-9 h-9 rounded-full text-white flex items-center justify-center shadow-xs border-2 border-orange-300/60"
+                  style={{ backgroundColor: logoIconColor }}
+                >
+                  {logoIconType === 'aperture' && <Aperture className="w-5 h-5" />}
+                  {logoIconType === 'film' && <Film className="w-5 h-5" />}
+                  {logoIconType === 'sparkles' && <Sparkles className="w-5 h-5 text-yellow-300" />}
+                  {logoIconType === 'smile' && <Smile className="w-5 h-5" />}
+                  {logoIconType === 'image' && <ImageIcon className="w-5 h-5" />}
+                  {(logoIconType === 'camera' || logoIconType === 'upload') && <CameraIcon className="w-5 h-5" />}
+                </div>
+              )}
             </div>
 
             {/* Desktop Clean Breadcrumb (As seen in Reference: Maham > Overview) */}

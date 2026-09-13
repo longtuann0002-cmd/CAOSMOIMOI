@@ -60,9 +60,9 @@
   --color-slate-850: #0f172a;
 }
 
-body {
+html, body {
   font-family: var(--font-sans);
-  background-color: #fcfcfd;
+  background-color: #ffffff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
