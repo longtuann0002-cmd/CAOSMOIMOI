@@ -694,62 +694,73 @@ export default function BookingCalendar({
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Real-time Camera Status & Filter Bar */}
-      <div className="bg-white border border-gray-150/70 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-3xs">
-        <div className="flex items-center justify-between gap-2 mb-2.5 pb-2 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-orange-600 animate-pulse"></span>
-            <span className="text-xs font-black text-gray-800 uppercase tracking-wider">Trạng thái máy trong ngày ({selectedDate})</span>
+      {/* Real-time Camera Status & Filter Bar - Ultra Compact */}
+      <div className="bg-white border border-gray-150/70 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 shadow-3xs">
+        <div className="flex items-center justify-between gap-2 mb-1.5 pb-1.5 border-b border-gray-100">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-orange-600 animate-pulse shrink-0"></span>
+            <span className="text-[11px] sm:text-xs font-black text-gray-800 uppercase tracking-wider truncate">
+              Trạng thái máy ({selectedDate})
+            </span>
+            <span className="text-[10px] text-gray-400 font-bold hidden sm:inline-block shrink-0">
+              • {systemStatusInfo.filter(c => c.statusText === 'Còn trống cả ngày').length} trống / {systemStatusInfo.length} máy
+            </span>
           </div>
           {selectedCameraFilter !== 'ALL' && (
             <button
               type="button"
               onClick={() => setSelectedCameraFilter('ALL')}
-              className="text-[10px] text-orange-600 hover:text-orange-800 font-bold bg-orange-50 hover:bg-orange-100 px-2 py-0.5 rounded-md transition cursor-pointer flex items-center gap-1"
+              className="text-[10px] text-orange-600 hover:text-orange-800 font-bold bg-orange-50 hover:bg-orange-100 px-2 py-0.5 rounded-md transition cursor-pointer flex items-center gap-1 shrink-0"
             >
-              ✕ Bỏ lọc máy ({selectedCameraFilter})
+              ✕ Bỏ lọc ({selectedCameraFilter})
             </button>
           )}
         </div>
 
         {systemStatusInfo.length === 0 ? (
-          <div className="p-3 text-center text-xs text-gray-400 italic bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+          <div className="p-2 text-center text-xs text-gray-400 italic bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
             Tất cả thiết bị hiện đang ở trạng thái bảo trì hoặc chưa có thiết bị sẵn sàng.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-1 sm:gap-1.5">
             {systemStatusInfo.map(cam => {
               const isFilterActive = selectedCameraFilter === cam.shortName;
+              const isAvailable = cam.statusText === 'Còn trống cả ngày';
+              const isFull = cam.statusText === 'Kín lịch cả ngày';
+              const compactStatusLabel = isAvailable ? 'Trống' : isFull ? 'Kín' : '6h';
+
+              let chipTheme = 'bg-emerald-50/70 border-emerald-250 text-emerald-900 hover:bg-emerald-100/80';
+              let dotColor = 'bg-emerald-500';
+              let badgeTheme = 'bg-emerald-100/90 text-emerald-800';
+
+              if (isFull) {
+                chipTheme = 'bg-rose-50/80 border-rose-250 text-rose-900 hover:bg-rose-100/80';
+                dotColor = 'bg-rose-500';
+                badgeTheme = 'bg-rose-100/90 text-rose-800';
+              } else if (!isAvailable) {
+                chipTheme = 'bg-amber-50/80 border-amber-250 text-amber-900 hover:bg-amber-100/80';
+                dotColor = 'bg-amber-500';
+                badgeTheme = 'bg-amber-100/90 text-amber-800';
+              }
+
               return (
-                <div
+                <button
+                  type="button"
                   key={cam.id}
                   onClick={() => setSelectedCameraFilter(prev => prev === cam.shortName ? 'ALL' : cam.shortName)}
-                  className={`p-2 sm:p-2.5 border rounded-xl flex items-start gap-2 transition-all cursor-pointer select-none ${cam.statusColor} ${
-                    isFilterActive ? 'ring-2 ring-orange-500 shadow-xs scale-102 bg-orange-50/40' : 'hover:shadow-3xs hover:scale-101'
+                  className={`px-2 py-1 rounded-lg border text-[11px] sm:text-xs flex items-center justify-between gap-1 transition-all cursor-pointer select-none ${chipTheme} ${
+                    isFilterActive ? 'ring-2 ring-orange-500 border-orange-500 bg-orange-100/60 font-black shadow-xs' : 'hover:shadow-3xs'
                   }`}
-                  title="Bấm để lọc xem lịch của máy này"
+                  title={`${cam.cameraName} (${cam.serialNumber || 'Không serial'}) - ${cam.statusText}. Bấm để lọc.`}
                 >
-                  <div className="p-1.5 rounded-lg bg-white/95 shadow-3xs text-gray-700 shrink-0 mt-0.5">
-                    <CameraIcon className="w-3.5 h-3.5 text-gray-700" />
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={`w-1.5 h-1.5 rounded-full ${dotColor} shrink-0`} />
+                    <span className="font-black truncate">{cam.shortName}</span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <h3 className="font-black text-[11px] sm:text-xs text-gray-900 truncate leading-tight">
-                        {cam.shortName}
-                      </h3>
-                      <span className="text-[8.5px] font-bold text-gray-400 font-mono shrink-0">
-                        {cam.category === 'Body' ? 'Body' : cam.category === 'Lens' ? 'Lens' : 'Combo'}
-                      </span>
-                    </div>
-                    <p className="text-[9px] text-gray-500 font-semibold font-mono truncate leading-tight mt-0.5">
-                      {cam.serialNumber}
-                    </p>
-                    <div className="text-[9px] sm:text-[10px] font-black mt-1.5 flex items-center gap-1 leading-none">
-                      <span className="w-1.5 h-1.5 rounded-full bg-current inline-block shrink-0"></span>
-                      <span className="truncate">{cam.statusText}</span>
-                    </div>
-                  </div>
-                </div>
+                  <span className={`text-[8.5px] sm:text-[9px] font-extrabold px-1.2 py-0.2 rounded ${badgeTheme} shrink-0 leading-tight`}>
+                    {compactStatusLabel}
+                  </span>
+                </button>
               );
             })}
           </div>
@@ -917,9 +928,9 @@ export default function BookingCalendar({
                 <div
                   key={dateString}
                   onClick={() => handleDayClick(dateString)}
-                  className={`border rounded-xl p-1 sm:p-2 cursor-pointer transition-all flex flex-col justify-between ${statusStyle} ${monthStyle} ${
+                  className={`border rounded-xl p-1 sm:p-2 cursor-pointer transition-all flex flex-col justify-start gap-1 sm:gap-1.5 ${statusStyle} ${monthStyle} ${
                     isSelected ? 'ring-2 ring-orange-500 border-orange-500 bg-orange-50/30 shadow-xs' : 'hover:shadow-3xs'
-                  } ${viewMode === 'week' ? 'min-h-[85px] sm:min-h-[160px]' : 'min-h-[52px] sm:min-h-[92px]'}`}
+                  } ${viewMode === 'week' ? 'min-h-[85px] sm:min-h-[160px]' : 'min-h-[56px] sm:min-h-[96px]'}`}
                 >
                   {/* Cell Header: Day number + count badge */}
                   <div className="flex justify-between items-center pb-0.5 sm:pb-1">
@@ -937,9 +948,9 @@ export default function BookingCalendar({
                     )}
                   </div>
 
-                  {/* Mobile View: High-contrast micro-labels */}
-                  <div className="flex md:hidden flex-col gap-0.5 mt-0.5 select-none w-full overflow-hidden">
-                    {bookings.slice(0, 2).map((b, idx) => {
+                  {/* Mobile View: High-contrast micro-labels - Show all booked devices */}
+                  <div className="flex md:hidden flex-col gap-0.5 mt-0.5 select-none w-full">
+                    {bookings.map((b, idx) => {
                       const colors = getCameraColorProps(b.cameraShort);
                       return (
                         <div
@@ -954,15 +965,10 @@ export default function BookingCalendar({
                         </div>
                       );
                     })}
-                    {bookingCount > 2 && (
-                      <div className="text-[7.5px] font-black text-orange-700 bg-orange-100/80 border border-orange-200/60 rounded-[3px] py-px text-center leading-none mt-0.5 shrink-0">
-                        +{bookingCount - 2} máy
-                      </div>
-                    )}
                   </div>
 
-                  {/* Desktop View: Booking item text blocks */}
-                  <div className={`hidden md:block space-y-1 mt-0.5 flex-grow overflow-y-auto scrollbar-none select-none ${viewMode === 'week' ? 'max-h-[105px] sm:max-h-[125px]' : 'max-h-[46px] sm:max-h-[50px]'}`}>
+                  {/* Desktop View: Booking item text blocks - Show all booked devices */}
+                  <div className="hidden md:block space-y-1 mt-0.5 flex-grow select-none">
                     {bookings.map((b, idx) => {
                       const colors = getCameraColorProps(b.cameraShort);
                       return (
