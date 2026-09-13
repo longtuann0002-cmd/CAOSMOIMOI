@@ -729,18 +729,23 @@ export default function BookingCalendar({
               const isFull = cam.statusText === 'Kín lịch cả ngày';
               const compactStatusLabel = isAvailable ? 'Trống' : isFull ? 'Kín' : '6h';
 
-              let chipTheme = 'bg-emerald-50/70 border-emerald-250 text-emerald-900 hover:bg-emerald-100/80';
-              let dotColor = 'bg-emerald-500';
-              let badgeTheme = 'bg-emerald-100/90 text-emerald-800';
+              // Modern soft surface style: clean neutral for available, soft color accent for busy/6h
+              let chipClass = 'bg-white hover:bg-slate-50/80 border border-slate-200/70 text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
+              let dotColor = 'bg-emerald-500 ring-2 ring-emerald-100';
+              let badgeStyle = 'text-emerald-700 bg-emerald-50';
 
               if (isFull) {
-                chipTheme = 'bg-rose-50/80 border-rose-250 text-rose-900 hover:bg-rose-100/80';
-                dotColor = 'bg-rose-500';
-                badgeTheme = 'bg-rose-100/90 text-rose-800';
+                chipClass = 'bg-rose-50/60 hover:bg-rose-100/60 border border-rose-200/70 text-rose-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
+                dotColor = 'bg-rose-500 ring-2 ring-rose-200';
+                badgeStyle = 'text-rose-700 bg-rose-100/70 font-extrabold';
               } else if (!isAvailable) {
-                chipTheme = 'bg-amber-50/80 border-amber-250 text-amber-900 hover:bg-amber-100/80';
-                dotColor = 'bg-amber-500';
-                badgeTheme = 'bg-amber-100/90 text-amber-800';
+                chipClass = 'bg-amber-50/60 hover:bg-amber-100/60 border border-amber-200/70 text-amber-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
+                dotColor = 'bg-amber-500 ring-2 ring-amber-200';
+                badgeStyle = 'text-amber-700 bg-amber-100/70 font-extrabold';
+              }
+
+              if (isFilterActive) {
+                chipClass += ' ring-2 ring-orange-500 border-orange-400 bg-orange-50/70 font-black';
               }
 
               return (
@@ -748,16 +753,14 @@ export default function BookingCalendar({
                   type="button"
                   key={cam.id}
                   onClick={() => setSelectedCameraFilter(prev => prev === cam.shortName ? 'ALL' : cam.shortName)}
-                  className={`px-2 py-1 rounded-lg border text-[11px] sm:text-xs flex items-center justify-between gap-1 transition-all cursor-pointer select-none ${chipTheme} ${
-                    isFilterActive ? 'ring-2 ring-orange-500 border-orange-500 bg-orange-100/60 font-black shadow-xs' : 'hover:shadow-3xs'
-                  }`}
+                  className={`px-2 py-1 rounded-xl text-[11px] sm:text-xs flex items-center justify-between gap-1 transition-all cursor-pointer select-none active:scale-97 ${chipClass}`}
                   title={`${cam.cameraName} (${cam.serialNumber || 'Không serial'}) - ${cam.statusText}. Bấm để lọc.`}
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className={`w-1.5 h-1.5 rounded-full ${dotColor} shrink-0`} />
-                    <span className="font-black truncate">{cam.shortName}</span>
+                    <span className="font-extrabold truncate text-slate-800">{cam.shortName}</span>
                   </div>
-                  <span className={`text-[8.5px] sm:text-[9px] font-extrabold px-1.2 py-0.2 rounded ${badgeTheme} shrink-0 leading-tight`}>
+                  <span className={`text-[9px] font-bold px-1 py-0.2 rounded-md ${badgeStyle} shrink-0 leading-tight`}>
                     {compactStatusLabel}
                   </span>
                 </button>
