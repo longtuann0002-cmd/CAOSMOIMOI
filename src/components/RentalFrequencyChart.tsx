@@ -275,10 +275,10 @@ export default function RentalFrequencyChart({
       {/* Header element */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div className="space-y-0.5">
-          <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-orange-600" /> Tần Suất Thuê Thiết Bị Trong Tháng
+          <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+            <TrendingUp className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-orange-600 shrink-0" /> Tần Suất Thuê Thiết Bị Trong Tháng
           </h3>
-          <p className="text-xs text-gray-400 font-medium">
+          <p className="text-xs text-gray-500 leading-normal">
             Phân tích số lượt thuê thiết bị từ <span className="font-bold text-gray-700">{dateRangeLabel}</span>
           </p>
         </div>

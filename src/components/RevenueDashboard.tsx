@@ -640,11 +640,13 @@ export default function RevenueDashboard({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2 sm:gap-2.5">
             <span className="p-1.5 sm:p-2 bg-orange-50 rounded-lg sm:rounded-xl text-orange-600 shrink-0">
-              <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Calendar className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
             </span>
             <div className="min-w-0">
-              <h4 className="font-black text-gray-900 text-xs sm:text-sm truncate">Bộ Lọc Khoảng Thời Gian Báo Cáo</h4>
-              <p className="text-[10px] sm:text-xs text-gray-500 truncate leading-tight">
+              <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight truncate">
+                Bộ Lọc Khoảng Thời Gian Báo Cáo
+              </h3>
+              <p className="text-xs text-gray-500 truncate leading-normal">
                 Xem thống kê thu chi theo tuần, tháng, quý, cả năm hoặc tùy chọn.
               </p>
             </div>
@@ -815,10 +817,10 @@ export default function RevenueDashboard({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-gray-100">
             <div>
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 shrink-0" />
-                <h3 className="font-black text-gray-900 text-sm sm:text-base">Thống Kê Thu Chi (Theo Tháng)</h3>
+                <BarChart3 className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-orange-600 shrink-0" />
+                <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">Thống Kê Thu Chi (Theo Tháng)</h3>
               </div>
-              <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 leading-normal mt-0.5">
                 Báo cáo thu chi toàn bộ 12 tháng năm {selectedYear}. Bấm vào cột tháng để xem chi tiết.
               </p>
             </div>
@@ -972,8 +974,8 @@ export default function RevenueDashboard({
         <div className="bg-white border border-gray-200 p-3.5 sm:p-6 rounded-xl sm:rounded-2xl shadow-xs space-y-3 sm:space-y-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-black text-gray-900 text-sm sm:text-base">Top Thiết Bị Sinh Lời</h3>
-              <p className="text-[10px] sm:text-xs text-gray-500">Nhấp để xem cụ thể các ngày cho thuê.</p>
+              <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">Top Thiết Bị Sinh Lời</h3>
+              <p className="text-xs text-gray-500 leading-normal">Nhấp để xem cụ thể các ngày cho thuê.</p>
             </div>
             <span className="text-[10px] sm:text-xs bg-orange-100 text-orange-900 border border-orange-300 px-2 py-0.5 rounded-full font-black">
               {topRentedComponents.length} máy
@@ -1027,12 +1029,12 @@ export default function RevenueDashboard({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-gray-100">
           <div>
             <div className="flex items-center gap-2">
-              <CameraIcon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 shrink-0" />
-              <h3 className="text-sm sm:text-base font-black text-gray-900">
+              <CameraIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-indigo-600 shrink-0" />
+              <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
                 Chi Tiết Doanh Thu & Ngày Thuê Từng Thiết Bị
               </h3>
             </div>
-            <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 leading-normal mt-0.5">
               Doanh thu thực thu, tổng số ngày khai thác và nhật ký ngày thuê chi tiết của từng máy/lens.
             </p>
           </div>
@@ -1304,7 +1306,7 @@ export default function RevenueDashboard({
                 Chi Tiết Hoạt Động Doanh Thu - <span className="text-orange-600 font-black">{activeDetailData.title}</span>
               </span>
             </h3>
-            <p className="text-[10px] sm:text-xs text-gray-500">
+            <p className="text-xs text-gray-500 leading-normal">
               Danh sách chi tiết các hợp đồng cọc thuê và các khoản chi thực thu trong kỳ.
             </p>
           </div>

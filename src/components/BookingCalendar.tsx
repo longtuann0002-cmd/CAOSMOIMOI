@@ -767,10 +767,10 @@ export default function BookingCalendar({
                 <CalendarIcon className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
               </span>
               <div>
-                <h2 className="text-base sm:text-xl font-black text-gray-900 tracking-tight select-none">
+                <h2 className="text-base sm:text-lg font-black text-gray-900 tracking-tight select-none">
                   {viewMode === 'month' ? `Tháng ${String(currentMonth).padStart(2, '0')}, ${currentYear}` : `Lịch tuần`}
                 </h2>
-                <p className="text-gray-450 text-xs hidden sm:block">
+                <p className="text-xs text-gray-500 leading-normal hidden sm:block">
                   Theo dõi lịch trống, lịch bận và nhận máy chính xác theo từng mốc
                 </p>
               </div>

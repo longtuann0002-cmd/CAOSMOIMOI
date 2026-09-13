@@ -357,11 +357,11 @@ export default function CustomerManager({
       {/* Search Header */}
       <div className="bg-white border border-gray-150 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
-          <div className="space-y-0.5">
-            <h2 className="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2 select-none">
-              <User className="text-orange-600 w-4.5 h-4.5" /> Quản Lý Khách Hàng Thuê Máy
+          <div className="space-y-1">
+            <h2 className="text-base sm:text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 select-none">
+              <User className="text-orange-600 w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" /> Quản Lý Khách Hàng Thuê Máy
             </h2>
-            <p className="text-[11px] sm:text-xs text-gray-500 leading-relaxed">
+            <p className="text-xs text-gray-500 leading-normal">
               Tra cứu hồ sơ khách hàng, kiểm soát dư nợ chưa thu và xếp hạng độ tin cậy.
             </p>
           </div>

@@ -160,10 +160,10 @@ export default function ExpenseTracker({
       <div className="bg-white border border-gray-150 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm space-y-3.5 sm:space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-base sm:text-xl font-black text-gray-850 flex items-center gap-2 select-none">
-              <ListCollapse className="text-orange-600 w-4.5 h-4.5 sm:w-5 bg-orange-50 p-1 rounded-md sm:bg-transparent sm:p-0" /> Quản Lý Khoản Chi Vận Hành
+            <h2 className="text-base sm:text-lg font-black text-gray-900 tracking-tight flex items-center gap-2 select-none">
+              <ListCollapse className="text-orange-600 w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" /> Quản Lý Khoản Chi Vận Hành
             </h2>
-            <p className="text-xs sm:text-sm text-gray-500 leading-normal">
+            <p className="text-xs text-gray-500 leading-normal">
               Kê khai các mục chi tiêu mua thêm thiết bị, tiền bảo dưỡng định kỳ và các chi phí phát sinh khác của cửa hàng.
             </p>
           </div>

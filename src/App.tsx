@@ -2349,7 +2349,7 @@ export default function App() {
       <div className="flex-grow flex flex-col min-w-0 h-full bg-white rounded-none md:rounded-[28px] border-0 md:border md:border-slate-200/70 md:shadow-[0_4px_30px_rgba(0,0,0,0.03)] overflow-hidden relative">
         
         {/* SLEEK MODERN HEADER BAR */}
-        <header className="px-3.5 sm:px-6 pt-[max(20px,calc(env(safe-area-inset-top,0px)+14px))] pb-3 sm:py-3.5 flex items-center justify-between border-b border-slate-100/90 select-none shrink-0 bg-white backdrop-blur-md sticky top-0 z-30">
+        <header className="px-3.5 sm:px-6 pt-[max(6px,calc(env(safe-area-inset-top,0px)+2px))] pb-2 sm:py-3.5 flex items-center justify-between border-b border-slate-100/90 select-none shrink-0 bg-white backdrop-blur-md sticky top-0 z-30">
           
           {/* Left: Mobile User Profile / Desktop Breadcrumb */}
           <div className="flex items-center gap-3 min-w-0 relative">
