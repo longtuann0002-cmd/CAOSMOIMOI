@@ -2349,7 +2349,7 @@ export default function App() {
       <div className="flex-grow flex flex-col min-w-0 h-full bg-white rounded-none md:rounded-[28px] border-0 md:border md:border-slate-200/70 md:shadow-[0_4px_30px_rgba(0,0,0,0.03)] overflow-hidden relative">
         
         {/* SLEEK MINIMAL HEADER BAR */}
-        <header className="px-4 sm:px-6 py-3.5 flex items-center justify-between border-b border-slate-100/90 select-none shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-30">
+        <header className="px-4 sm:px-6 pt-[max(22px,calc(env(safe-area-inset-top,0px)+14px))] pb-3 sm:py-3.5 flex items-center justify-between border-b border-slate-100/90 select-none shrink-0 bg-white/90 backdrop-blur-md sticky top-0 z-30">
           
           {/* Left: Mobile Title or Desktop Breadcrumb */}
           <div className="flex items-center gap-3 min-w-0">
@@ -2417,7 +2417,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsSearchModalOpen(true)}
-              className="w-9 h-9 rounded-xl border border-slate-200/80 hover:bg-slate-50 text-slate-500 hover:text-slate-900 flex items-center justify-center transition cursor-pointer shadow-3xs group"
+              className="w-9 h-9 rounded-xl border border-slate-200/80 hover:bg-slate-50 text-slate-500 hover:text-slate-900 flex items-center justify-center transition cursor-pointer shadow-3xs group active:scale-95"
               title="Tìm kiếm nhanh (Ctrl + K)"
             >
               <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -2431,6 +2431,94 @@ export default function App() {
               systemDate={systemDate}
               setSystemDate={setSystemDate}
             />
+
+            {/* Mobile User Avatar & Profile Dropdown */}
+            <div className="relative md:hidden">
+              <button
+                type="button"
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200/90 active:scale-95 bg-white shadow-3xs transition-all cursor-pointer relative flex items-center justify-center group"
+                title="Tài khoản cá nhân"
+              >
+                <img 
+                  src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'} 
+                  alt="Avatar" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
+                />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+              </button>
+
+              {/* Mobile Profile Dropdown */}
+              {profileDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setProfileDropdownOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200/90 py-1.5 z-50 text-left text-xs text-slate-800 animate-fade-in divide-y divide-slate-100 w-60">
+                    <div className="px-3.5 py-2.5 bg-slate-50/70">
+                      <p className="font-black text-slate-900 text-xs truncate">{currentUser?.fullName || 'Quản trị viên'}</p>
+                      <p className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
+                        @{currentUser?.username || 'admin'} • {currentUser?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}
+                      </p>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        type="button"
+                        onClick={() => { setProfileDropdownOpen(false); setShowChangePasswordModal(true); }}
+                        className="w-full px-3.5 py-2 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2 cursor-pointer"
+                      >
+                        <Key className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Đổi mật khẩu</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setProfileDropdownOpen(false); setShowChangeAvatarModal(true); }}
+                        className="w-full px-3.5 py-2 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2 cursor-pointer"
+                      >
+                        <Smile className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Đổi ảnh đại diện</span>
+                      </button>
+                      {currentUser?.role === 'admin' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => { setProfileDropdownOpen(false); setShowManageUsersModal(true); }}
+                            className="w-full px-3.5 py-2 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2 cursor-pointer"
+                          >
+                            <Users className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Quản lý tài khoản</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setProfileDropdownOpen(false); setShowLogoModal(true); }}
+                            className="w-full px-3.5 py-2 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2 cursor-pointer"
+                          >
+                            <Palette className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Thương hiệu & Logo</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setProfileDropdownOpen(false); setShowBackupModal(true); }}
+                            className="w-full px-3.5 py-2 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2 cursor-pointer"
+                          >
+                            <Database className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Sao lưu dữ liệu</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    <div className="py-1">
+                      <button
+                        type="button"
+                        onClick={() => { setProfileDropdownOpen(false); handleLogout(); }}
+                        className="w-full px-3.5 py-2 hover:bg-rose-50 text-rose-600 font-bold text-left transition flex items-center gap-2 cursor-pointer"
+                      >
+                        <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                        <span>Đăng xuất</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
