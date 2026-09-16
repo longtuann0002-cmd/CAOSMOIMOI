@@ -12,6 +12,7 @@ import {
 } from './utils/mockData';
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from './utils/supabase';
 import { formatDMY } from './utils/dateUtils';
+import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing } from './utils/pushNotification';
 
 
 // Component imports
@@ -367,6 +368,34 @@ export default function App() {
 
     return closestDate;
   });
+
+  // 9:00 AM Daily Morning Operations Briefing Scheduler
+  useEffect(() => {
+    // 1. Immediate check if already >= 9:00 AM
+    checkAndTriggerMorningBriefing(contracts, systemDate);
+
+    // 2. Interval check every minute
+    const interval = setInterval(() => {
+      checkAndTriggerMorningBriefing(contracts, systemDate);
+    }, 60000);
+
+    // 3. Exact timer scheduled for 9:00:00 AM
+    const now = new Date();
+    const target = new Date();
+    target.setHours(9, 0, 0, 0);
+    if (now.getTime() >= target.getTime()) {
+      target.setDate(target.getDate() + 1);
+    }
+    const msUntil9AM = target.getTime() - now.getTime();
+    const timer = setTimeout(() => {
+      checkAndTriggerMorningBriefing(contracts, systemDate);
+    }, msUntil9AM);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timer);
+    };
+  }, [contracts, systemDate]);
 
   const searchResults = useMemo(() => {
     const q = headerSearchQuery.trim().toLowerCase();
@@ -842,6 +871,11 @@ export default function App() {
       'success',
       `Mã hợp đồng: ${newContract.contractCode} | Khách hàng: ${newContract.customerName} (Đã lưu vào danh sách khách hàng)`
     );
+
+    // Push notification immediately to iPhone/device
+    sendOrderCreatedNotification(newContract).catch(err => {
+      console.warn('Push notification error on order creation:', err);
+    });
   };
 
   const handleUpdateContractStatus = (id: string, status: ContractStatus, note?: string, paidAmount?: number) => {

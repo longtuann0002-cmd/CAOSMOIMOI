@@ -1,4 +1,6 @@
 ﻿// Utility for Web Push & PWA Notifications (Supporting iOS 16.4+ and Android)
+import { RentalContract } from '../types';
+import { formatDMY } from './dateUtils';
 
 export interface PushStatus {
   supported: boolean;
@@ -55,7 +57,6 @@ export async function requestNotificationPermission(): Promise<{
   error?: string;
 }> {
   if (!isNotificationSupported()) {
-    // If on iOS and not standalone, guide to add to home screen
     if (isIOS() && !isStandalone()) {
       return {
         granted: false,
@@ -70,7 +71,6 @@ export async function requestNotificationPermission(): Promise<{
     };
   }
 
-  // On iOS 16.4+, notifications only work if added to Home Screen
   if (isIOS() && !isStandalone()) {
     return {
       granted: false,
@@ -95,56 +95,17 @@ export async function requestNotificationPermission(): Promise<{
   }
 }
 
-// Send a test notification to verify device behavior
-export async function sendTestNotification(): Promise<boolean> {
-  if (!isNotificationSupported() || Notification.permission !== 'granted') {
-    return false;
-  }
-
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    if (reg && reg.showNotification) {
-      await reg.showNotification('📷 Tiệm Ảnh Nhà Caos - Trợ lý vận hành', {
-        body: 'Thông báo trên iPhone của bạn đã hoạt động hoàn hảo! 🎉',
-        icon: '/logocaosdt.png',
-        badge: '/logocaosdt.png',
-        vibrate: [200, 100, 200],
-        tag: 'test-notification',
-        renotify: true,
-        data: { url: '/' }
-      } as any);
-      return true;
-    } else {
-      new Notification('📷 Tiệm Ảnh Nhà Caos', {
-        body: 'Thông báo trên thiết bị đã hoạt động! 🎉',
-        icon: '/logocaosdt.png'
-      });
-      return true;
-    }
-  } catch (e) {
-    console.error('Error sending test notification:', e);
-    return false;
-  }
-}
-
-// Send an operation alert notification (with anti-spam timestamp check)
-export async function sendOperationNotification(
+// Base helper to display notification via Service Worker or fallback
+export async function showPushNotification(
   title: string, 
   body: string, 
-  tag: string
+  tag?: string
 ): Promise<boolean> {
   if (!isNotificationSupported() || Notification.permission !== 'granted') {
     return false;
   }
 
-  // Check anti-spam cooldown (1 hour per specific tag)
-  const lastSentKey = `last_notif_${tag}`;
-  const lastSent = localStorage.getItem(lastSentKey);
-  const now = Date.now();
-  if (lastSent && now - parseInt(lastSent, 10) < 60 * 60 * 1000) {
-    // Already notified in the last hour
-    return false;
-  }
+  const notificationTag = tag || `caos-${Date.now()}`;
 
   try {
     const reg = await navigator.serviceWorker.ready;
@@ -154,16 +115,127 @@ export async function sendOperationNotification(
         icon: '/logocaosdt.png',
         badge: '/logocaosdt.png',
         vibrate: [200, 100, 200],
-        tag,
+        tag: notificationTag,
         renotify: true,
         data: { url: '/' }
       } as any);
-      localStorage.setItem(lastSentKey, String(now));
+      return true;
+    } else if (typeof Notification !== 'undefined') {
+      new Notification(title, {
+        body,
+        icon: '/logocaosdt.png',
+        tag: notificationTag
+      });
       return true;
     }
     return false;
   } catch (e) {
-    console.error('Failed to trigger push notification:', e);
+    console.error('Error showing push notification:', e);
     return false;
   }
+}
+
+// Send a test notification to verify device behavior
+export async function sendTestNotification(): Promise<boolean> {
+  return showPushNotification(
+    '📷 Tiệm Ảnh Nhà Caos - Trợ lý vận hành',
+    'Thông báo trên iPhone của bạn đã hoạt động hoàn hảo! 🎉',
+    `test-${Date.now()}`
+  );
+}
+
+// Send an instant notification EVERY TIME an order is created (No blocking!)
+export async function sendOrderCreatedNotification(contract: RentalContract): Promise<boolean> {
+  const itemsText = (contract.items || []).map(i => i.cameraName).join(', ') || 'Thiết bị thuê';
+  const title = `📋 Đơn đặt mới: ${contract.contractCode}`;
+  const timeInfo = contract.is6Hours 
+    ? `Gói 6h (${contract.startTime || '08:00'} - ${contract.returnTime || '14:00'})` 
+    : `${formatDMY(contract.startDate)} - ${formatDMY(contract.endDate)}`;
+  const body = `Khách: ${contract.customerName} • ${itemsText} • ${timeInfo} • ${contract.totalPrice.toLocaleString()}đ`;
+  
+  return showPushNotification(title, body, `order-${contract.id}-${Date.now()}`);
+}
+
+// Check and trigger 9:00 AM daily morning operations briefing
+export async function checkAndTriggerMorningBriefing(
+  contracts: RentalContract[],
+  targetDate?: string,
+  forceTest: boolean = false
+): Promise<boolean> {
+  if (!isNotificationSupported() || Notification.permission !== 'granted') {
+    return false;
+  }
+
+  const now = new Date();
+  const currentHour = now.getHours();
+  const todayDateStr = targetDate || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  // Only trigger at or after 9:00 AM (unless user clicked force test)
+  if (currentHour < 9 && !forceTest) {
+    return false;
+  }
+
+  const morningKey = `morning_briefing_sent_${todayDateStr}`;
+  if (!forceTest && localStorage.getItem(morningKey)) {
+    return false;
+  }
+
+  // Calculate operations for today
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowDateStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+
+  const handoverCount = (contracts || []).filter(c => c.startDate === todayDateStr && c.status === 'Pending').length;
+  const returnCount = (contracts || []).filter(c => c.endDate === todayDateStr && c.status === 'Active').length;
+  const overdueCount = (contracts || []).filter(c => c.status === 'Overdue' || (c.status === 'Active' && c.endDate < todayDateStr)).length;
+  const upcomingCount = (contracts || []).filter(c => c.startDate === tomorrowDateStr && c.status === 'Pending').length;
+
+  const total = handoverCount + returnCount + overdueCount + upcomingCount;
+  if (total === 0 && !forceTest) {
+    localStorage.setItem(morningKey, 'checked_empty');
+    return false;
+  }
+
+  const parts: string[] = [];
+  if (handoverCount > 0) parts.push(`${handoverCount} đơn giao`);
+  if (returnCount > 0) parts.push(`${returnCount} đơn thu hồi`);
+  if (overdueCount > 0) parts.push(`${overdueCount} đơn trễ hạn`);
+  if (upcomingCount > 0) parts.push(`${upcomingCount} đơn ngày mai`);
+
+  const title = `☀️ Nhắc việc 9h sáng (${formatDMY(todayDateStr)})`;
+  const body = parts.length > 0 
+    ? `Hôm nay có: ${parts.join(', ')}. Chúc tiệm một ngày làm việc hiệu quả! ✨`
+    : 'Hôm nay hiện tại không có đơn nào cần bàn giao hay thu hồi. Chúc bạn một ngày tốt lành! ✨';
+
+  const ok = await showPushNotification(title, body, `morning-${todayDateStr}-${Date.now()}`);
+  if (ok && !forceTest) {
+    localStorage.setItem(morningKey, 'sent');
+  }
+  return ok;
+}
+
+// Send an operation alert notification (with light 10s debounce to avoid React re-render duplicates)
+export async function sendOperationNotification(
+  title: string, 
+  body: string, 
+  signature: string
+): Promise<boolean> {
+  if (!isNotificationSupported() || Notification.permission !== 'granted') {
+    return false;
+  }
+
+  const lastSentKey = `last_notif_sig`;
+  const lastSentSig = localStorage.getItem(lastSentKey);
+  const lastSentTimeKey = `last_notif_time`;
+  const lastSentTime = localStorage.getItem(lastSentTimeKey);
+  const now = Date.now();
+
+  if (lastSentSig === signature && lastSentTime && now - parseInt(lastSentTime, 10) < 10000) {
+    return false;
+  }
+
+  localStorage.setItem(lastSentKey, signature);
+  localStorage.setItem(lastSentTimeKey, String(now));
+
+  return showPushNotification(title, body, `op-${Date.now()}`);
 }

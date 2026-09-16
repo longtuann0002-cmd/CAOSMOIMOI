@@ -31,7 +31,8 @@ import {
   getNotificationPermission,
   requestNotificationPermission,
   sendTestNotification,
-  sendOperationNotification
+  sendOperationNotification,
+  checkAndTriggerMorningBriefing
 } from '../utils/pushNotification';
 
 interface NotificationCenterProps {
@@ -227,8 +228,11 @@ export default function NotificationCenter({
       if (stats.handover > 0) parts.push(`${stats.handover} bàn giao`);
       if (stats.return > 0) parts.push(`${stats.return} thu hồi`);
       if (stats.overdue > 0) parts.push(`${stats.overdue} trễ hạn`);
-      const body = parts.join(', ') + ' cần xử lý hôm nay.';
-      sendOperationNotification(title, body, `daily-${systemDate}`);
+      sendOperationNotification(
+        title, 
+        body, 
+        `daily-${systemDate}-${stats.total}-${stats.handover}-${stats.return}-${stats.overdue}`
+      );
     }
   }, [systemDate, stats.total, stats.handover, stats.return, stats.overdue, pushPermission]);
 
@@ -258,6 +262,19 @@ export default function NotificationCenter({
     if (ok) {
       setTestSentSuccess(true);
       setTimeout(() => setTestSentSuccess(false), 4000);
+    }
+  };
+
+  const [isTestingMorning, setIsTestingMorning] = useState(false);
+  const [testMorningSent, setTestMorningSent] = useState(false);
+
+  const handleTestMorning = async () => {
+    setIsTestingMorning(true);
+    const ok = await checkAndTriggerMorningBriefing(contracts, systemDate, true);
+    setIsTestingMorning(false);
+    if (ok) {
+      setTestMorningSent(true);
+      setTimeout(() => setTestMorningSent(false), 4000);
     }
   };
 
@@ -527,16 +544,28 @@ export default function NotificationCenter({
 
                       {/* Quick Action Button */}
                       {pushPermission === 'granted' ? (
-                        <button
-                          type="button"
-                          onClick={handleSendTestPush}
-                          disabled={isSendingTest}
-                          className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-200 text-slate-700 hover:text-orange-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95 shadow-3xs"
-                          title="Bấm để gửi thử một thông báo tới máy này"
-                        >
-                          <Send className={`w-3.5 h-3.5 ${isSendingTest ? 'animate-spin' : ''}`} />
-                          <span>{testSentSuccess ? 'Đã gửi test!' : 'Thử chuông'}</span>
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={handleTestMorning}
+                            disabled={isTestingMorning}
+                            className="px-2.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-3xs"
+                            title="Bấm để thử nghiệm nhận thông báo nhắc việc 9h sáng ngay bây giờ"
+                          >
+                            <Clock className={`w-3.5 h-3.5 text-amber-700 ${isTestingMorning ? 'animate-spin' : ''}`} />
+                            <span>{testMorningSent ? 'Đã gửi 9h!' : 'Thử nhắc 9h'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSendTestPush}
+                            disabled={isSendingTest}
+                            className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-200 text-slate-700 hover:text-orange-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-3xs"
+                            title="Bấm để gửi thử một thông báo tới máy này"
+                          >
+                            <Send className={`w-3.5 h-3.5 ${isSendingTest ? 'animate-spin' : ''}`} />
+                            <span>{testSentSuccess ? 'Đã gửi test!' : 'Thử chuông'}</span>
+                          </button>
+                        </div>
                       ) : (
                         <button
                           type="button"
@@ -547,6 +576,14 @@ export default function NotificationCenter({
                           <span>Bật thông báo</span>
                         </button>
                       )}
+                    </div>
+
+                    {/* 9:00 AM Daily Briefing Schedule Banner */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200/70 rounded-xl text-[11px] text-slate-600">
+                      <Clock className="w-4 h-4 text-orange-600 shrink-0" />
+                      <span>
+                        <b>Lịch cố định:</b> Tự động tổng hợp và đẩy thông báo vào đúng <b>09:00 sáng hàng ngày</b> khi có máy cần giao, thu hồi hoặc đơn trễ hạn.
+                      </span>
                     </div>
 
                     {/* iPhone Instruction Guide if not standalone or requested */}
