@@ -18,8 +18,21 @@ import {
   Info,
   ExternalLink,
   Sliders,
-  DollarSign
+  DollarSign,
+  Smartphone,
+  CheckCircle2,
+  Share,
+  Send,
+  Sparkles
 } from 'lucide-react';
+import {
+  isIOS,
+  isStandalone,
+  getNotificationPermission,
+  requestNotificationPermission,
+  sendTestNotification,
+  sendOperationNotification
+} from '../utils/pushNotification';
 
 interface NotificationCenterProps {
   contracts: RentalContract[];
@@ -46,6 +59,22 @@ export default function NotificationCenter({
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmHandoverId, setConfirmHandoverId] = useState<string | null>(null);
   const [confirmReturnId, setConfirmReturnId] = useState<string | null>(null);
+
+  // Push Notification state
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  const [isIPhoneDevice, setIsIPhoneDevice] = useState(false);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testSentSuccess, setTestSentSuccess] = useState(false);
+  const [pushErrorMessage, setPushErrorMessage] = useState('');
+  const [showIPhoneGuide, setShowIPhoneGuide] = useState(false);
+
+  // Sync push status when drawer opens
+  useEffect(() => {
+    setPushPermission(getNotificationPermission());
+    setIsIPhoneDevice(isIOS());
+    setIsAppInstalled(isStandalone());
+  }, [isOpen]);
 
   // Auto-trigger toast on mount/systemDate change if there are warnings
   useEffect(() => {
@@ -189,6 +218,48 @@ export default function NotificationCenter({
     const upcoming = reminders.filter(r => r.type === 'upcoming').length;
     return { handover, return: ret, overdue, upcoming, total: reminders.length };
   }, [reminders]);
+
+  // Automated Push Notification when new operation alerts exist today
+  useEffect(() => {
+    if (pushPermission === 'granted' && stats.total > 0) {
+      const title = `📷 Nhắc việc vận hành (${formatDMY(systemDate)})`;
+      const parts: string[] = [];
+      if (stats.handover > 0) parts.push(`${stats.handover} bàn giao`);
+      if (stats.return > 0) parts.push(`${stats.return} thu hồi`);
+      if (stats.overdue > 0) parts.push(`${stats.overdue} trễ hạn`);
+      const body = parts.join(', ') + ' cần xử lý hôm nay.';
+      sendOperationNotification(title, body, `daily-${systemDate}`);
+    }
+  }, [systemDate, stats.total, stats.handover, stats.return, stats.overdue, pushPermission]);
+
+  const handleEnablePush = async () => {
+    setPushErrorMessage('');
+    const result = await requestNotificationPermission();
+    if (result.granted) {
+      setPushPermission('granted');
+      setShowIPhoneGuide(false);
+      await sendTestNotification();
+    } else {
+      setPushPermission(getNotificationPermission());
+      if (result.requiresPWA) {
+        setShowIPhoneGuide(true);
+      }
+      if (result.error) {
+        setPushErrorMessage(result.error);
+      }
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    setIsSendingTest(true);
+    setTestSentSuccess(false);
+    const ok = await sendTestNotification();
+    setIsSendingTest(false);
+    if (ok) {
+      setTestSentSuccess(true);
+      setTimeout(() => setTestSentSuccess(false), 4000);
+    }
+  };
 
   // Handover confirmation handler
   const handleConfirmHandover = (contractId: string) => {
@@ -424,7 +495,86 @@ export default function NotificationCenter({
                 </div>
 
                 {/* Reminder list scroll area */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50">
+                  
+                  {/* PWA / iPhone Push Notification Control Card */}
+                  <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3 select-none">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/60">
+                          <Smartphone className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5 truncate">
+                            Thông báo iPhone & Điện thoại
+                            {pushPermission === 'granted' ? (
+                              <span className="text-[9.5px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.2 rounded-md shrink-0">
+                                Đang bật
+                              </span>
+                            ) : (
+                              <span className="text-[9.5px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.2 rounded-md shrink-0">
+                                Chưa bật
+                              </span>
+                            )}
+                          </h4>
+                          <p className="text-[10.5px] sm:text-xs text-slate-500 leading-tight mt-0.5 truncate">
+                            {pushPermission === 'granted'
+                              ? 'Tự động nhắc khi có máy sắp giao, thu hồi hoặc trễ hạn.'
+                              : 'Nhận thông báo đẩy native trên màn hình khóa khi đến hạn đơn.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Quick Action Button */}
+                      {pushPermission === 'granted' ? (
+                        <button
+                          type="button"
+                          onClick={handleSendTestPush}
+                          disabled={isSendingTest}
+                          className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-200 text-slate-700 hover:text-orange-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95 shadow-3xs"
+                          title="Bấm để gửi thử một thông báo tới máy này"
+                        >
+                          <Send className={`w-3.5 h-3.5 ${isSendingTest ? 'animate-spin' : ''}`} />
+                          <span>{testSentSuccess ? 'Đã gửi test!' : 'Thử chuông'}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleEnablePush}
+                          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white text-xs font-black transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-xs active:scale-95"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Bật thông báo</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* iPhone Instruction Guide if not standalone or requested */}
+                    {(showIPhoneGuide || (isIPhoneDevice && !isAppInstalled && pushPermission !== 'granted')) && (
+                      <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-2 text-left animate-fade-in">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-amber-900">
+                          <Share className="w-4 h-4 text-amber-700 shrink-0" />
+                          <span>Hướng dẫn cài đặt trên iPhone (iOS):</span>
+                        </div>
+                        <ol className="text-[11px] text-amber-900/90 space-y-1 pl-4 list-decimal leading-relaxed font-medium">
+                          <li>Mở liên kết web này bằng trình duyệt <b>Safari</b> trên iPhone.</li>
+                          <li>Bấm vào biểu tượng <b>Chia sẻ</b> (ô vuông có mũi tên hướng lên ⎋) ở thanh dưới cùng.</li>
+                          <li>Cuộn xuống và chọn <b>"Thêm vào Màn hình chính"</b> (Add to Home Screen).</li>
+                          <li>Mở icon <b>Nhà Caos</b> vừa tạo trên màn hình chính và bấm nút <b>"Bật thông báo"</b>!</li>
+                        </ol>
+                        <p className="text-[10px] text-amber-700 italic">
+                          💡 Theo quy định của Apple, iPhone chỉ cho phép gửi thông báo khi app đã được thêm vào Màn hình chính.
+                        </p>
+                      </div>
+                    )}
+
+                    {pushErrorMessage && (
+                      <div className="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-2 rounded-lg font-medium">
+                        {pushErrorMessage}
+                      </div>
+                    )}
+                  </div>
+
                   {filteredReminders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 bg-white rounded-2xl border border-gray-200 p-8">
                       <div className="p-3 bg-gray-50 text-gray-400 rounded-full mb-3">
