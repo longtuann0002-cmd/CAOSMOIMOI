@@ -227,12 +227,18 @@ export default function NotificationCenter({
       const parts: string[] = [];
       if (stats.handover > 0) parts.push(`${stats.handover} bàn giao`);
       if (stats.return > 0) parts.push(`${stats.return} thu hồi`);
-      if (stats.overdue > 0) parts.push(`${stats.overdue} trễ hạn`);
-      sendOperationNotification(
-        title, 
-        body, 
-        `daily-${systemDate}-${stats.total}-${stats.handover}-${stats.return}-${stats.overdue}`
-      );
+      try {
+        const body = parts.length > 0 
+          ? parts.join(', ') + ' cần xử lý hôm nay.' 
+          : 'Có cập nhật đơn hàng vận hành mới.';
+        sendOperationNotification(
+          title, 
+          body, 
+          `daily-${systemDate}-${stats.total}-${stats.handover}-${stats.return}-${stats.overdue}`
+        ).catch(err => console.warn('sendOperationNotification error:', err));
+      } catch (err) {
+        console.warn('Error preparing operation notification:', err);
+      }
     }
   }, [systemDate, stats.total, stats.handover, stats.return, stats.overdue, pushPermission]);
 
