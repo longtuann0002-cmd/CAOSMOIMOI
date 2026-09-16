@@ -77,45 +77,8 @@ export default function NotificationCenter({
     setIsAppInstalled(isStandalone());
   }, [isOpen]);
 
-  // Auto-trigger toast on mount/systemDate change if there are warnings
-  useEffect(() => {
-    const tomorrowDate = (() => {
-      const d = new Date(systemDate + 'T00:00:00');
-      d.setDate(d.getDate() + 1);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    })();
-
-    const handoverCount = contracts.filter(c => c.startDate === systemDate && c.status === 'Pending').length;
-    const returnCount = contracts.filter(c => c.endDate === systemDate && c.status === 'Active').length;
-    const overdueCount = contracts.filter(c => c.status === 'Overdue' || (c.status === 'Active' && c.endDate < systemDate)).length;
-    const upcomingCount = contracts.filter(c => c.startDate === tomorrowDate && c.status === 'Pending').length;
-
-    const total = handoverCount + returnCount + overdueCount + upcomingCount;
-    if (total > 0) {
-      let msg = `Hôm nay (${systemDate}) có các sự kiện cần chú ý: `;
-      const parts: string[] = [];
-      if (handoverCount > 0) parts.push(`${handoverCount} bàn giao`);
-      if (returnCount > 0) parts.push(`${returnCount} thu hồi`);
-      if (overdueCount > 0) parts.push(`${overdueCount} trễ hạn`);
-      if (upcomingCount > 0) parts.push(`${upcomingCount} sắp thuê vào ngày mai (${tomorrowDate})`);
-      
-      msg += parts.join(', ') + '.';
-      setToastMessage(msg);
-      setShowToast(true);
-      setShowToastAction(true);
-      
-      // Auto dismiss after 7.5 seconds
-      const timer = setTimeout(() => {
-        setShowToast(false);
-      }, 7500);
-      return () => clearTimeout(timer);
-    } else {
-      setShowToast(false);
-    }
-  }, [systemDate, contracts.length]); // depend on contracts length and systemDate
+  // Note: Auto-trigger toast on mount is disabled to avoid spamming on each app launch.
+  // Users can view reminders by clicking the bell icon.
 
   // Derived operational values
   const reminders = useMemo(() => {
@@ -220,27 +183,8 @@ export default function NotificationCenter({
     return { handover, return: ret, overdue, upcoming, total: reminders.length };
   }, [reminders]);
 
-  // Automated Push Notification when new operation alerts exist today
-  useEffect(() => {
-    if (pushPermission === 'granted' && stats.total > 0) {
-      const title = `📷 Nhắc việc vận hành (${formatDMY(systemDate)})`;
-      const parts: string[] = [];
-      if (stats.handover > 0) parts.push(`${stats.handover} bàn giao`);
-      if (stats.return > 0) parts.push(`${stats.return} thu hồi`);
-      try {
-        const body = parts.length > 0 
-          ? parts.join(', ') + ' cần xử lý hôm nay.' 
-          : 'Có cập nhật đơn hàng vận hành mới.';
-        sendOperationNotification(
-          title, 
-          body, 
-          `daily-${systemDate}-${stats.total}-${stats.handover}-${stats.return}-${stats.overdue}`
-        ).catch(err => console.warn('sendOperationNotification error:', err));
-      } catch (err) {
-        console.warn('Error preparing operation notification:', err);
-      }
-    }
-  }, [systemDate, stats.total, stats.handover, stats.return, stats.overdue, pushPermission]);
+  // Push notifications are triggered on-demand (e.g. when creating an order or at scheduled 9:00 AM)
+  // to avoid spamming the user whenever they open the app.
 
   const handleEnablePush = async () => {
     setPushErrorMessage('');

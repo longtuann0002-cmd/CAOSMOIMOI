@@ -369,17 +369,8 @@ export default function App() {
     return closestDate;
   });
 
-  // 9:00 AM Daily Morning Operations Briefing Scheduler
+  // 9:00 AM Daily Morning Operations Briefing Scheduler (Fires only at 9h sáng, not on app launch)
   useEffect(() => {
-    // 1. Immediate check if already >= 9:00 AM
-    checkAndTriggerMorningBriefing(contracts, systemDate);
-
-    // 2. Interval check every minute
-    const interval = setInterval(() => {
-      checkAndTriggerMorningBriefing(contracts, systemDate);
-    }, 60000);
-
-    // 3. Exact timer scheduled for 9:00:00 AM
     const now = new Date();
     const target = new Date();
     target.setHours(9, 0, 0, 0);
@@ -388,11 +379,10 @@ export default function App() {
     }
     const msUntil9AM = target.getTime() - now.getTime();
     const timer = setTimeout(() => {
-      checkAndTriggerMorningBriefing(contracts, systemDate);
+      checkAndTriggerMorningBriefing(contracts, systemDate, false);
     }, msUntil9AM);
 
     return () => {
-      clearInterval(interval);
       clearTimeout(timer);
     };
   }, [contracts, systemDate]);
