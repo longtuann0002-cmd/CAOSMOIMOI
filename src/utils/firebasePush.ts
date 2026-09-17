@@ -1,5 +1,16 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  limit, 
+  doc, 
+  setDoc 
+} from 'firebase/firestore';
 import { syncToSupabase, fetchFromSupabase, isSupabaseConfigured } from './supabase';
 import { isIOS, isStandalone, isNotificationSupported } from './pushNotification';
 
@@ -202,8 +213,10 @@ async function saveTokenToSharedRegistry(token: string): Promise<void> {
   }
 }
 
+const CLIENT_SESSION_ID = 'sess_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now();
+
 // Broadcast notification across all devices
-// (Uses Multi-Channel: BroadcastChannel for real-time online devices + Shared Cloud Store trigger)
+// (Uses Multi-Channel: Firestore Cloud broadcast across Internet + BroadcastChannel locally + Supabase)
 export async function broadcastToAllDevices(
   title: string, 
   body: string, 
@@ -211,7 +224,24 @@ export async function broadcastToAllDevices(
 ): Promise<boolean> {
   let anyDelivered = false;
 
-  // 1. BroadcastChannel (Delivers instantly to all active tabs/windows on the same origin)
+  // 1. Firebase Firestore Cloud Broadcast (delivers across the internet to all connected phones/laptops)
+  try {
+    const config = getFirebaseConfig();
+    const app = getApps().length > 0 ? getApp() : initializeApp(config);
+    const db = getFirestore(app);
+    await addDoc(collection(db, 'caos_cloud_alerts'), {
+      title,
+      body,
+      data: data || {},
+      senderSessionId: CLIENT_SESSION_ID,
+      timestamp: Date.now()
+    });
+    anyDelivered = true;
+  } catch (e) {
+    console.warn('Firebase Firestore broadcast error:', e);
+  }
+
+  // 2. BroadcastChannel (Delivers instantly to all active tabs/windows on the same machine)
   try {
     if (typeof BroadcastChannel !== 'undefined') {
       const channel = new BroadcastChannel('caos_cross_device_notifications');
@@ -228,7 +258,7 @@ export async function broadcastToAllDevices(
     console.warn('BroadcastChannel error:', e);
   }
 
-  // 2. Storage event broadcast (for other tabs on local browsers)
+  // 3. Storage event broadcast (for other tabs on local browsers)
   try {
     localStorage.setItem('caos_latest_broadcast_alert', JSON.stringify({
       title,
@@ -238,7 +268,7 @@ export async function broadcastToAllDevices(
     }));
   } catch (e) {}
 
-  // 3. Supabase Realtime broadcast (for remote devices running the app)
+  // 4. Supabase Realtime broadcast if configured
   if (isSupabaseConfigured) {
     try {
       await syncToSupabase('latest_push_event', {
@@ -260,7 +290,43 @@ export async function broadcastToAllDevices(
 export function listenToCrossDeviceAlerts(
   onAlert: (alert: { title: string; body: string; data?: any }) => void
 ): () => void {
-  // 1. Listen via BroadcastChannel
+  // 1. Listen via Firebase Firestore (Across the Internet from any remote phone or computer)
+  let unsubscribeFirestore: (() => void) | null = null;
+  try {
+    const config = getFirebaseConfig();
+    const app = getApps().length > 0 ? getApp() : initializeApp(config);
+    const db = getFirestore(app);
+    const q = query(
+      collection(db, 'caos_cloud_alerts'),
+      orderBy('timestamp', 'desc'),
+      limit(2)
+    );
+    unsubscribeFirestore = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const alertData = change.doc.data();
+          if (
+            alertData &&
+            alertData.timestamp &&
+            Date.now() - alertData.timestamp < 45000 &&
+            alertData.senderSessionId !== CLIENT_SESSION_ID
+          ) {
+            onAlert({
+              title: alertData.title,
+              body: alertData.body,
+              data: alertData.data
+            });
+          }
+        }
+      });
+    }, (err) => {
+      console.warn('Firestore subscription status:', err.message);
+    });
+  } catch (e) {
+    console.warn('Firestore listen init error:', e);
+  }
+
+  // 2. Listen via BroadcastChannel (local machine)
   let channel: BroadcastChannel | null = null;
   if (typeof BroadcastChannel !== 'undefined') {
     try {
@@ -273,7 +339,7 @@ export function listenToCrossDeviceAlerts(
     } catch (e) {}
   }
 
-  // 2. Listen via storage event (cross-tab sync)
+  // 3. Listen via storage event (cross-tab sync)
   const storageListener = (e: StorageEvent) => {
     if (e.key === 'caos_latest_broadcast_alert' && e.newValue) {
       try {
@@ -287,6 +353,7 @@ export function listenToCrossDeviceAlerts(
   window.addEventListener('storage', storageListener);
 
   return () => {
+    if (unsubscribeFirestore) unsubscribeFirestore();
     if (channel) channel.close();
     window.removeEventListener('storage', storageListener);
   };
