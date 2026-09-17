@@ -2290,7 +2290,7 @@ export default function ContractManager({
                         endDate: prev.is6Hours ? d : prev.endDate
                       }));
                     }}
-                    className="w-full border border-gray-200 rounded-xl px-2 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    className="w-full border border-gray-200 rounded-xl px-1.5 py-1 text-[11px] sm:text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -2375,7 +2375,7 @@ export default function ContractManager({
                         min={newContractForm.startDate}
                         value={newContractForm.endDate}
                         onChange={e => setNewContractForm({ ...newContractForm, endDate: e.target.value })}
-                        className="w-full border border-gray-200 rounded-xl px-2 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                        className="w-full border border-gray-200 rounded-xl px-1.5 py-1 text-[11px] sm:text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none"
                       />
                     </div>
                   )}

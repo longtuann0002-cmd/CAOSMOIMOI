@@ -1662,7 +1662,7 @@ export default function BookingCalendar({
                         endDate: prev.is6Hours ? d : prev.endDate
                       }));
                     }}
-                    className="w-full border border-gray-300 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
+                    className="w-full border border-gray-300 rounded-xl px-1.5 py-1 text-[11px] sm:text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
                   />
                 </div>
                 <div>
@@ -1747,7 +1747,7 @@ export default function BookingCalendar({
                         min={formData.startDate}
                         value={formData.endDate}
                         onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                        className="w-full border border-gray-300 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
+                        className="w-full border border-gray-300 rounded-xl px-1.5 py-1 text-[11px] sm:text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
                       />
                     </div>
                   )}
