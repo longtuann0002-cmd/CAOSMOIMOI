@@ -208,6 +208,15 @@ async function saveTokenToSharedRegistry(token: string): Promise<void> {
         : [deviceRecord];
       await syncToSupabase('fcm_registered_devices', updated);
     }
+
+    // 3. Register to Serverless Push Service (for waking up closed phones)
+    try {
+      fetch('/api/register-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, deviceType })
+      }).catch(() => {});
+    } catch (e) {}
   } catch (err) {
     console.warn('Failed to save device token to shared registry:', err);
   }
@@ -216,13 +225,23 @@ async function saveTokenToSharedRegistry(token: string): Promise<void> {
 const CLIENT_SESSION_ID = 'sess_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now();
 
 // Broadcast notification across all devices
-// (Uses Multi-Channel: Firestore Cloud broadcast across Internet + BroadcastChannel locally + Supabase)
+// (Uses Multi-Channel: Vercel Serverless Push -> Apple APNs + Firestore Cloud broadcast + BroadcastChannel locally)
 export async function broadcastToAllDevices(
   title: string, 
   body: string, 
   data?: Record<string, any>
 ): Promise<boolean> {
   let anyDelivered = false;
+
+  // 0. Server-Side Push via Vercel -> Google FCM -> Apple APNs (WAKES UP CLOSED PHONES & RINGS CHIME)
+  try {
+    fetch('/api/send-push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body, data })
+    }).catch(err => console.warn('Serverless push call:', err));
+    anyDelivered = true;
+  } catch (e) {}
 
   // 1. Firebase Firestore Cloud Broadcast (delivers across the internet to all connected phones/laptops)
   try {
