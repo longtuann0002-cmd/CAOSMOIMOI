@@ -1644,101 +1644,135 @@ export default function BookingCalendar({
                 </div>
               </div>
 
-              {/* Compact, balanced side-by-side date row on all devices */}
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div className="min-w-0 flex flex-col">
-                  <label className="block text-xs font-bold text-gray-700 mb-1 truncate">
-                    {formData.is6Hours ? 'Ngày thuê máy *' : 'Ngày bắt đầu *'}
+              {/* Khung ngoài thời gian thuê máy */}
+              <div className="bg-gradient-to-br from-amber-50/40 via-orange-50/20 to-white border-2 border-orange-200/80 rounded-2xl p-3 sm:p-3.5 shadow-xs space-y-2.5">
+                {/* Header của khung ngoài */}
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-gray-800 flex items-center gap-1.5 uppercase tracking-wide">
+                    <CalendarIcon className="w-3.5 h-3.5 text-orange-600" />
+                    <span>Thời gian thuê máy:</span>
                   </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.startDate}
-                    onChange={e => {
-                      const d = e.target.value;
-                      setFormData(prev => ({
-                        ...prev,
-                        startDate: d,
-                        endDate: prev.is6Hours ? d : prev.endDate
-                      }));
-                    }}
-                    className="w-full min-w-0 h-10 border border-gray-300 rounded-xl px-2 py-1 text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
-                  />
+                  <span className="text-[11px] font-extrabold text-orange-700 bg-orange-100/90 px-2.5 py-0.5 rounded-full shadow-3xs">
+                    {formData.is6Hours 
+                      ? `⚡ Thuê 6h (${formData.startTime || '08:00'} - ${formData.returnTime || '14:00'})` 
+                      : `📅 Thuê ${calculatedDays > 0 ? calculatedDays : 1} ngày`}
+                  </span>
                 </div>
-                <div className="min-w-0 flex flex-col">
-                  {formData.is6Hours ? (
+
+                {/* Nội dung chọn ngày/giờ */}
+                {formData.is6Hours ? (
+                  <div className="space-y-2">
                     <div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <div className="min-w-0">
-                          <label className="block text-[11px] sm:text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy (HH:MM 24h)">
-                            Giờ lấy *
-                          </label>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            required
-                            maxLength={5}
-                            placeholder="08:00"
-                            pattern="^([01]\d|2[0-3]):[0-5]\d$"
-                            value={formData.startTime || '08:00'}
-                            onChange={e => {
-                              let t = e.target.value;
-                              if (/^\d{2}$/.test(t) && (formData.startTime || '').length === 1) {
-                                t = t + ':';
-                              }
-                              setFormData(prev => ({
-                                ...prev,
-                                startTime: t,
-                                returnTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? add6Hours(t) : prev.returnTime
-                              }));
-                            }}
-                            onBlur={e => {
-                              const t = e.target.value;
-                              if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) {
-                                setFormData(prev => ({ ...prev, startTime: '08:00', returnTime: add6Hours('08:00') }));
-                              }
-                            }}
-                            className="w-full min-w-0 h-10 border border-amber-300 bg-amber-50/40 rounded-xl px-1.5 py-1 text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
-                            title="Nhập giờ lấy máy theo định dạng 24h (VD: 08:00, 13:30)"
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <label className="block text-[11px] sm:text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h, định dạng 24h)">
-                            Giờ trả (+6h) *
-                          </label>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            required
-                            maxLength={5}
-                            placeholder="14:00"
-                            pattern="^([01]\d|2[0-3]):[0-5]\d$"
-                            value={formData.returnTime || '14:00'}
-                            onChange={e => {
-                              let t = e.target.value;
-                              if (/^\d{2}$/.test(t) && (formData.returnTime || '').length === 1) {
-                                t = t + ':';
-                              }
-                              setFormData(prev => ({ ...prev, returnTime: t }));
-                            }}
-                            onBlur={e => {
-                              const t = e.target.value;
-                              if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) {
-                                setFormData(prev => ({ ...prev, returnTime: add6Hours(prev.startTime || '08:00') }));
-                              }
-                            }}
-                            className="w-full min-w-0 h-10 border border-amber-300 bg-amber-50/40 rounded-xl px-1.5 py-1 text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
-                            title="Giờ trả máy (định dạng 24h, tự động cộng 6 tiếng từ giờ lấy)"
-                          />
-                        </div>
-                      </div>
-                      <p className="text-[9.5px] text-amber-700 font-semibold mt-0.5 truncate">
-                        ⏱️ {formData.startTime || '08:00'} ➔ {formData.returnTime || '14:00'} (6h)
-                      </p>
+                      <label className="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">
+                        Ngày thuê máy *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={formData.startDate}
+                        onChange={e => {
+                          const d = e.target.value;
+                          setFormData(prev => ({
+                            ...prev,
+                            startDate: d,
+                            endDate: d
+                          }));
+                        }}
+                        className="w-full h-10 border border-gray-300 rounded-xl px-3 py-1 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
+                      />
                     </div>
-                  ) : (
-                    <>
-                      <label className="block text-xs font-bold text-gray-700 mb-1 truncate">
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] sm:text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy (HH:MM 24h)">
+                          Giờ lấy máy *
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          required
+                          maxLength={5}
+                          placeholder="08:00"
+                          pattern="^([01]\d|2[0-3]):[0-5]\d$"
+                          value={formData.startTime || '08:00'}
+                          onChange={e => {
+                            let t = e.target.value;
+                            if (/^\d{2}$/.test(t) && (formData.startTime || '').length === 1) {
+                              t = t + ':';
+                            }
+                            setFormData(prev => ({
+                              ...prev,
+                              startTime: t,
+                              returnTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? add6Hours(t) : prev.returnTime
+                            }));
+                          }}
+                          onBlur={e => {
+                            const t = e.target.value;
+                            if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) {
+                              setFormData(prev => ({ ...prev, startTime: '08:00', returnTime: add6Hours('08:00') }));
+                            }
+                          }}
+                          className="w-full h-10 border border-amber-300 bg-amber-50/50 rounded-xl px-2 py-1 text-xs sm:text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
+                          title="Nhập giờ lấy máy theo định dạng 24h (VD: 08:00, 13:30)"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] sm:text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h, định dạng 24h)">
+                          Giờ trả (+6h) *
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          required
+                          maxLength={5}
+                          placeholder="14:00"
+                          pattern="^([01]\d|2[0-3]):[0-5]\d$"
+                          value={formData.returnTime || '14:00'}
+                          onChange={e => {
+                            let t = e.target.value;
+                            if (/^\d{2}$/.test(t) && (formData.returnTime || '').length === 1) {
+                              t = t + ':';
+                            }
+                            setFormData(prev => ({ ...prev, returnTime: t }));
+                          }}
+                          onBlur={e => {
+                            const t = e.target.value;
+                            if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) {
+                              setFormData(prev => ({ ...prev, returnTime: add6Hours(prev.startTime || '08:00') }));
+                            }
+                          }}
+                          className="w-full h-10 border border-amber-300 bg-amber-50/50 rounded-xl px-2 py-1 text-xs sm:text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
+                          title="Giờ trả máy (định dạng 24h, tự động cộng 6 tiếng từ giờ lấy)"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-amber-800 font-semibold bg-amber-100/50 px-2.5 py-1 rounded-lg">
+                      ⏱️ Tự động tính: {formData.startTime || '08:00'} ➔ {formData.returnTime || '14:00'} (đủ 6 tiếng)
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                    <div>
+                      <label className="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">
+                        Ngày bắt đầu bàn giao *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={formData.startDate}
+                        onChange={e => {
+                          const d = e.target.value;
+                          setFormData(prev => ({
+                            ...prev,
+                            startDate: d,
+                            endDate: prev.is6Hours ? d : prev.endDate
+                          }));
+                        }}
+                        className="w-full h-10 border border-gray-300 rounded-xl px-3 py-1 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">
                         Ngày trả dự kiến *
                       </label>
                       <input
@@ -1747,11 +1781,11 @@ export default function BookingCalendar({
                         min={formData.startDate}
                         value={formData.endDate}
                         onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                        className="w-full min-w-0 h-10 border border-gray-300 rounded-xl px-2 py-1 text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
+                        className="w-full h-10 border border-gray-300 rounded-xl px-3 py-1 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
                       />
-                    </>
-                  )}
-                </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
