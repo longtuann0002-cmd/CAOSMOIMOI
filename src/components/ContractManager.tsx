@@ -2274,8 +2274,8 @@ export default function ContractManager({
 
               {/* Rent dates */}
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div>
-                  <label className="block text-[10px] sm:text-xs font-bold text-gray-700 mb-1">
+                <div className="min-w-0 flex flex-col">
+                  <label className="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1 truncate">
                     {newContractForm.is6Hours ? 'Ngày thuê máy *' : 'Ngày bàn giao *'}
                   </label>
                   <input
@@ -2290,15 +2290,15 @@ export default function ContractManager({
                         endDate: prev.is6Hours ? d : prev.endDate
                       }));
                     }}
-                    className="w-full border border-gray-200 rounded-xl px-1.5 py-1 text-[11px] sm:text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    className="w-full min-w-0 h-10 border border-gray-200 rounded-xl px-2 py-1 text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white"
                   />
                 </div>
-                <div>
+                <div className="min-w-0 flex flex-col">
                   {newContractForm.is6Hours ? (
                     <div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy (HH:MM 24h)">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div className="min-w-0">
+                          <label className="block text-[11px] sm:text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy (HH:MM 24h)">
                             Giờ lấy máy *
                           </label>
                           <input
@@ -2326,12 +2326,12 @@ export default function ContractManager({
                                 setNewContractForm(prev => ({ ...prev, startTime: '08:00', returnTime: add6Hours('08:00') }));
                               }
                             }}
-                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-widest"
+                            className="w-full min-w-0 h-10 border border-amber-300 bg-amber-50/40 rounded-xl px-1.5 py-1 text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
                             title="Nhập giờ lấy máy theo định dạng 24h (VD: 08:00, 13:30)"
                           />
                         </div>
-                        <div>
-                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h, định dạng 24h)">
+                        <div className="min-w-0">
+                          <label className="block text-[11px] sm:text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h, định dạng 24h)">
                             Giờ trả (+6h) *
                           </label>
                           <input
@@ -2355,18 +2355,18 @@ export default function ContractManager({
                                 setNewContractForm(prev => ({ ...prev, returnTime: add6Hours(prev.startTime || '08:00') }));
                               }
                             }}
-                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-widest"
+                            className="w-full min-w-0 h-10 border border-amber-300 bg-amber-50/40 rounded-xl px-1.5 py-1 text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
                             title="Giờ trả máy (định dạng 24h, tự động cộng 6 tiếng từ giờ lấy)"
                           />
                         </div>
                       </div>
-                      <p className="text-[10px] text-amber-700 font-medium mt-1">
-                        ⏱️ Tự động tính: {newContractForm.startTime || '08:00'} ➔ {newContractForm.returnTime || '14:00'} (6 tiếng)
+                      <p className="text-[10px] text-amber-700 font-medium mt-1 truncate">
+                        ⏱️ {newContractForm.startTime || '08:00'} ➔ {newContractForm.returnTime || '14:00'} (6h)
                       </p>
                     </div>
                   ) : (
-                    <div>
-                      <label className="block text-[10px] sm:text-xs font-bold text-gray-700 mb-1">
+                    <>
+                      <label className="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1 truncate">
                         Ngày trả dự kiến *
                       </label>
                       <input
@@ -2375,9 +2375,9 @@ export default function ContractManager({
                         min={newContractForm.startDate}
                         value={newContractForm.endDate}
                         onChange={e => setNewContractForm({ ...newContractForm, endDate: e.target.value })}
-                        className="w-full border border-gray-200 rounded-xl px-1.5 py-1 text-[11px] sm:text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                        className="w-full min-w-0 h-10 border border-gray-200 rounded-xl px-2 py-1 text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white"
                       />
-                    </div>
+                    </>
                   )}
                 </div>
               </div>

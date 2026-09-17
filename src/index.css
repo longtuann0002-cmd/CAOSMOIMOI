@@ -80,17 +80,32 @@ div[role="button"] {
 
 /* Prevent iOS & Mobile Safari from automatically zooming into inputs when focused (Apple triggers auto-zoom when font-size < 16px) */
 @media screen and (max-width: 768px) {
-  input,
+  input:not([type="date"]),
   select,
   textarea,
   input[type="text"],
   input[type="number"],
   input[type="tel"],
-  input[type="date"],
   input[type="password"],
   input[type="search"] {
     font-size: 16px !important;
   }
+
+  /* Date inputs on mobile: compact, prevent overflow and overlap */
+  input[type="date"] {
+    font-size: 12px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Ensure native datepicker display on iOS WebKit doesn't misalign or overflow */
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  padding: 0;
+  min-height: 1.25em;
 }
 
 /* Fluid Native Inertial Scroll on iOS */

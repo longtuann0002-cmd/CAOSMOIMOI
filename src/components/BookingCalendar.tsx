@@ -1646,7 +1646,7 @@ export default function BookingCalendar({
 
               {/* Compact, balanced side-by-side date row on all devices */}
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div>
+                <div className="min-w-0 flex flex-col">
                   <label className="block text-xs font-bold text-gray-700 mb-1 truncate">
                     {formData.is6Hours ? 'Ngày thuê máy *' : 'Ngày bắt đầu *'}
                   </label>
@@ -1662,14 +1662,14 @@ export default function BookingCalendar({
                         endDate: prev.is6Hours ? d : prev.endDate
                       }));
                     }}
-                    className="w-full border border-gray-300 rounded-xl px-1.5 py-1 text-[11px] sm:text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
+                    className="w-full min-w-0 h-10 border border-gray-300 rounded-xl px-2 py-1 text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
                   />
                 </div>
-                <div>
+                <div className="min-w-0 flex flex-col">
                   {formData.is6Hours ? (
                     <div>
                       <div className="grid grid-cols-2 gap-1.5">
-                        <div>
+                        <div className="min-w-0">
                           <label className="block text-[11px] sm:text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy (HH:MM 24h)">
                             Giờ lấy *
                           </label>
@@ -1698,11 +1698,11 @@ export default function BookingCalendar({
                                 setFormData(prev => ({ ...prev, startTime: '08:00', returnTime: add6Hours('08:00') }));
                               }
                             }}
-                            className="w-full border border-amber-300 bg-amber-50/40 rounded-xl px-1.5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
+                            className="w-full min-w-0 h-10 border border-amber-300 bg-amber-50/40 rounded-xl px-1.5 py-1 text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
                             title="Nhập giờ lấy máy theo định dạng 24h (VD: 08:00, 13:30)"
                           />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <label className="block text-[11px] sm:text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h, định dạng 24h)">
                             Giờ trả (+6h) *
                           </label>
@@ -1727,7 +1727,7 @@ export default function BookingCalendar({
                                 setFormData(prev => ({ ...prev, returnTime: add6Hours(prev.startTime || '08:00') }));
                               }
                             }}
-                            className="w-full border border-amber-300 bg-amber-50/40 rounded-xl px-1.5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
+                            className="w-full min-w-0 h-10 border border-amber-300 bg-amber-50/40 rounded-xl px-1.5 py-1 text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
                             title="Giờ trả máy (định dạng 24h, tự động cộng 6 tiếng từ giờ lấy)"
                           />
                         </div>
@@ -1737,7 +1737,7 @@ export default function BookingCalendar({
                       </p>
                     </div>
                   ) : (
-                    <div>
+                    <>
                       <label className="block text-xs font-bold text-gray-700 mb-1 truncate">
                         Ngày trả dự kiến *
                       </label>
@@ -1747,9 +1747,9 @@ export default function BookingCalendar({
                         min={formData.startDate}
                         value={formData.endDate}
                         onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                        className="w-full border border-gray-300 rounded-xl px-1.5 py-1 text-[11px] sm:text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
+                        className="w-full min-w-0 h-10 border border-gray-300 rounded-xl px-2 py-1 text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
                       />
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
