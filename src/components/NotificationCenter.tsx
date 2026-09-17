@@ -101,6 +101,7 @@ export default function NotificationCenter({
   const [isBroadcastingTest, setIsBroadcastingTest] = useState(false);
   const [broadcastSent, setBroadcastSent] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
+  const [showAdvancedFirebase, setShowAdvancedFirebase] = useState(false);
 
   // Sync push status when drawer opens
   useEffect(() => {
@@ -252,7 +253,7 @@ export default function NotificationCenter({
 
   const handleTestMorning = async () => {
     setIsTestingMorning(true);
-    const ok = await checkAndTriggerMorningBriefing(contracts, systemDate, true);
+    const ok = await checkAndTriggerMorningBriefing(contracts, systemDate, true, broadcastToAllDevices);
     setIsTestingMorning(false);
     if (ok) {
       setTestMorningSent(true);
@@ -436,6 +437,17 @@ export default function NotificationCenter({
                       />
                     </div>
 
+                    {/* Settings Button (Tucked away all sync & push options) */}
+                    <button
+                      type="button"
+                      onClick={() => setShowFirebaseModal(true)}
+                      className="px-2.5 py-1 text-slate-600 hover:text-orange-600 hover:bg-orange-50 border border-slate-200/80 rounded-lg transition shrink-0 cursor-pointer flex items-center gap-1 text-xs font-bold shadow-3xs"
+                      title="Cài đặt thông báo & Thử nghiệm chuông đa thiết bị"
+                    >
+                      <Settings className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Cài đặt</span>
+                    </button>
+
                     <button
                       onClick={() => setIsOpen(false)}
                       className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition shrink-0"
@@ -531,184 +543,6 @@ export default function NotificationCenter({
 
                 {/* Reminder list scroll area */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50">
-                  
-                  {/* PWA / iPhone Push Notification Control Card */}
-                  <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3 select-none">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/60">
-                          <Smartphone className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5 truncate">
-                            Thông báo iPhone & Điện thoại
-                            {pushPermission === 'granted' ? (
-                              <span className="text-[9.5px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.2 rounded-md shrink-0">
-                                Đang bật
-                              </span>
-                            ) : (
-                              <span className="text-[9.5px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.2 rounded-md shrink-0">
-                                Chưa bật
-                              </span>
-                            )}
-                          </h4>
-                          <p className="text-[10.5px] sm:text-xs text-slate-500 leading-tight mt-0.5 truncate">
-                            {pushPermission === 'granted'
-                              ? 'Tự động nhắc khi có máy sắp giao, thu hồi hoặc trễ hạn.'
-                              : 'Nhận thông báo đẩy native trên màn hình khóa khi đến hạn đơn.'}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Quick Action Button */}
-                      {pushPermission === 'granted' ? (
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={handleTestMorning}
-                            disabled={isTestingMorning}
-                            className="px-2.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-3xs"
-                            title="Bấm để thử nghiệm nhận thông báo nhắc việc 9h sáng ngay bây giờ"
-                          >
-                            <Clock className={`w-3.5 h-3.5 text-amber-700 ${isTestingMorning ? 'animate-spin' : ''}`} />
-                            <span>{testMorningSent ? 'Đã gửi 9h!' : 'Thử nhắc 9h'}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleSendTestPush}
-                            disabled={isSendingTest}
-                            className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-200 text-slate-700 hover:text-orange-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-3xs"
-                            title="Bấm để gửi thử một thông báo tới máy này"
-                          >
-                            <Send className={`w-3.5 h-3.5 ${isSendingTest ? 'animate-spin' : ''}`} />
-                            <span>{testSentSuccess ? 'Đã gửi test!' : 'Thử chuông'}</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleEnablePush}
-                          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white text-xs font-black transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-xs active:scale-95"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>Bật thông báo</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* 9:00 AM Daily Briefing Schedule Banner */}
-                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200/70 rounded-xl text-[11px] text-slate-600">
-                      <Clock className="w-4 h-4 text-orange-600 shrink-0" />
-                      <span>
-                        <b>Lịch cố định:</b> Tự động tổng hợp và đẩy thông báo vào đúng <b>09:00 sáng hàng ngày</b> khi có máy cần giao, thu hồi hoặc đơn trễ hạn.
-                      </span>
-                    </div>
-
-                    {/* Multi-Device Cloud Sync & FCM Bar */}
-                    <div className="p-3 bg-slate-50/90 border border-slate-200/80 rounded-xl space-y-2 text-left">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Radio className="w-4 h-4 text-emerald-600 animate-pulse shrink-0" />
-                          <div className="min-w-0">
-                            <span className="text-xs font-black text-slate-800 flex items-center gap-1.5 truncate">
-                              Đồng bộ đa thiết bị (FCM)
-                              {isFirebaseConfigured() ? (
-                                <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded shrink-0">
-                                  Đã kết nối
-                                </span>
-                              ) : (
-                                <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded shrink-0">
-                                  Chưa cấu hình Key
-                                </span>
-                              )}
-                            </span>
-                            <p className="text-[10.5px] text-slate-500 truncate">
-                              Khi có đơn mới, tự động gửi thông báo đến điện thoại của nhân viên và chủ tiệm.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={handleBroadcastTest}
-                            disabled={isBroadcastingTest}
-                            className="px-2 py-1 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-3xs"
-                            title="Gửi thử một thông báo đến tất cả máy đang kết nối"
-                          >
-                            <Send className={`w-3 h-3 ${isBroadcastingTest ? 'animate-spin' : ''}`} />
-                            <span>{broadcastSent ? 'Đã bắn tín hiệu!' : 'Bắn thử mọi máy'}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowFirebaseModal(true)}
-                            className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition cursor-pointer"
-                            title="Cài đặt thông số Firebase"
-                          >
-                            <Settings className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Device Token Pill */}
-                      {fcmToken ? (
-                        <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white border border-slate-200/80 rounded-lg text-[10.5px]">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                            <span className="font-mono text-slate-500 truncate">Token: {fcmToken.substring(0, 24)}...</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(fcmToken);
-                              setCopiedToken(true);
-                              setTimeout(() => setCopiedToken(false), 2000);
-                            }}
-                            className="text-orange-600 hover:text-orange-800 font-bold shrink-0 flex items-center gap-1 cursor-pointer"
-                          >
-                            {copiedToken ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                            <span>{copiedToken ? 'Đã chép' : 'Sao chép'}</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleGetFCMToken}
-                          disabled={isGettingToken}
-                          className="w-full py-1.5 px-3 bg-white hover:bg-slate-100 border border-dashed border-slate-300 rounded-lg text-[11px] font-bold text-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                        >
-                          <Smartphone className={`w-3.5 h-3.5 text-orange-600 ${isGettingToken ? 'animate-spin' : ''}`} />
-                          <span>{isGettingToken ? 'Đang lấy mã...' : 'Đăng ký thiết bị này vào hệ thống thông báo đa máy'}</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* iPhone Instruction Guide if not standalone or requested */}
-                    {(showIPhoneGuide || (isIPhoneDevice && !isAppInstalled && pushPermission !== 'granted')) && (
-                      <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-2 text-left animate-fade-in">
-                        <div className="flex items-center gap-1.5 text-xs font-black text-amber-900">
-                          <Share className="w-4 h-4 text-amber-700 shrink-0" />
-                          <span>Hướng dẫn cài đặt trên iPhone (iOS):</span>
-                        </div>
-                        <ol className="text-[11px] text-amber-900/90 space-y-1 pl-4 list-decimal leading-relaxed font-medium">
-                          <li>Mở liên kết web này bằng trình duyệt <b>Safari</b> trên iPhone.</li>
-                          <li>Bấm vào biểu tượng <b>Chia sẻ</b> (ô vuông có mũi tên hướng lên ⎋) ở thanh dưới cùng.</li>
-                          <li>Cuộn xuống và chọn <b>"Thêm vào Màn hình chính"</b> (Add to Home Screen).</li>
-                          <li>Mở icon <b>Nhà Caos</b> vừa tạo trên màn hình chính và bấm nút <b>"Bật thông báo"</b>!</li>
-                        </ol>
-                        <p className="text-[10px] text-amber-700 italic">
-                          💡 Theo quy định của Apple, iPhone chỉ cho phép gửi thông báo khi app đã được thêm vào Màn hình chính.
-                        </p>
-                      </div>
-                    )}
-
-                    {pushErrorMessage && (
-                      <div className="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-2 rounded-lg font-medium">
-                        {pushErrorMessage}
-                      </div>
-                    )}
-                  </div>
-
                   {filteredReminders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-16 bg-white rounded-2xl border border-gray-200 p-8">
                       <div className="p-3 bg-gray-50 text-gray-400 rounded-full mb-3">
@@ -976,18 +810,18 @@ export default function NotificationCenter({
             );
           })()}
 
-          {/* Firebase Configuration Modal */}
+          {/* Settings & Multi-Device Test Modal */}
           {showFirebaseModal && (
             <div className="fixed inset-0 bg-gray-950/50 backdrop-blur-xs z-[10000] flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-6 space-y-4 animate-scale-up border border-slate-200">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 space-y-4 animate-scale-up border border-slate-200">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-150">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
-                      <Radio className="w-4 h-4" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 border border-orange-200/60">
+                      <Settings className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className="text-sm sm:text-base font-black text-slate-900">Cấu hình Firebase Cloud Messaging</h3>
-                      <p className="text-[11px] text-slate-500">Đồng bộ thông báo đẩy đến tất cả điện thoại nhân viên</p>
+                      <h3 className="text-sm sm:text-base font-black text-slate-900">Cài Đặt Thông Báo & Thử Nghiệm</h3>
+                      <p className="text-[11px] text-slate-500">Quản lý chuông, lịch thông báo 9h và đồng bộ đa thiết bị</p>
                     </div>
                   </div>
                   <button
@@ -999,99 +833,223 @@ export default function NotificationCenter({
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveFirebaseConfig} className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">API Key</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="AIzaSy..."
-                      value={firebaseConfigDraft.apiKey}
-                      onChange={(e) => setFirebaseConfigDraft(prev => ({ ...prev, apiKey: e.target.value.trim() }))}
-                      className="w-full px-3 py-1.5 text-xs font-mono border border-slate-200 rounded-lg focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Project ID</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="tiem-anh-caos"
-                        value={firebaseConfigDraft.projectId}
-                        onChange={(e) => setFirebaseConfigDraft(prev => ({ 
-                          ...prev, 
-                          projectId: e.target.value.trim(),
-                          authDomain: prev.authDomain || `${e.target.value.trim()}.firebaseapp.com`
-                        }))}
-                        className="w-full px-3 py-1.5 text-xs font-mono border border-slate-200 rounded-lg focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                      />
+                {/* Section 1: Push Status on this device */}
+                <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Smartphone className="w-4 h-4 text-orange-600 shrink-0" />
+                      <div>
+                        <div className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                          <span>Thông báo trên máy này</span>
+                          {pushPermission === 'granted' ? (
+                            <span className="text-[9.5px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.2 rounded-md">
+                              Đang bật
+                            </span>
+                          ) : (
+                            <span className="text-[9.5px] bg-slate-200 text-slate-700 font-bold px-1.5 py-0.2 rounded-md">
+                              Chưa bật
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10.5px] text-slate-500">
+                          {pushPermission === 'granted'
+                            ? 'Thiết bị đã sẵn sàng nhận chuông và banner khi có đơn mới.'
+                            : 'Bật để nhận thông báo đẩy native trên màn hình khóa.'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Messaging Sender ID</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="123456789012"
-                        value={firebaseConfigDraft.messagingSenderId}
-                        onChange={(e) => setFirebaseConfigDraft(prev => ({ ...prev, messagingSenderId: e.target.value.trim() }))}
-                        className="w-full px-3 py-1.5 text-xs font-mono border border-slate-200 rounded-lg focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                      />
+
+                    {pushPermission !== 'granted' && (
+                      <button
+                        type="button"
+                        onClick={handleEnablePush}
+                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white text-xs font-black transition flex items-center gap-1 cursor-pointer shrink-0 shadow-xs active:scale-95"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Bật ngay</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* iPhone Instruction Guide if requested */}
+                  {(showIPhoneGuide || (isIPhoneDevice && !isAppInstalled && pushPermission !== 'granted')) && (
+                    <div className="p-2.5 bg-amber-50/80 border border-amber-200 rounded-lg space-y-1 text-left text-[10.5px] text-amber-900">
+                      <div className="font-bold flex items-center gap-1">
+                        <Share className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                        <span>Hướng dẫn trên iPhone:</span>
+                      </div>
+                      <ol className="list-decimal pl-4 space-y-0.5">
+                        <li>Mở web bằng Safari ➔ Bấm nút <b>Chia sẻ ⎋</b>.</li>
+                        <li>Chọn <b>"Thêm vào Màn hình chính"</b>.</li>
+                        <li>Mở icon từ màn hình chính và bấm nút <b>"Bật ngay"</b>.</li>
+                      </ol>
                     </div>
+                  )}
+                </div>
+
+                {/* Section 2: Test Tools */}
+                <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-800">Công cụ thử nghiệm chuông</span>
+                    <span className="text-[10.5px] text-slate-500">Kiểm tra âm thanh & đẩy</span>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">App ID</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="1:123456789012:web:abcdef..."
-                      value={firebaseConfigDraft.appId}
-                      onChange={(e) => setFirebaseConfigDraft(prev => ({ ...prev, appId: e.target.value.trim() }))}
-                      className="w-full px-3 py-1.5 text-xs font-mono border border-slate-200 rounded-lg focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      VAPID Key (Cặp khóa Web Push Certificate)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="B... (Tạo trong tab Cloud Messaging -> Web Push certificates)"
-                      value={firebaseConfigDraft.vapidKey || ''}
-                      onChange={(e) => setFirebaseConfigDraft(prev => ({ ...prev, vapidKey: e.target.value.trim() }))}
-                      className="w-full px-3 py-1.5 text-xs font-mono border border-slate-200 rounded-lg focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                    />
-                  </div>
-
-                  {/* 3-Step Guide */}
-                  <div className="p-3 bg-orange-50/60 border border-orange-200/70 rounded-xl space-y-1 text-[11px] text-slate-600">
-                    <p className="font-bold text-orange-900">📖 3 bước lấy cấu hình Firebase miễn phí:</p>
-                    <ol className="list-decimal pl-4 space-y-0.5 leading-relaxed">
-                      <li>Vào <b>console.firebase.google.com</b> ➔ Tạo 1 dự án (Project) mới miễn phí.</li>
-                      <li>Vào <b>Cài đặt dự án</b> (Project Settings) ➔ Cuộn xuống thêm Ứng dụng Web (Web App) ➔ Sao chép các mã ở trên.</li>
-                      <li>Vào tab <b>Cloud Messaging</b> ➔ Cuộn xuống phần <b>Web Push certificates</b> ➔ Bấm <i>Generate Key Pair</i> và dán vào ô <b>VAPID Key</b>.</li>
-                    </ol>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-2">
+                  <div className="grid grid-cols-3 gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setShowFirebaseModal(false)}
-                      className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                      onClick={handleSendTestPush}
+                      disabled={isSendingTest}
+                      className="px-2 py-2 rounded-xl border border-slate-200 bg-white hover:bg-orange-50 hover:border-orange-200 text-slate-700 hover:text-orange-700 text-[11px] font-bold transition flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-3xs text-center"
                     >
-                      Đóng
+                      <Send className={`w-3.5 h-3.5 text-orange-600 ${isSendingTest ? 'animate-spin' : ''}`} />
+                      <span>{testSentSuccess ? 'Đã gửi test!' : 'Thử chuông máy này'}</span>
                     </button>
+
                     <button
-                      type="submit"
-                      className="px-5 py-2 text-xs font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-xs transition cursor-pointer active:scale-95"
+                      type="button"
+                      onClick={handleTestMorning}
+                      disabled={isTestingMorning}
+                      className="px-2 py-2 rounded-xl border border-amber-200 bg-white hover:bg-amber-50 hover:border-amber-300 text-slate-700 hover:text-amber-800 text-[11px] font-bold transition flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-3xs text-center"
                     >
-                      Lưu cấu hình
+                      <Clock className={`w-3.5 h-3.5 text-amber-600 ${isTestingMorning ? 'animate-spin' : ''}`} />
+                      <span>{testMorningSent ? 'Đã gửi 9h!' : 'Thử nhắc 9h sáng'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleBroadcastTest}
+                      disabled={isBroadcastingTest}
+                      className="px-2 py-2 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 text-slate-700 hover:text-indigo-700 text-[11px] font-bold transition flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-3xs text-center"
+                    >
+                      <Radio className={`w-3.5 h-3.5 text-indigo-600 ${isBroadcastingTest ? 'animate-spin' : ''}`} />
+                      <span>{broadcastSent ? 'Đã bắn tín hiệu!' : 'Bắn thử TẤT CẢ máy'}</span>
                     </button>
                   </div>
-                </form>
+
+                  {/* 9 AM schedule note */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200/60 rounded-lg text-[10.5px] text-slate-600">
+                    <Clock className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                    <span><b>Lịch cố định:</b> Tự động tổng hợp và đẩy thông báo vào đúng <b>09:00 sáng</b> hàng ngày.</span>
+                  </div>
+                </div>
+
+                {/* Section 3: FCM & Multi-Device Sync */}
+                <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse shrink-0" />
+                      <span className="text-xs font-black text-slate-800">Đồng bộ đám mây (FCM)</span>
+                      <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded">
+                        Đã kết nối
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvancedFirebase(!showAdvancedFirebase)}
+                      className="text-[10.5px] text-orange-600 hover:text-orange-800 font-bold cursor-pointer"
+                    >
+                      {showAdvancedFirebase ? 'Thu gọn' : 'Chỉnh sửa Key'}
+                    </button>
+                  </div>
+
+                  {/* Token display */}
+                  {fcmToken ? (
+                    <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-white border border-slate-200/80 rounded-lg text-[10.5px]">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                        <span className="font-mono text-slate-500 truncate">Token: {fcmToken.substring(0, 24)}...</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(fcmToken);
+                          setCopiedToken(true);
+                          setTimeout(() => setCopiedToken(false), 2000);
+                        }}
+                        className="text-orange-600 hover:text-orange-800 font-bold shrink-0 flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedToken ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedToken ? 'Đã chép' : 'Sao chép'}</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleGetFCMToken}
+                      disabled={isGettingToken}
+                      className="w-full py-1.5 px-3 bg-white hover:bg-slate-100 border border-dashed border-slate-300 rounded-lg text-[11px] font-bold text-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Smartphone className={`w-3.5 h-3.5 text-orange-600 ${isGettingToken ? 'animate-spin' : ''}`} />
+                      <span>{isGettingToken ? 'Đang lấy mã...' : 'Đăng ký thiết bị này vào danh bạ nhận thông báo'}</span>
+                    </button>
+                  )}
+
+                  {/* Collapsed Firebase Form */}
+                  {showAdvancedFirebase && (
+                    <form onSubmit={handleSaveFirebaseConfig} className="space-y-2.5 pt-2 border-t border-slate-200 mt-2">
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-slate-700 mb-0.5">API Key</label>
+                        <input
+                          type="text"
+                          required
+                          value={firebaseConfigDraft.apiKey}
+                          onChange={(e) => setFirebaseConfigDraft(prev => ({ ...prev, apiKey: e.target.value.trim() }))}
+                          className="w-full px-2.5 py-1 text-xs font-mono border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10.5px] font-bold text-slate-700 mb-0.5">Project ID</label>
+                          <input
+                            type="text"
+                            required
+                            value={firebaseConfigDraft.projectId}
+                            onChange={(e) => setFirebaseConfigDraft(prev => ({ ...prev, projectId: e.target.value.trim() }))}
+                            className="w-full px-2.5 py-1 text-xs font-mono border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10.5px] font-bold text-slate-700 mb-0.5">Sender ID</label>
+                          <input
+                            type="text"
+                            required
+                            value={firebaseConfigDraft.messagingSenderId}
+                            onChange={(e) => setFirebaseConfigDraft(prev => ({ ...prev, messagingSenderId: e.target.value.trim() }))}
+                            className="w-full px-2.5 py-1 text-xs font-mono border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-slate-700 mb-0.5">VAPID Key</label>
+                        <input
+                          type="text"
+                          value={firebaseConfigDraft.vapidKey || ''}
+                          onChange={(e) => setFirebaseConfigDraft(prev => ({ ...prev, vapidKey: e.target.value.trim() }))}
+                          className="w-full px-2.5 py-1 text-xs font-mono border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                        />
+                      </div>
+                      <div className="flex justify-end pt-1">
+                        <button
+                          type="submit"
+                          className="px-4 py-1.5 text-xs font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition cursor-pointer"
+                        >
+                          Lưu lại
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowFirebaseModal(false)}
+                    className="px-4 py-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer"
+                  >
+                    Đóng
+                  </button>
+                </div>
               </div>
             </div>
           )}

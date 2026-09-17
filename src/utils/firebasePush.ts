@@ -98,20 +98,11 @@ export function initFirebaseMessaging(): Messaging | null {
       
       // Setup foreground message listener
       onMessage(messagingInstance, (payload) => {
-        const title = payload.notification?.title || payload.data?.title || '🔔 Tiệm Ảnh Nhà Caos';
-        const body = payload.notification?.body || payload.data?.body || 'Bạn có thông báo mới!';
-        
-        // Show in-app banner or native notification
-        if (Notification.permission === 'granted') {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg.showNotification(title, {
-              body,
-              icon: '/logocaosdt.png',
-              badge: '/logocaosdt.png',
-              data: { url: payload.data?.url || '/' }
-            } as any);
-          });
-        }
+        // When app is in FOREGROUND: FCM delivers here (not to SW)
+        // Do NOT call reg.showNotification() here — it would duplicate
+        // the notification that Firestore cross-device listener already shows.
+        // Just log for debugging.
+        console.log('[FCM foreground] Received push:', payload.notification?.title || payload.data?.title);
       });
     }
     return messagingInstance;

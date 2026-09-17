@@ -1,4 +1,4 @@
-﻿// Utility for Web Push & PWA Notifications (Supporting iOS 16.4+ and Android)
+// Utility for Web Push & PWA Notifications (Supporting iOS 16.4+ and Android)
 import { RentalContract } from '../types';
 import { formatDMY } from './dateUtils';
 
@@ -160,7 +160,8 @@ export async function sendOrderCreatedNotification(contract: RentalContract): Pr
 export async function checkAndTriggerMorningBriefing(
   contracts: RentalContract[],
   targetDate?: string,
-  forceTest: boolean = false
+  forceTest: boolean = false,
+  broadcastFn?: (title: string, body: string, data?: Record<string, any>) => Promise<boolean>
 ): Promise<boolean> {
   if (!isNotificationSupported() || Notification.permission !== 'granted') {
     return false;
@@ -185,29 +186,37 @@ export async function checkAndTriggerMorningBriefing(
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowDateStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
 
-  const handoverCount = (contracts || []).filter(c => c.startDate === todayDateStr && c.status === 'Pending').length;
-  const returnCount = (contracts || []).filter(c => c.endDate === todayDateStr && c.status === 'Active').length;
-  const overdueCount = (contracts || []).filter(c => c.status === 'Overdue' || (c.status === 'Active' && c.endDate < todayDateStr)).length;
-  const upcomingCount = (contracts || []).filter(c => c.startDate === tomorrowDateStr && c.status === 'Pending').length;
+  const handoverToday  = (contracts || []).filter(c => c.startDate === todayDateStr && (c.status === 'Pending' || c.status === 'Active'));
+  const returnToday    = (contracts || []).filter(c => c.endDate === todayDateStr && c.status === 'Active');
+  const overdueList    = (contracts || []).filter(c => c.status === 'Overdue' || (c.status === 'Active' && c.endDate < todayDateStr));
+  const upcomingTomorrow = (contracts || []).filter(c => c.startDate === tomorrowDateStr && c.status === 'Pending');
 
-  const total = handoverCount + returnCount + overdueCount + upcomingCount;
+  const total = handoverToday.length + returnToday.length + overdueList.length + upcomingTomorrow.length;
   if (total === 0 && !forceTest) {
     localStorage.setItem(morningKey, 'checked_empty');
     return false;
   }
 
   const parts: string[] = [];
-  if (handoverCount > 0) parts.push(`${handoverCount} đơn giao`);
-  if (returnCount > 0) parts.push(`${returnCount} đơn thu hồi`);
-  if (overdueCount > 0) parts.push(`${overdueCount} đơn trễ hạn`);
-  if (upcomingCount > 0) parts.push(`${upcomingCount} đơn ngày mai`);
+  if (handoverToday.length > 0)   parts.push(`🟡 ${handoverToday.length} đơn giao hôm nay`);
+  if (returnToday.length > 0)     parts.push(`🔵 ${returnToday.length} đơn thu hồi hôm nay`);
+  if (overdueList.length > 0)     parts.push(`🔴 ${overdueList.length} đơn trễ hạn`);
+  if (upcomingTomorrow.length > 0) parts.push(`⚪ ${upcomingTomorrow.length} đơn ngày mai`);
 
-  const title = `☀️ Nhắc việc 9h sáng (${formatDMY(todayDateStr)})`;
-  const body = parts.length > 0 
-    ? `Hôm nay có: ${parts.join(', ')}. Chúc tiệm một ngày làm việc hiệu quả! ✨`
-    : 'Hôm nay hiện tại không có đơn nào cần bàn giao hay thu hồi. Chúc bạn một ngày tốt lành! ✨';
+  const dateLabel = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}`;
+  const title = `☀️ Nhắc việc sáng ${dateLabel}`;
+  const body = parts.length > 0
+    ? parts.join('\n')
+    : 'Hôm nay không có đơn nào cần xử lý. Chúc ngày tốt lành! ✨';
 
-  const ok = await showPushNotification(title, body, `morning-${todayDateStr}-${Date.now()}`);
+  // Broadcast to ALL devices (FCM push) if broadcastFn provided, otherwise local only
+  let ok = false;
+  if (broadcastFn) {
+    ok = await broadcastFn(title, body, { type: 'morning_briefing', date: todayDateStr });
+  } else {
+    ok = await showPushNotification(title, body, `morning-${todayDateStr}`);
+  }
+
   if (ok && !forceTest) {
     localStorage.setItem(morningKey, 'sent');
   }

@@ -1,4 +1,4 @@
-﻿import crypto from 'crypto';
+import crypto from 'crypto';
 
 export const SERVICE_ACCOUNT = {
   project_id: "tiem-anh-nha-caos-d827f",
@@ -64,10 +64,15 @@ export async function sendFCMMessage(targetToken, title, body, dataPayload = {})
         title: title,
         body: body
       },
-      data: stringData,
+      data: {
+        ...stringData,
+        title,
+        body
+      },
       webpush: {
         headers: {
-          Urgency: 'high'
+          Urgency: 'high',
+          TTL: '86400'
         },
         notification: {
           title: title,
@@ -75,8 +80,26 @@ export async function sendFCMMessage(targetToken, title, body, dataPayload = {})
           icon: '/logocaosdt.png',
           badge: '/logocaosdt.png',
           vibrate: [200, 100, 200],
+          tag: 'caos-push',
           renotify: true,
-          requireInteraction: true
+          requireInteraction: false
+        }
+      },
+      apns: {
+        headers: {
+          'apns-priority': '10',
+          'apns-collapse-id': 'caos-push'
+        },
+        payload: {
+          aps: {
+            alert: {
+              title: title,
+              body: body
+            },
+            sound: 'default',
+            badge: 1,
+            'content-available': 1
+          }
         }
       }
     }

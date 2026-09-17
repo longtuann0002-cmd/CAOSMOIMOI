@@ -380,7 +380,8 @@ export default function App() {
     }
     const msUntil9AM = target.getTime() - now.getTime();
     const timer = setTimeout(() => {
-      checkAndTriggerMorningBriefing(contracts, systemDate, false);
+      // Broadcast morning briefing to ALL devices (FCM push)
+      checkAndTriggerMorningBriefing(contracts, systemDate, false, broadcastToAllDevices);
     }, msUntil9AM);
 
     return () => {
@@ -877,15 +878,16 @@ export default function App() {
       `Mã hợp đồng: ${newContract.contractCode} | Khách hàng: ${newContract.customerName} (Đã lưu vào danh sách khách hàng)`
     );
 
-    // Push notification immediately to this device
-    sendOrderCreatedNotification(newContract).catch(err => {
-      console.warn('Push notification error on order creation:', err);
-    });
-
-    // Broadcast notification to ALL other phones & staff devices
-    const itemsText = (newContract.items || []).map(i => i.cameraName).join(', ') || 'Thiết bị';
-    const title = `📋 Đơn đặt mới: ${newContract.contractCode}`;
-    const body = `Khách: ${newContract.customerName} • ${itemsText} • ${newContract.totalPrice.toLocaleString()}đ`;
+    // Broadcast to ALL devices (including this one) — single source of notification
+    const itemsText = (newContract.items || []).map(i => i.cameraName).join(' & ') || 'Thiết bị thuê';
+    const timeInfo = newContract.is6Hours
+      ? `Gói 6h · ${newContract.startTime || '08:00'}–${newContract.returnTime || '14:00'}`
+      : (() => {
+          const fmt = (d: string) => { const [y, m, day] = d.split('-'); return `${day}/${m}`; };
+          return `${fmt(newContract.startDate)}–${fmt(newContract.endDate)}`;
+        })();
+    const title = `📋 ${newContract.contractCode} · ${newContract.customerName}`;
+    const body = `${itemsText}\n${timeInfo} · ${newContract.totalPrice.toLocaleString('vi-VN')}đ`;
     broadcastToAllDevices(title, body, { contractId: newContract.id }).catch(err => {
       console.warn('Broadcast to all devices error:', err);
     });

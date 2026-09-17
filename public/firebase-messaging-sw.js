@@ -1,6 +1,26 @@
-﻿// Firebase Messaging Service Worker for Tiệm Ảnh Nhà Caos
+// Firebase Messaging Service Worker for Tiệm Ảnh Nhà Caos
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+
+// Cache name for PWA
+const CACHE_NAME = 'caos-app-v1';
+
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((keys) => {
+        return Promise.all(
+          keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+        );
+      })
+    ])
+  );
+});
 
 try {
   firebase.initializeApp({
@@ -14,17 +34,20 @@ try {
 
   const messaging = firebase.messaging();
 
+  // Handle background FCM push messages (app closed / in background)
+  // NOTE: Do NOT importScripts('/sw.js') — that would register a duplicate 'push' listener
   messaging.onBackgroundMessage((payload) => {
     const title = payload.notification?.title || payload.data?.title || '🔔 Tiệm Ảnh Nhà Caos';
     const body = payload.notification?.body || payload.data?.body || 'Bạn có thông báo mới!';
-    
+
+    // Use fixed tag 'caos-push' so duplicate FCM pushes replace each other
     self.registration.showNotification(title, {
       body: body,
       icon: '/logocaosdt.png',
       badge: '/logocaosdt.png',
       vibrate: [200, 100, 200],
       data: { url: payload.data?.url || '/' },
-      tag: 'caos-fcm-' + Date.now(),
+      tag: 'caos-push',
       renotify: true
     });
   });
@@ -32,5 +55,20 @@ try {
   console.warn('[firebase-messaging-sw] Init error:', e);
 }
 
-// Also import base sw.js logic
-importScripts('/sw.js');
+// Handle notification click
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
+});

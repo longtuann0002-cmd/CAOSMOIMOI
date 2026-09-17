@@ -23,7 +23,7 @@ self.addEventListener('push', (event) => {
   let title = '🔔 Trợ lý vận hành - Tiệm ảnh Nhà Caos';
   let body = 'Bạn có thông báo mới cần kiểm tra!';
   let url = '/';
-  let tag = 'caos-reminder-' + Date.now();
+  let tag = 'caos-push'; // Fixed tag so duplicate pushes replace each other
 
   if (event.data) {
     try {
