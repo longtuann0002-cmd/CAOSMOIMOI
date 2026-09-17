@@ -300,8 +300,12 @@ export async function broadcastToAllDevices(
 export function listenToCrossDeviceAlerts(
   onAlert: (alert: { title: string; body: string; data?: any }) => void
 ): () => void {
+  // Record the time the listener was set up — only fire alerts AFTER this point
+  const listenStartTime = Date.now();
+
   // 1. Listen via Firebase Firestore (Across the Internet from any remote phone or computer)
   let unsubscribeFirestore: (() => void) | null = null;
+  let isFirstSnapshot = true; // Skip the initial batch (already delivered as push)
   try {
     const config = getFirebaseConfig();
     const app = getApps().length > 0 ? getApp() : initializeApp(config);
@@ -309,17 +313,25 @@ export function listenToCrossDeviceAlerts(
     const q = query(
       collection(db, 'caos_cloud_alerts'),
       orderBy('timestamp', 'desc'),
-      limit(2)
+      limit(5)
     );
     unsubscribeFirestore = onSnapshot(q, (snapshot) => {
+      // On first snapshot: Firestore returns existing docs — skip them all
+      // (they were already delivered as FCM push when app was closed)
+      if (isFirstSnapshot) {
+        isFirstSnapshot = false;
+        return;
+      }
+
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added') {
           const alertData = change.doc.data();
           if (
             alertData &&
             alertData.timestamp &&
-            Date.now() - alertData.timestamp < 45000 &&
-            alertData.senderSessionId !== CLIENT_SESSION_ID
+            alertData.timestamp > listenStartTime &&          // Must be NEWER than app open
+            Date.now() - alertData.timestamp < 60000 &&      // Within 60s (not stale)
+            alertData.senderSessionId !== CLIENT_SESSION_ID  // Not from self
           ) {
             onAlert({
               title: alertData.title,

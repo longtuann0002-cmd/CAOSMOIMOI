@@ -139,6 +139,7 @@ export default function ContractManager({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [hideCustomerSuggestions, setHideCustomerSuggestions] = useState(false);
   const [selectedContract, setSelectedContract] = useState<RentalContract | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [customAlertMessage, setCustomAlertMessage] = useState<string | null>(null);
@@ -1937,19 +1938,54 @@ export default function ContractManager({
                       : [];
                     return (
                       <>
-                        <input
-                          type="text"
-                          required
-                          value={newContractForm.customerName}
-                          onChange={e => setNewContractForm({ ...newContractForm, customerName: e.target.value })}
-                          className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                          placeholder="Nguyễn Văn A"
-                          autoComplete="off"
-                        />
-                        {nameSuggestions.length > 0 && (
-                          <div className="absolute left-0 top-full mt-0.5 w-full bg-white border border-orange-200 rounded-xl shadow-lg z-50 overflow-hidden max-h-44 overflow-y-auto">
-                            <div className="px-2 py-1 text-[10px] font-extrabold text-orange-600 uppercase tracking-wider bg-orange-50 border-b border-orange-100">
-                              👥 Khách cũ gợi ý
+                        <div className="relative">
+                          <input
+                            type="text"
+                            required
+                            value={newContractForm.customerName}
+                            onChange={e => {
+                              setHideCustomerSuggestions(false);
+                              setNewContractForm({ ...newContractForm, customerName: e.target.value });
+                            }}
+                            onFocus={() => setHideCustomerSuggestions(false)}
+                            onKeyDown={e => {
+                              if (e.key === 'Escape') setHideCustomerSuggestions(true);
+                            }}
+                            className="w-full border border-gray-200 rounded-lg p-2 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                            placeholder="Nguyễn Văn A"
+                            autoComplete="off"
+                          />
+                          {newContractForm.customerName && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setNewContractForm({ ...newContractForm, customerName: '' });
+                                setHideCustomerSuggestions(true);
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition cursor-pointer"
+                              title="Xoá tên"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        {nameSuggestions.length > 0 && !hideCustomerSuggestions && (
+                          <div className="absolute left-0 top-full mt-1 w-full bg-white border border-orange-200 rounded-xl shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto">
+                            <div className="px-3 py-1.5 text-[10px] font-extrabold text-orange-600 uppercase tracking-wider bg-orange-50 border-b border-orange-100 flex items-center justify-between">
+                              <span className="flex items-center gap-1">👥 Khách cũ gợi ý</span>
+                              <button
+                                type="button"
+                                onMouseDown={e => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setHideCustomerSuggestions(true);
+                                }}
+                                className="p-0.5 px-1.5 text-orange-500 hover:text-orange-800 hover:bg-orange-100/80 rounded transition cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+                                title="Bỏ qua gợi ý này"
+                              >
+                                <span className="text-[10px] font-semibold lowercase">bỏ qua</span>
+                                <X className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                             {nameSuggestions.slice(0, 6).map((sug, i) => (
                               <button
@@ -1958,6 +1994,7 @@ export default function ContractManager({
                                 onMouseDown={e => {
                                   e.preventDefault();
                                   setNewContractForm({ ...newContractForm, customerName: sug.name, customerPhone: sug.phone || newContractForm.customerPhone });
+                                  setHideCustomerSuggestions(true);
                                 }}
                                 className="w-full text-left px-3 py-2 hover:bg-orange-50 transition-colors flex items-center justify-between gap-2 cursor-pointer border-b border-gray-100 last:border-0"
                               >

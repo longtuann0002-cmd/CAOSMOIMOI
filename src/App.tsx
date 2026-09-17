@@ -394,7 +394,7 @@ export default function App() {
     initFirebaseMessaging();
 
     const unsubscribe = listenToCrossDeviceAlerts((alert) => {
-      showPushNotification(alert.title, alert.body);
+      // App is OPEN: only show in-app toast (no extra push — FCM already delivered it outside)
       addToast(alert.title, 'info', alert.body);
     });
 

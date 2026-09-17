@@ -409,118 +409,124 @@ export default function NotificationCenter({
               <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl flex flex-col z-10 animate-fade-in sm:border-l border-gray-150">
                 
                 {/* Header */}
-                <div className="sticky top-0 bg-white border-b border-gray-150 px-4 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 z-10">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
-                      <BellRing className="w-5 h-5 shrink-0" />
+                <div className="sticky top-0 bg-white border-b border-gray-150 px-4 sm:px-6 py-3 sm:py-4 z-10 flex flex-col gap-2.5 sm:gap-3">
+                  {/* Top row: Title & Close */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-1.5 sm:p-2 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
+                        <BellRing className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="text-sm sm:text-base font-display font-bold text-gray-950 truncate">
+                          Trợ Lý Nhắc Nhở Vận Hành
+                        </h2>
+                        <p className="text-[10px] sm:text-[11px] text-gray-500 font-medium truncate">
+                          Tự động lọc các đơn hàng đến hạn bàn giao hoặc thu hồi
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-base sm:text-lg font-display font-bold text-gray-950">
-                        Trợ Lý Nhắc Nhở Vận Hành
-                      </h2>
-                      <p className="text-[10px] sm:text-[11px] text-gray-500 font-medium">
-                        Tự động lọc các đơn hàng đến hạn bàn giao hoặc thu hồi.
-                      </p>
-                    </div>
+
+                    <button
+                      onClick={() => setIsOpen(false)}
+                      className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition shrink-0"
+                      title="Đóng"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
-                    {/* System Today Selector widget */}
-                    <div className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-lg border border-gray-200/60 font-medium shrink-0">
-                      <span className="text-[10px] text-gray-500 shrink-0">Ngày hệ thống:</span>
+                  {/* Controls row: Date selector & Settings button */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+                    {/* System Today Selector widget - compact and balanced */}
+                    <div className="flex items-center gap-1.5 bg-gray-50 hover:bg-gray-100 px-2.5 py-1 sm:py-1.5 rounded-lg border border-gray-200 text-slate-700 transition shrink-0">
+                      <Calendar className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                      <span className="text-[11px] text-gray-500 font-medium shrink-0">Ngày:</span>
                       <input
                         type="date"
                         value={systemDate}
                         onChange={(e) => setSystemDate(e.target.value)}
-                        className="bg-transparent border-0 p-0 text-xs text-gray-950 font-bold focus:ring-0 uppercase cursor-pointer"
+                        className="bg-transparent border-0 p-0 text-xs text-gray-800 font-semibold focus:ring-0 cursor-pointer"
                         title="Thay đổi ngày hiện tại để kiểm tra thông báo nhắc nhở ngày khác"
                       />
                     </div>
 
-                    {/* Settings Button (Tucked away all sync & push options) */}
+                    {/* Settings Button */}
                     <button
                       type="button"
                       onClick={() => setShowFirebaseModal(true)}
-                      className="px-2.5 py-1 text-slate-600 hover:text-orange-600 hover:bg-orange-50 border border-slate-200/80 rounded-lg transition shrink-0 cursor-pointer flex items-center gap-1 text-xs font-bold shadow-3xs"
+                      className="px-2.5 py-1 sm:py-1.5 text-slate-600 hover:text-orange-600 hover:bg-orange-50 border border-slate-200/80 rounded-lg transition shrink-0 cursor-pointer flex items-center gap-1.5 text-xs font-semibold shadow-3xs"
                       title="Cài đặt thông báo & Thử nghiệm chuông đa thiết bị"
                     >
                       <Settings className="w-3.5 h-3.5 text-slate-500" />
                       <span>Cài đặt</span>
                     </button>
-
-                    <button
-                      onClick={() => setIsOpen(false)}
-                      className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition shrink-0"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
                   </div>
                 </div>
 
-                {/* Quick Summary Widgets (Bento row) */}
-                <div className="overflow-x-auto scrollbar-none border-b border-gray-150 bg-gray-50">
-                  <div className="px-4 sm:px-6 py-4 grid grid-cols-5 gap-1.5 text-center min-w-[480px] sm:min-w-0">
-                  <button 
-                    onClick={() => setViewTab('all')}
-                    className={`p-2 rounded-xl border transition ${
-                      viewTab === 'all' 
-                        ? 'bg-white border-orange-600 shadow-2xs text-orange-700 font-bold' 
-                        : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-200/50'
-                    }`}
-                  >
-                    <div className="text-base font-bold font-mono">{stats.total}</div>
-                    <div className="text-[10px] uppercase tracking-wider font-semibold font-sans mt-0.5">Tất cả</div>
-                  </button>
+                {/* Quick Summary Widgets (Bento row) - Balanced grid fitting nicely on mobile */}
+                <div className="border-b border-gray-150 bg-gray-50/70">
+                  <div className="px-3 sm:px-6 py-2.5 sm:py-3 grid grid-cols-5 gap-1 sm:gap-2 text-center">
+                    <button 
+                      onClick={() => setViewTab('all')}
+                      className={`py-1.5 sm:py-2 px-1 rounded-xl border transition ${
+                        viewTab === 'all' 
+                          ? 'bg-white border-orange-600 shadow-2xs text-orange-700 font-bold' 
+                          : 'bg-white/60 sm:bg-transparent border-gray-200/60 sm:border-transparent text-gray-500 hover:bg-white'
+                      }`}
+                    >
+                      <div className="text-sm sm:text-base font-bold font-mono">{stats.total}</div>
+                      <div className="text-[10px] uppercase tracking-wider font-semibold font-sans mt-0.5 truncate">Tất cả</div>
+                    </button>
 
-                  <button 
-                    onClick={() => setViewTab('handover')}
-                    className={`p-2 rounded-xl border transition ${
-                      viewTab === 'handover' 
-                        ? 'bg-indigo-50 border-indigo-200 shadow-2xs text-indigo-700 font-bold' 
-                        : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-200/50'
-                    }`}
-                  >
-                    <div className="text-base font-bold font-mono text-indigo-650">{stats.handover}</div>
-                    <div className="text-[10px] uppercase tracking-wider font-semibold font-sans mt-0.5">Bàn giao</div>
-                  </button>
+                    <button 
+                      onClick={() => setViewTab('handover')}
+                      className={`py-1.5 sm:py-2 px-1 rounded-xl border transition ${
+                        viewTab === 'handover' 
+                          ? 'bg-indigo-50 border-indigo-200 shadow-2xs text-indigo-700 font-bold' 
+                          : 'bg-white/60 sm:bg-transparent border-gray-200/60 sm:border-transparent text-gray-500 hover:bg-white'
+                      }`}
+                    >
+                      <div className="text-sm sm:text-base font-bold font-mono text-indigo-650">{stats.handover}</div>
+                      <div className="text-[10px] uppercase tracking-wider font-semibold font-sans mt-0.5 truncate">Bàn giao</div>
+                    </button>
 
-                  <button 
-                    onClick={() => setViewTab('return')}
-                    className={`p-2 rounded-xl border transition ${
-                      viewTab === 'return' 
-                        ? 'bg-emerald-50 border-emerald-200 shadow-2xs text-emerald-700 font-bold' 
-                        : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-200/50'
-                    }`}
-                  >
-                    <div className="text-base font-bold font-mono text-emerald-650">{stats.return}</div>
-                    <div className="text-[10px] uppercase tracking-wider font-semibold font-sans mt-0.5">Thu hồi</div>
-                  </button>
+                    <button 
+                      onClick={() => setViewTab('return')}
+                      className={`py-1.5 sm:py-2 px-1 rounded-xl border transition ${
+                        viewTab === 'return' 
+                          ? 'bg-emerald-50 border-emerald-200 shadow-2xs text-emerald-700 font-bold' 
+                          : 'bg-white/60 sm:bg-transparent border-gray-200/60 sm:border-transparent text-gray-500 hover:bg-white'
+                      }`}
+                    >
+                      <div className="text-sm sm:text-base font-bold font-mono text-emerald-650">{stats.return}</div>
+                      <div className="text-[10px] uppercase tracking-wider font-semibold font-sans mt-0.5 truncate">Thu hồi</div>
+                    </button>
 
-                  <button 
-                    onClick={() => setViewTab('overdue')}
-                    className={`p-2 rounded-xl border transition ${
-                      viewTab === 'overdue' 
-                        ? 'bg-rose-50 border-rose-200 shadow-2xs text-rose-700 font-bold' 
-                        : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-200/50'
-                    }`}
-                  >
-                    <div className="text-base font-bold font-mono text-rose-600">{stats.overdue}</div>
-                    <div className="text-[10px] uppercase tracking-wider font-semibold font-sans mt-0.5">Trễ hạn</div>
-                  </button>
+                    <button 
+                      onClick={() => setViewTab('overdue')}
+                      className={`py-1.5 sm:py-2 px-1 rounded-xl border transition ${
+                        viewTab === 'overdue' 
+                          ? 'bg-rose-50 border-rose-200 shadow-2xs text-rose-700 font-bold' 
+                          : 'bg-white/60 sm:bg-transparent border-gray-200/60 sm:border-transparent text-gray-500 hover:bg-white'
+                      }`}
+                    >
+                      <div className="text-sm sm:text-base font-bold font-mono text-rose-600">{stats.overdue}</div>
+                      <div className="text-[10px] uppercase tracking-wider font-semibold font-sans mt-0.5 truncate">Trễ hạn</div>
+                    </button>
 
-                  <button 
-                    onClick={() => setViewTab('upcoming')}
-                    className={`p-2 rounded-xl border transition ${
-                      viewTab === 'upcoming' 
-                        ? 'bg-amber-50 border-amber-250 shadow-2xs text-amber-700 font-bold' 
-                        : 'bg-transparent border-transparent text-gray-500 hover:bg-gray-200/50'
-                    }`}
-                  >
-                    <div className="text-base font-bold font-mono text-amber-655">{stats.upcoming}</div>
-                    <div className="text-[10px] uppercase tracking-wider font-semibold font-sans mt-0.5">Sắp thuê</div>
-                  </button>
+                    <button 
+                      onClick={() => setViewTab('upcoming')}
+                      className={`py-1.5 sm:py-2 px-1 rounded-xl border transition ${
+                        viewTab === 'upcoming' 
+                          ? 'bg-amber-50 border-amber-250 shadow-2xs text-amber-700 font-bold' 
+                          : 'bg-white/60 sm:bg-transparent border-gray-200/60 sm:border-transparent text-gray-500 hover:bg-white'
+                      }`}
+                    >
+                      <div className="text-sm sm:text-base font-bold font-mono text-amber-655">{stats.upcoming}</div>
+                      <div className="text-[10px] uppercase tracking-wider font-semibold font-sans mt-0.5 truncate">Sắp thuê</div>
+                    </button>
+                  </div>
                 </div>
-              </div>
 
                 {/* Local Filter search bar inside modal */}
                 <div className="px-6 py-3 border-b border-gray-150 flex items-center bg-white gap-2">

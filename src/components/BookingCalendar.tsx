@@ -93,6 +93,7 @@ export default function BookingCalendar({
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [showAddQuickModal, setShowAddQuickModal] = useState(false);
+  const [hideCustomerSuggestions, setHideCustomerSuggestions] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [customAlertMessage, setCustomAlertMessage] = useState<string | null>(null);
   const [selectedCameraFilter, setSelectedCameraFilter] = useState<string>('ALL');
@@ -428,10 +429,13 @@ export default function BookingCalendar({
           let timeString = '00:00-00:00';
           if (contract.is6Hours) {
             const retTime = contract.returnTime || '18:00';
-            const [hBase, mBase] = retTime.split(':');
-            const hInt = parseInt(hBase) || 18;
-            const startH = Math.max(0, hInt - 6);
-            const startStr = `${String(startH).padStart(2, '0')}:${mBase || '00'}`;
+            let startStr = contract.startTime;
+            if (!startStr) {
+              const [hBase, mBase] = retTime.split(':');
+              const hInt = parseInt(hBase, 10) || 18;
+              const startH = Math.max(0, hInt - 6);
+              startStr = `${String(startH).padStart(2, '0')}:${mBase || '00'}`;
+            }
             timeString = `${startStr}-${retTime}`;
           } else if (dateStr === '2026-05-02') timeString = '00:00-08:00';
           else if (dateStr === '2026-05-03') timeString = '06:00-00:00';
@@ -470,11 +474,26 @@ export default function BookingCalendar({
     // Chỉ hiển thị các thiết bị không ở trạng thái bảo trì
     const displayCams = cameras.filter(cam => cam.status !== 'Maintenance');
     
+    // Format "08:00-14:00" -> "8h-14h" hoặc "8h30-14h30"
+    const formatHourRange = (timeStr: string) => {
+      if (!timeStr || timeStr === '00:00-00:00') return '';
+      const [start, end] = timeStr.split('-');
+      if (!start || !end) return timeStr;
+      const fmt = (t: string) => {
+        const [h, m] = t.split(':');
+        const hNum = parseInt(h, 10);
+        return (!m || m === '00') ? `${hNum}h` : `${hNum}h${m}`;
+      };
+      return `${fmt(start)}-${fmt(end)}`;
+    };
+
     return displayCams.map(cam => {
       const activeBookingsToday = (dayBookingsMap[selectedDate] || []).filter(b => b.cameraShort === cam.shortName);
       
       let statusText = 'Còn trống cả ngày';
       let statusColor = 'bg-emerald-50 text-emerald-800 border-emerald-300';
+      let hoursLabel = '';
+      let is6h = false;
       
       if (activeBookingsToday.length > 0) {
         const hasFullDay = activeBookingsToday.some(b => (b.timeString === '00:00-00:00' && !b.contract.is6Hours));
@@ -482,6 +501,12 @@ export default function BookingCalendar({
           statusText = 'Kín lịch cả ngày';
           statusColor = 'bg-rose-50 text-rose-900 border-rose-300';
         } else {
+          is6h = activeBookingsToday.some(b => b.contract.is6Hours);
+          const hoursList = activeBookingsToday
+            .map(b => formatHourRange(b.timeString))
+            .filter(Boolean)
+            .join(', ');
+          hoursLabel = hoursList;
           const times = activeBookingsToday.map(b => `${b.timeString}${b.contract.is6Hours ? ' (6h)' : ''}`).join(', ');
           statusText = `Bận giờ: ${times}`;
           statusColor = 'bg-amber-50 text-amber-900 border-amber-300';
@@ -491,7 +516,9 @@ export default function BookingCalendar({
       return {
         ...cam,
         statusText,
-        statusColor
+        statusColor,
+        hoursLabel,
+        is6h
       };
     });
   }, [cameras, dayBookingsMap, selectedDate]);
@@ -722,12 +749,11 @@ export default function BookingCalendar({
             Tất cả thiết bị hiện đang ở trạng thái bảo trì hoặc chưa có thiết bị sẵn sàng.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-1 sm:gap-1.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-10 gap-1 sm:gap-1.5">
             {systemStatusInfo.map(cam => {
               const isFilterActive = selectedCameraFilter === cam.shortName;
               const isAvailable = cam.statusText === 'Còn trống cả ngày';
               const isFull = cam.statusText === 'Kín lịch cả ngày';
-              const compactStatusLabel = isAvailable ? 'Trống' : isFull ? 'Kín' : '6h';
 
               // Modern soft surface style: clean neutral for available, soft color accent for busy/6h
               let chipClass = 'bg-white hover:bg-slate-50/80 border border-slate-200/70 text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
@@ -760,9 +786,24 @@ export default function BookingCalendar({
                     <span className={`w-1.5 h-1.5 rounded-full ${dotColor} shrink-0`} />
                     <span className="font-extrabold truncate text-slate-800">{cam.shortName}</span>
                   </div>
-                  <span className={`text-[9px] font-bold px-1 py-0.2 rounded-md ${badgeStyle} shrink-0 leading-tight`}>
-                    {compactStatusLabel}
-                  </span>
+                  {isAvailable && (
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${badgeStyle} shrink-0 leading-tight`}>
+                      Trống
+                    </span>
+                  )}
+                  {isFull && (
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${badgeStyle} shrink-0 leading-tight`}>
+                      Kín
+                    </span>
+                  )}
+                  {!isAvailable && !isFull && (
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${badgeStyle} shrink-0 leading-tight flex items-center gap-1`}>
+                      <span>6h</span>
+                      {cam.hoursLabel && (
+                        <span className="font-mono text-[8px] sm:text-[8.5px] opacity-90">({cam.hoursLabel})</span>
+                      )}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -1266,19 +1307,54 @@ export default function BookingCalendar({
                       : [];
                     return (
                       <>
-                        <input
-                          type="text"
-                          required
-                          value={formData.customerName}
-                          onChange={e => setFormData({ ...formData, customerName: e.target.value })}
-                          className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none placeholder:text-gray-400 font-medium"
-                          placeholder="VD: Nguyễn Văn Hải"
-                          autoComplete="off"
-                        />
-                        {nameSuggestions.length > 0 && (
-                          <div className="absolute left-0 top-full mt-0.5 w-full bg-white border border-orange-200 rounded-xl shadow-lg z-50 overflow-hidden max-h-44 overflow-y-auto">
-                            <div className="px-2 py-1 text-[10px] font-extrabold text-orange-600 uppercase tracking-wider bg-orange-50 border-b border-orange-100">
-                              👥 Khách cũ gợi ý
+                        <div className="relative">
+                          <input
+                            type="text"
+                            required
+                            value={formData.customerName}
+                            onChange={e => {
+                              setHideCustomerSuggestions(false);
+                              setFormData({ ...formData, customerName: e.target.value });
+                            }}
+                            onFocus={() => setHideCustomerSuggestions(false)}
+                            onKeyDown={e => {
+                              if (e.key === 'Escape') setHideCustomerSuggestions(true);
+                            }}
+                            className="w-full border border-gray-300 rounded-lg p-2 pr-8 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none placeholder:text-gray-400 font-medium"
+                            placeholder="VD: Nguyễn Văn Hải"
+                            autoComplete="off"
+                          />
+                          {formData.customerName && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, customerName: '' });
+                                setHideCustomerSuggestions(true);
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition cursor-pointer"
+                              title="Xoá tên"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        {nameSuggestions.length > 0 && !hideCustomerSuggestions && (
+                          <div className="absolute left-0 top-full mt-1 w-full bg-white border border-orange-200 rounded-xl shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto">
+                            <div className="px-3 py-1.5 text-[10px] font-extrabold text-orange-600 uppercase tracking-wider bg-orange-50 border-b border-orange-100 flex items-center justify-between">
+                              <span className="flex items-center gap-1">👥 Khách cũ gợi ý</span>
+                              <button
+                                type="button"
+                                onMouseDown={e => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setHideCustomerSuggestions(true);
+                                }}
+                                className="p-0.5 px-1.5 text-orange-500 hover:text-orange-800 hover:bg-orange-100/80 rounded transition cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+                                title="Bỏ qua gợi ý này"
+                              >
+                                <span className="text-[10px] font-semibold lowercase">bỏ qua</span>
+                                <X className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                             {nameSuggestions.slice(0, 6).map((sug, i) => (
                               <button
@@ -1287,6 +1363,7 @@ export default function BookingCalendar({
                                 onMouseDown={e => {
                                   e.preventDefault();
                                   setFormData({ ...formData, customerName: sug.name, customerPhone: sug.phone || formData.customerPhone });
+                                  setHideCustomerSuggestions(true);
                                 }}
                                 className="w-full text-left px-3 py-2 hover:bg-orange-50 transition-colors flex items-center justify-between gap-2 cursor-pointer border-b border-gray-100 last:border-0"
                               >
