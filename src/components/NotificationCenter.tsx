@@ -366,7 +366,7 @@ export default function NotificationCenter({
                       Nhắc Nhở Vận Hành Hôm Nay
                     </span>
                     <span className="px-2 py-0.5 bg-amber-700 text-[10px] text-white rounded font-bold font-mono tracking-wider shrink-0 uppercase shadow-3xs">
-                      {systemDate}
+                      {formatDMY(systemDate)}
                     </span>
                   </div>
                   <p className="text-amber-900 text-[11px] sm:text-xs mt-2 leading-relaxed font-bold">
@@ -437,15 +437,18 @@ export default function NotificationCenter({
 
                   {/* Controls row: Date selector & Settings button */}
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
-                    {/* System Today Selector widget - compact and balanced */}
-                    <div className="flex items-center gap-1.5 bg-gray-50 hover:bg-gray-100 px-2.5 py-1 sm:py-1.5 rounded-lg border border-gray-200 text-slate-700 transition shrink-0">
+                    {/* System Today Selector widget - formatted as DD/MM/YYYY */}
+                    <div className="relative flex items-center gap-1.5 bg-gray-50 hover:bg-gray-100 px-2.5 py-1 sm:py-1.5 rounded-lg border border-gray-200 text-slate-700 transition shrink-0 cursor-pointer">
                       <Calendar className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                       <span className="text-[11px] text-gray-500 font-medium shrink-0">Ngày:</span>
+                      <span className="text-xs text-gray-800 font-bold tracking-tight">
+                        {formatDMY(systemDate)}
+                      </span>
                       <input
                         type="date"
                         value={systemDate}
                         onChange={(e) => setSystemDate(e.target.value)}
-                        className="bg-transparent border-0 p-0 text-xs text-gray-800 font-semibold focus:ring-0 cursor-pointer"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         title="Thay đổi ngày hiện tại để kiểm tra thông báo nhắc nhở ngày khác"
                       />
                     </div>
@@ -558,7 +561,7 @@ export default function NotificationCenter({
                         Không tìm thấy sự kiện cần xử lý
                       </h3>
                       <p className="text-xs text-gray-500 max-w-xs mt-1 leading-relaxed">
-                        Mọi thứ cho ngày hôm nay ({systemDate}) đều trong tầm kiểm soát rồi hoặc bộ lọc của bạn không khớp!
+                        Mọi thứ cho ngày hôm nay ({formatDMY(systemDate)}) đều trong tầm kiểm soát rồi hoặc bộ lọc của bạn không khớp!
                       </p>
                       
                       {/* Reset view tabs helper */}
