@@ -12,7 +12,8 @@ import {
 } from './utils/mockData';
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from './utils/supabase';
 import { formatDMY } from './utils/dateUtils';
-import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing } from './utils/pushNotification';
+import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushNotification } from './utils/pushNotification';
+import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging } from './utils/firebasePush';
 
 
 // Component imports
@@ -386,6 +387,20 @@ export default function App() {
       clearTimeout(timer);
     };
   }, [contracts, systemDate]);
+
+  // Listen to cross-device notification broadcasts from other devices/staff
+  useEffect(() => {
+    initFirebaseMessaging();
+
+    const unsubscribe = listenToCrossDeviceAlerts((alert) => {
+      showPushNotification(alert.title, alert.body);
+      addToast(alert.title, 'info', alert.body);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const searchResults = useMemo(() => {
     const q = headerSearchQuery.trim().toLowerCase();
@@ -862,9 +877,17 @@ export default function App() {
       `Mã hợp đồng: ${newContract.contractCode} | Khách hàng: ${newContract.customerName} (Đã lưu vào danh sách khách hàng)`
     );
 
-    // Push notification immediately to iPhone/device
+    // Push notification immediately to this device
     sendOrderCreatedNotification(newContract).catch(err => {
       console.warn('Push notification error on order creation:', err);
+    });
+
+    // Broadcast notification to ALL other phones & staff devices
+    const itemsText = (newContract.items || []).map(i => i.cameraName).join(', ') || 'Thiết bị';
+    const title = `📋 Đơn đặt mới: ${newContract.contractCode}`;
+    const body = `Khách: ${newContract.customerName} • ${itemsText} • ${newContract.totalPrice.toLocaleString()}đ`;
+    broadcastToAllDevices(title, body, { contractId: newContract.id }).catch(err => {
+      console.warn('Broadcast to all devices error:', err);
     });
   };
 
