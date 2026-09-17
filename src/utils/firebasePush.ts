@@ -1,4 +1,4 @@
-﻿import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 import { syncToSupabase, fetchFromSupabase, isSupabaseConfigured } from './supabase';
 import { isIOS, isStandalone, isNotificationSupported } from './pushNotification';
@@ -13,16 +13,29 @@ export interface FirebaseConfig {
   vapidKey?: string;
 }
 
+export const DEFAULT_FIREBASE_CONFIG: FirebaseConfig = {
+  apiKey: "AIzaSyA33_97jLHcuEz2TGHBpOeo2RS3y1VAnAE",
+  authDomain: "tiem-anh-nha-caos-d827f.firebaseapp.com",
+  projectId: "tiem-anh-nha-caos-d827f",
+  storageBucket: "tiem-anh-nha-caos-d827f.firebasestorage.app",
+  messagingSenderId: "449788423673",
+  appId: "1:449788423673:web:8488b804d60d63a68d2128",
+  vapidKey: "BKE-FrK50bX5zz885rkfzoWYKO_Jtun5MR2Qdg_H3KsGcVOesZdIswAIh5wGRYQggbt6sKWCL9ZGOmH-dV4VUp0"
+};
+
 const STORAGE_KEY_CONFIG = 'caos_firebase_config';
 const STORAGE_KEY_TOKEN = 'caos_fcm_device_token';
 const STORAGE_KEY_ALL_TOKENS = 'caos_all_device_tokens';
 
-// Default empty or pre-stored config
-export function getFirebaseConfig(): FirebaseConfig | null {
+// Default pre-stored or active config
+export function getFirebaseConfig(): FirebaseConfig {
   try {
     const stored = localStorage.getItem(STORAGE_KEY_CONFIG);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (parsed.apiKey && parsed.projectId) {
+        return parsed;
+      }
     }
   } catch (e) {
     console.error('Failed to parse Firebase config from localStorage:', e);
@@ -38,11 +51,12 @@ export function getFirebaseConfig(): FirebaseConfig | null {
       storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || `${env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
       messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
       appId: env.VITE_FIREBASE_APP_ID || '',
-      vapidKey: env.VITE_FIREBASE_VAPID_KEY || ''
+      vapidKey: env.VITE_FIREBASE_VAPID_KEY || DEFAULT_FIREBASE_CONFIG.vapidKey
     };
   }
 
-  return null;
+  // Use the official pre-configured project credentials
+  return DEFAULT_FIREBASE_CONFIG;
 }
 
 export function saveFirebaseConfig(config: FirebaseConfig): void {

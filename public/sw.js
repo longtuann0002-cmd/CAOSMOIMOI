@@ -1,4 +1,4 @@
-﻿// Service Worker for Tiệm Ảnh Nhà Caos - PWA Push Notifications (iOS 16.4+ & Android)
+// Service Worker for Tiệm Ảnh Nhà Caos - PWA Push Notifications (iOS 16.4+ & Android)
 const CACHE_NAME = 'caos-app-v1';
 
 self.addEventListener('install', (event) => {
@@ -20,34 +20,46 @@ self.addEventListener('activate', (event) => {
 
 // Handle incoming Web Push from server / FCM / APNs
 self.addEventListener('push', (event) => {
-  let data = {
-    title: '🔔 Trợ lý vận hành - Tiệm ảnh Nhà Caos',
-    body: 'Bạn có thông báo mới cần kiểm tra!',
-    url: '/'
-  };
+  let title = '🔔 Trợ lý vận hành - Tiệm ảnh Nhà Caos';
+  let body = 'Bạn có thông báo mới cần kiểm tra!';
+  let url = '/';
+  let tag = 'caos-reminder-' + Date.now();
 
   if (event.data) {
     try {
-      data = { ...data, ...event.data.json() };
+      const json = event.data.json();
+      if (json.notification) {
+        title = json.notification.title || title;
+        body = json.notification.body || body;
+      }
+      if (json.data) {
+        title = json.data.title || title;
+        body = json.data.body || body;
+        url = json.data.url || url;
+      }
+      if (!json.notification && !json.data) {
+        title = json.title || title;
+        body = json.body || body;
+        url = json.url || url;
+      }
+      tag = json.tag || tag;
     } catch (e) {
-      data.body = event.data.text();
+      body = event.data.text() || body;
     }
   }
 
   const options = {
-    body: data.body,
-    icon: data.icon || '/logocaosdt.png',
-    badge: data.badge || '/logocaosdt.png',
+    body: body,
+    icon: '/logocaosdt.png',
+    badge: '/logocaosdt.png',
     vibrate: [200, 100, 200],
-    data: {
-      url: data.url || '/'
-    },
-    tag: data.tag || 'caos-reminder-' + Date.now(),
+    data: { url },
+    tag: tag,
     renotify: true
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification(title, options)
   );
 });
 
