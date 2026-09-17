@@ -2294,21 +2294,33 @@ export default function ContractManager({
                       <label className="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">
                         Ngày thuê máy *
                       </label>
-                      <input
-                        type="date"
-                        required
-                        value={newContractForm.startDate}
-                        onChange={e => {
-                          const d = e.target.value;
-                          setNewContractForm(prev => ({
-                            ...prev,
-                            startDate: d,
-                            endDate: d
-                          }));
-                        }}
-                        style={{ boxSizing: 'border-box', maxWidth: '100%', width: '100%' }}
-                        className="block w-full max-w-full box-border h-10 border border-gray-300 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
-                      />
+                      <div className="relative w-full">
+                        <div className="w-full h-10 bg-white border border-gray-300 hover:border-orange-400 rounded-xl px-3 flex items-center justify-between shadow-2xs transition-colors">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Calendar className="w-4 h-4 text-orange-600 shrink-0" />
+                            <span className="text-xs sm:text-sm font-bold text-gray-850 tracking-wide truncate">
+                              {newContractForm.startDate ? formatDMY(newContractForm.startDate) : 'Chọn ngày'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                            Đổi
+                          </span>
+                        </div>
+                        <input
+                          type="date"
+                          required
+                          value={newContractForm.startDate}
+                          onChange={e => {
+                            const d = e.target.value;
+                            setNewContractForm(prev => ({
+                              ...prev,
+                              startDate: d,
+                              endDate: d
+                            }));
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 w-full min-w-0">
@@ -2341,8 +2353,7 @@ export default function ContractManager({
                               setNewContractForm(prev => ({ ...prev, startTime: '08:00', returnTime: add6Hours('08:00') }));
                             }
                           }}
-                          style={{ boxSizing: 'border-box', maxWidth: '100%', width: '100%' }}
-                          className="block w-full max-w-full box-border h-10 border border-amber-300 bg-amber-50/50 rounded-xl px-2 py-1 text-xs sm:text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
+                          className="block w-full max-w-full box-border h-10 border border-amber-300 bg-amber-50/50 rounded-xl px-2 py-1 text-xs sm:text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider shadow-2xs"
                           title="Nhập giờ lấy máy theo định dạng 24h (VD: 08:00, 13:30)"
                         />
                       </div>
@@ -2371,8 +2382,7 @@ export default function ContractManager({
                               setNewContractForm(prev => ({ ...prev, returnTime: add6Hours(prev.startTime || '08:00') }));
                             }
                           }}
-                          style={{ boxSizing: 'border-box', maxWidth: '100%', width: '100%' }}
-                          className="block w-full max-w-full box-border h-10 border border-amber-300 bg-amber-50/50 rounded-xl px-2 py-1 text-xs sm:text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
+                          className="block w-full max-w-full box-border h-10 border border-amber-300 bg-amber-50/50 rounded-xl px-2 py-1 text-xs sm:text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider shadow-2xs"
                           title="Giờ trả máy (định dạng 24h, tự động cộng 6 tiếng từ giờ lấy)"
                         />
                       </div>
@@ -2387,35 +2397,59 @@ export default function ContractManager({
                       <label className="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">
                         Ngày bắt đầu bàn giao *
                       </label>
-                      <input
-                        type="date"
-                        required
-                        value={newContractForm.startDate}
-                        onChange={e => {
-                          const d = e.target.value;
-                          setNewContractForm(prev => ({
-                            ...prev,
-                            startDate: d,
-                            endDate: prev.is6Hours ? d : prev.endDate
-                          }));
-                        }}
-                        style={{ boxSizing: 'border-box', maxWidth: '100%', width: '100%' }}
-                        className="block w-full max-w-full box-border h-10 border border-gray-300 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
-                      />
+                      <div className="relative w-full">
+                        <div className="w-full h-10 bg-white border border-gray-300 hover:border-orange-400 rounded-xl px-3 flex items-center justify-between shadow-2xs transition-colors">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Calendar className="w-4 h-4 text-orange-600 shrink-0" />
+                            <span className="text-xs sm:text-sm font-bold text-gray-850 tracking-wide truncate">
+                              {newContractForm.startDate ? formatDMY(newContractForm.startDate) : 'Chọn ngày'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                            Đổi
+                          </span>
+                        </div>
+                        <input
+                          type="date"
+                          required
+                          value={newContractForm.startDate}
+                          onChange={e => {
+                            const d = e.target.value;
+                            setNewContractForm(prev => ({
+                              ...prev,
+                              startDate: d,
+                              endDate: prev.is6Hours ? d : prev.endDate
+                            }));
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                      </div>
                     </div>
                     <div className="w-full min-w-0">
                       <label className="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">
                         Ngày trả dự kiến *
                       </label>
-                      <input
-                        type="date"
-                        required
-                        min={newContractForm.startDate}
-                        value={newContractForm.endDate}
-                        onChange={e => setNewContractForm({ ...newContractForm, endDate: e.target.value })}
-                        style={{ boxSizing: 'border-box', maxWidth: '100%', width: '100%' }}
-                        className="block w-full max-w-full box-border h-10 border border-gray-300 rounded-xl px-2.5 py-1 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
-                      />
+                      <div className="relative w-full">
+                        <div className="w-full h-10 bg-white border border-gray-300 hover:border-orange-400 rounded-xl px-3 flex items-center justify-between shadow-2xs transition-colors">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Calendar className="w-4 h-4 text-orange-600 shrink-0" />
+                            <span className="text-xs sm:text-sm font-bold text-gray-850 tracking-wide truncate">
+                              {newContractForm.endDate ? formatDMY(newContractForm.endDate) : 'Chọn ngày'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                            Đổi
+                          </span>
+                        </div>
+                        <input
+                          type="date"
+                          required
+                          min={newContractForm.startDate}
+                          value={newContractForm.endDate}
+                          onChange={e => setNewContractForm({ ...newContractForm, endDate: e.target.value })}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
