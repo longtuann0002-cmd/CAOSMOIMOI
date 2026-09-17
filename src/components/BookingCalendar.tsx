@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract, BankConfig, Customer } from '../types';
 import MoneyInput from './MoneyInput';
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
@@ -1499,52 +1499,91 @@ export default function BookingCalendar({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Chọn thiết bị cần thuê *</label>
-                <div className="border border-gray-200 rounded-lg p-3 max-h-[144px] overflow-y-auto space-y-2 bg-gray-50/50">
+              {/* Prominent Camera Selection Box (HERO HIGHLIGHT) */}
+              <div className="bg-gradient-to-b from-orange-50/90 via-amber-50/40 to-orange-50/60 border-2 border-orange-300 rounded-2xl p-3 sm:p-3.5 shadow-sm ring-4 ring-orange-500/10">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="w-6 h-6 rounded-lg bg-orange-600 text-white flex items-center justify-center shadow-3xs shrink-0">
+                      <CameraIcon className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-black text-gray-950 uppercase tracking-wide truncate">
+                      Chọn thiết bị cần thuê *
+                    </span>
+                  </div>
+                  {formData.selectedCameraIds.length > 0 ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-xs flex items-center gap-1 shrink-0 animate-pulse">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                      Đã chọn: {formData.selectedCameraIds.length} máy
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-orange-600 border border-orange-200 shadow-3xs shrink-0">
+                      Chưa chọn máy nào
+                    </span>
+                  )}
+                </div>
+
+                <div className="bg-white/95 border border-orange-200/90 rounded-xl p-2 max-h-[185px] overflow-y-auto space-y-1.5 shadow-inner">
                   {cameras.filter(cam => cam.status !== 'Maintenance').length === 0 ? (
-                    <p className="text-xs text-gray-400 italic text-center py-2">
+                    <p className="text-xs text-gray-400 italic text-center py-3">
                       Hiện không có thiết bị khả dụng (toàn bộ thiết bị đang bảo trì).
                     </p>
                   ) : (
                     cameras.filter(cam => cam.status !== 'Maintenance').map(cam => {
                       const isSelected = formData.selectedCameraIds.includes(cam.id);
+                      const priceLabel = formData.is6Hours 
+                        ? `${(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ/6h` 
+                        : (calculatedDays > 0 
+                          ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày (${calculatedDays}n)` 
+                          : `${(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ/ngày`
+                        );
                       return (
-                        <label key={cam.id} className="flex items-center gap-2 cursor-pointer select-none text-sm font-medium hover:text-orange-600 transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {
-                              if (isSelected) {
-                                setFormData({
-                                  ...formData,
-                                  selectedCameraIds: formData.selectedCameraIds.filter(id => id !== cam.id)
-                                });
-                              } else {
-                                setFormData({
-                                  ...formData,
-                                  selectedCameraIds: [...formData.selectedCameraIds, cam.id]
-                                });
-                              }
-                            }}
-                            className="rounded text-orange-600 focus:ring-orange-500 h-4 w-4 border-gray-300"
-                          />
-                          <div className="flex-grow flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 min-w-0">
-                            <span className="truncate text-gray-850 font-bold sm:font-medium text-xs sm:text-sm flex items-center gap-1.5 min-w-0 flex-1">
-                              <span className="truncate">{cam.name}</span>
-                              <span className="bg-gray-150 text-gray-600 border border-transparent text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0">{cam.serialNumber}</span>
-                            </span>
-                            <span className="font-mono text-xs text-orange-600 font-extrabold sm:font-bold shrink-0">
-                              {formData.is6Hours 
-                                ? `${(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ/6h` 
-                                : (calculatedDays > 0 
-                                  ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày (${calculatedDays}n)` 
-                                  : `${(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ/ngày`
-                                )
-                              }
-                            </span>
+                        <div
+                          key={cam.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              setFormData({
+                                ...formData,
+                                selectedCameraIds: formData.selectedCameraIds.filter(id => id !== cam.id)
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                selectedCameraIds: [...formData.selectedCameraIds, cam.id]
+                              });
+                            }
+                          }}
+                          className={`p-2 rounded-xl flex items-center justify-between gap-2 cursor-pointer select-none transition-all ${
+                            isSelected
+                              ? 'bg-orange-50 border-2 border-orange-500 shadow-xs ring-1 ring-orange-400/40'
+                              : 'bg-white hover:bg-orange-50/40 border border-gray-200 hover:border-orange-200 shadow-3xs'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className={`w-4.5 h-4.5 rounded-md flex items-center justify-center transition-all shrink-0 ${
+                              isSelected ? 'bg-orange-600 text-white shadow-3xs' : 'border-2 border-gray-300 bg-white'
+                            }`}>
+                              {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                            </div>
+                            <div className="min-w-0 flex-1 flex items-center gap-1.5 flex-wrap">
+                              <span className={`text-xs sm:text-sm font-extrabold truncate ${isSelected ? 'text-orange-950 font-black' : 'text-gray-900'}`}>
+                                {cam.name}
+                              </span>
+                              {cam.serialNumber && (
+                                <span className="bg-gray-150 text-gray-600 text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0">
+                                  {cam.serialNumber}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </label>
+
+                          <span className={`font-mono text-xs font-black shrink-0 px-2 py-0.5 rounded-lg ${
+                            isSelected 
+                              ? 'bg-orange-600 text-white shadow-3xs' 
+                              : 'bg-orange-50 text-orange-700 border border-orange-200/60'
+                          }`}>
+                            {priceLabel}
+                          </span>
+                        </div>
                       );
                     })
                   )}
@@ -1605,9 +1644,10 @@ export default function BookingCalendar({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Compact, balanced side-by-side date row on all devices */}
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label className="block text-xs font-bold text-gray-700 mb-1 truncate">
                     {formData.is6Hours ? 'Ngày thuê máy *' : 'Ngày bắt đầu *'}
                   </label>
                   <input
@@ -1622,16 +1662,16 @@ export default function BookingCalendar({
                         endDate: prev.is6Hours ? d : prev.endDate
                       }));
                     }}
-                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    className="w-full border border-gray-300 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
                   />
                 </div>
                 <div>
                   {formData.is6Hours ? (
                     <div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-1.5">
                         <div>
-                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy (HH:MM 24h)">
-                            Giờ lấy máy *
+                          <label className="block text-[11px] sm:text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ lấy máy (HH:MM 24h)">
+                            Giờ lấy *
                           </label>
                           <input
                             type="text"
@@ -1643,7 +1683,6 @@ export default function BookingCalendar({
                             value={formData.startTime || '08:00'}
                             onChange={e => {
                               let t = e.target.value;
-                              // Tự thêm dấu ":" khi nhập đủ 2 ký tự giờ
                               if (/^\d{2}$/.test(t) && (formData.startTime || '').length === 1) {
                                 t = t + ':';
                               }
@@ -1659,12 +1698,12 @@ export default function BookingCalendar({
                                 setFormData(prev => ({ ...prev, startTime: '08:00', returnTime: add6Hours('08:00') }));
                               }
                             }}
-                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-widest"
+                            className="w-full border border-amber-300 bg-amber-50/40 rounded-xl px-1.5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
                             title="Nhập giờ lấy máy theo định dạng 24h (VD: 08:00, 13:30)"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h, định dạng 24h)">
+                          <label className="block text-[11px] sm:text-xs font-bold text-amber-900 mb-1 truncate" title="Giờ trả máy (Tự +6h, định dạng 24h)">
                             Giờ trả (+6h) *
                           </label>
                           <input
@@ -1688,18 +1727,18 @@ export default function BookingCalendar({
                                 setFormData(prev => ({ ...prev, returnTime: add6Hours(prev.startTime || '08:00') }));
                               }
                             }}
-                            className="w-full border border-amber-300 bg-amber-50/40 rounded-lg px-2 py-2 text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-widest"
+                            className="w-full border border-amber-300 bg-amber-50/40 rounded-xl px-1.5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 focus:outline-none text-center tracking-wider"
                             title="Giờ trả máy (định dạng 24h, tự động cộng 6 tiếng từ giờ lấy)"
                           />
                         </div>
                       </div>
-                      <p className="text-[10px] text-amber-700 font-medium mt-1">
-                        ⏱️ Tự động tính: {formData.startTime || '08:00'} ➔ {formData.returnTime || '14:00'} (6 tiếng)
+                      <p className="text-[9.5px] text-amber-700 font-semibold mt-0.5 truncate">
+                        ⏱️ {formData.startTime || '08:00'} ➔ {formData.returnTime || '14:00'} (6h)
                       </p>
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                      <label className="block text-xs font-bold text-gray-700 mb-1 truncate">
                         Ngày trả dự kiến *
                       </label>
                       <input
@@ -1708,7 +1747,7 @@ export default function BookingCalendar({
                         min={formData.startDate}
                         value={formData.endDate}
                         onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                        className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                        className="w-full border border-gray-300 rounded-xl px-2.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none bg-white shadow-3xs"
                       />
                     </div>
                   )}

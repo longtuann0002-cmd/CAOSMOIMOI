@@ -2131,53 +2131,87 @@ export default function ContractManager({
                 </div>
               </div>
 
-              {/* Equipment Multi Check selectors */}
+              {/* Equipment Multi Check selectors — hero card */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Thiết bị thuê trong đơn *</label>
-                <div className="border border-gray-200 rounded-lg p-3 max-h-[140px] overflow-y-auto space-y-2 bg-gray-50/50">
+                {/* Hero header */}
+                <div className="relative bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-2xl px-4 pt-3 pb-10 mb-[-28px] shadow-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-white/20 rounded-full p-1.5">
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <span className="text-white font-black text-sm tracking-wide">Chọn thiết bị thuê *</span>
+                    </div>
+                    {newContractForm.selectedCameraIds.length > 0 && (
+                      <span className="bg-white text-orange-600 text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-sm animate-pulse-slow">
+                        Đã chọn: {newContractForm.selectedCameraIds.length} máy
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* Card list */}
+                <div className="border-2 border-orange-200 rounded-2xl pt-9 pb-2 px-2 bg-white shadow-sm max-h-[220px] overflow-y-auto space-y-1.5">
                   {cameras.filter(cam => cam.status !== 'Maintenance').length === 0 ? (
-                    <p className="text-xs text-gray-400 italic text-center py-2">
+                    <p className="text-xs text-gray-400 italic text-center py-4">
                       Hiện không có thiết bị khả dụng (toàn bộ thiết bị đang bảo trì).
                     </p>
                   ) : (
                     cameras.filter(cam => cam.status !== 'Maintenance').map(cam => {
                       const isSelected = newContractForm.selectedCameraIds.includes(cam.id);
                       return (
-                        <label key={cam.id} className="flex items-center gap-2 cursor-pointer select-none text-sm font-medium hover:text-orange-600 transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {
-                              if (isSelected) {
-                                setNewContractForm({
-                                  ...newContractForm,
-                                  selectedCameraIds: newContractForm.selectedCameraIds.filter(id => id !== cam.id)
-                                });
-                              } else {
-                                setNewContractForm({
-                                  ...newContractForm,
-                                  selectedCameraIds: [...newContractForm.selectedCameraIds, cam.id]
-                                });
-                              }
-                            }}
-                            className="rounded text-orange-600 focus:ring-orange-500 h-4 w-4 border-gray-300"
-                          />
-                          <div className="flex-grow flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 min-w-0">
-                            <span className="truncate text-gray-850 font-bold sm:font-medium text-xs sm:text-sm flex items-center gap-1.5 min-w-0 flex-1">
-                              <span className="truncate">{cam.name}</span>
-                              <span className="bg-gray-150 text-gray-600 border border-transparent text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0">{cam.serialNumber}</span>
-                            </span>
-                            <span className="font-mono text-xs text-orange-600 font-extrabold sm:font-bold shrink-0">
-                              {newContractForm.is6Hours 
+                        <div
+                          key={cam.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              setNewContractForm({
+                                ...newContractForm,
+                                selectedCameraIds: newContractForm.selectedCameraIds.filter(id => id !== cam.id)
+                              });
+                            } else {
+                              setNewContractForm({
+                                ...newContractForm,
+                                selectedCameraIds: [...newContractForm.selectedCameraIds, cam.id]
+                              });
+                            }
+                          }}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer select-none transition-all duration-150 border ${
+                            isSelected
+                              ? 'bg-orange-50 border-orange-300 shadow-sm'
+                              : 'bg-gray-50/60 border-transparent hover:bg-orange-50/40 hover:border-orange-100'
+                          }`}
+                        >
+                          {/* Custom checkbox */}
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-150 ${
+                            isSelected ? 'bg-orange-500 border-orange-500 shadow-sm' : 'border-gray-300 bg-white'
+                          }`}>
+                            {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                          </div>
+                          {/* Camera info */}
+                          <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className={`text-xs sm:text-sm font-bold truncate ${isSelected ? 'text-orange-700' : 'text-gray-800'}`}>
+                                {cam.name}
+                              </span>
+                              <span className="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0">
+                                {cam.serialNumber}
+                              </span>
+                            </div>
+                            <span className={`text-[11px] font-extrabold shrink-0 px-2 py-0.5 rounded-full transition-all ${
+                              isSelected ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-700'
+                            }`}>
+                              {newContractForm.is6Hours
                                 ? `${(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ /6h`
-                                : (calculatedDays > 0 
-                                  ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày (${calculatedDays}n)` 
+                                : (calculatedDays > 0
+                                  ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày`
                                   : `${(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ/ngày`
                                 )
                               }
                             </span>
                           </div>
-                        </label>
+                        </div>
                       );
                     })
                   )}
@@ -2239,9 +2273,9 @@ export default function ContractManager({
               </div>
 
               {/* Rent dates */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label className="block text-[10px] sm:text-xs font-bold text-gray-700 mb-1">
                     {newContractForm.is6Hours ? 'Ngày thuê máy *' : 'Ngày bàn giao *'}
                   </label>
                   <input
@@ -2256,7 +2290,7 @@ export default function ContractManager({
                         endDate: prev.is6Hours ? d : prev.endDate
                       }));
                     }}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    className="w-full border border-gray-200 rounded-xl px-2 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -2332,7 +2366,7 @@ export default function ContractManager({
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                      <label className="block text-[10px] sm:text-xs font-bold text-gray-700 mb-1">
                         Ngày trả dự kiến *
                       </label>
                       <input
@@ -2341,7 +2375,7 @@ export default function ContractManager({
                         min={newContractForm.startDate}
                         value={newContractForm.endDate}
                         onChange={e => setNewContractForm({ ...newContractForm, endDate: e.target.value })}
-                        className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                        className="w-full border border-gray-200 rounded-xl px-2 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-gray-850 focus:ring-2 focus:ring-orange-500 focus:outline-none"
                       />
                     </div>
                   )}
