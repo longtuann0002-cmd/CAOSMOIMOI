@@ -78,6 +78,18 @@ div[role="button"] {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Date inputs on all platforms: strictly box-sizing border-box, display block, prevent overflow */
+input[type="date"] {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  -webkit-box-sizing: border-box !important;
+  -moz-box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
 /* Prevent iOS & Mobile Safari from automatically zooming into inputs when focused (Apple triggers auto-zoom when font-size < 16px) */
 @media screen and (max-width: 768px) {
   input:not([type="date"]),
@@ -93,10 +105,7 @@ div[role="button"] {
 
   /* Date inputs on mobile: compact, prevent overflow and overlap */
   input[type="date"] {
-    font-size: 12px !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
+    font-size: 13px !important;
   }
 }
 
