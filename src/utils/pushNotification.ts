@@ -163,7 +163,8 @@ export async function checkAndTriggerMorningBriefing(
   forceTest: boolean = false,
   broadcastFn?: (title: string, body: string, data?: Record<string, any>) => Promise<boolean>
 ): Promise<boolean> {
-  if (!isNotificationSupported() || Notification.permission !== 'granted') {
+  const hasLocalPermission = isNotificationSupported() && Notification.permission === 'granted';
+  if (!hasLocalPermission && !broadcastFn) {
     return false;
   }
 
@@ -213,7 +214,10 @@ export async function checkAndTriggerMorningBriefing(
   let ok = false;
   if (broadcastFn) {
     ok = await broadcastFn(title, body, { type: 'morning_briefing', date: todayDateStr });
-  } else {
+    if (hasLocalPermission) {
+      showPushNotification(title, body, `morning-${todayDateStr}`);
+    }
+  } else if (hasLocalPermission) {
     ok = await showPushNotification(title, body, `morning-${todayDateStr}`);
   }
 

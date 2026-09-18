@@ -13,7 +13,7 @@ import {
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from './utils/supabase';
 import { formatDMY } from './utils/dateUtils';
 import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushNotification } from './utils/pushNotification';
-import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging } from './utils/firebasePush';
+import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud } from './utils/firebasePush';
 
 
 // Component imports
@@ -370,8 +370,11 @@ export default function App() {
     return closestDate;
   });
 
-  // 9:00 AM Daily Morning Operations Briefing Scheduler (Fires only at 9h sáng, not on app launch)
+  // 9:00 AM Daily Morning Operations Briefing Scheduler
   useEffect(() => {
+    // If opened anytime at or after 9:00 AM and briefing has not been sent today, trigger
+    checkAndTriggerMorningBriefing(contracts, systemDate, false, broadcastToAllDevices);
+
     const now = new Date();
     const target = new Date();
     target.setHours(9, 0, 0, 0);
@@ -446,6 +449,7 @@ export default function App() {
     if (isSupabaseConfigured) {
       syncToSupabase('contracts', contracts);
     }
+    syncContractsToCloud(contracts);
   }, [loaded, contracts]);
 
   useEffect(() => {

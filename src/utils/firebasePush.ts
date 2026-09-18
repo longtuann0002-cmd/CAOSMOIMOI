@@ -380,3 +380,30 @@ export function listenToCrossDeviceAlerts(
     window.removeEventListener('storage', storageListener);
   };
 }
+
+// Sync lightweight contracts to Firestore cloud doc so Vercel 9AM Cron Job can read them
+export async function syncContractsToCloud(contracts: any[]): Promise<void> {
+  try {
+    const config = getFirebaseConfig();
+    const app = getApps().length > 0 ? getApp() : initializeApp(config);
+    const db = getFirestore(app);
+    const lightweight = (contracts || []).map(c => ({
+      id: c.id,
+      customerName: c.customerName,
+      customerPhone: c.customerPhone,
+      startDate: c.startDate,
+      endDate: c.endDate,
+      status: c.status,
+      startTime: c.startTime,
+      returnTime: c.returnTime,
+      is6Hours: c.is6Hours
+    }));
+    await setDoc(doc(db, 'caos_cloud_data', 'contracts'), {
+      data: JSON.stringify(lightweight),
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('Sync contracts to cloud doc failed:', err);
+  }
+}
+
