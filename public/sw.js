@@ -58,14 +58,21 @@ self.addEventListener('push', (event) => {
     renotify: true
   };
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+  const tasks = [self.registration.showNotification(title, options)];
+
+  if ('setAppBadge' in self.navigator) {
+    tasks.push(self.navigator.setAppBadge().catch(() => {}));
+  }
+
+  event.waitUntil(Promise.all(tasks));
 });
 
 // Handle click on notification
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  if ('clearAppBadge' in self.navigator) {
+    self.navigator.clearAppBadge().catch(() => {});
+  }
   const targetUrl = event.notification.data?.url || '/';
 
   event.waitUntil(

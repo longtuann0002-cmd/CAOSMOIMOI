@@ -1,4 +1,4 @@
-﻿import { getGoogleAccessToken, sendFCMMessage, getRegisteredTokens, SERVICE_ACCOUNT } from './_fcmHelper.js';
+import { getGoogleAccessToken, sendFCMMessage, getRegisteredTokens, SERVICE_ACCOUNT } from './_fcmHelper.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -90,7 +90,8 @@ export default async function handler(req, res) {
 
     const payloadData = {
       type: 'morning_briefing',
-      date: todayDateStr
+      date: todayDateStr,
+      badge: total > 0 ? total : 1
     };
 
     const results = await Promise.allSettled(

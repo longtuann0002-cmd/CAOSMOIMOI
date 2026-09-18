@@ -97,7 +97,7 @@ export async function sendFCMMessage(targetToken, title, body, dataPayload = {})
               body: body
             },
             sound: 'default',
-            badge: 1,
+            badge: dataPayload?.badge !== undefined ? Number(dataPayload.badge) : 1,
             'content-available': 1
           }
         }

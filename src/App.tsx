@@ -12,7 +12,7 @@ import {
 } from './utils/mockData';
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from './utils/supabase';
 import { formatDMY } from './utils/dateUtils';
-import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushNotification } from './utils/pushNotification';
+import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushNotification, updateAppBadge, clearAppBadge } from './utils/pushNotification';
 import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud } from './utils/firebasePush';
 
 
@@ -403,6 +403,16 @@ export default function App() {
 
     return () => {
       unsubscribe();
+    };
+  }, []);
+
+  // Clear app icon badge on phone/desktop when app is opened or focused
+  useEffect(() => {
+    clearAppBadge();
+    const handleFocus = () => clearAppBadge();
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 

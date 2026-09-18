@@ -252,3 +252,31 @@ export async function sendOperationNotification(
 
   return showPushNotification(title, body, `op-${Date.now()}`);
 }
+
+// Update app icon badge on mobile/desktop home screen (PWA Badging API)
+export function updateAppBadge(count?: number) {
+  try {
+    if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
+      if (typeof count === 'number' && count > 0) {
+        navigator.setAppBadge(count).catch(() => {});
+      } else if (typeof count === 'number' && count === 0) {
+        navigator.clearAppBadge().catch(() => {});
+      } else {
+        navigator.setAppBadge().catch(() => {});
+      }
+    }
+  } catch (e) {
+    // Ignore unsupported
+  }
+}
+
+export function clearAppBadge() {
+  try {
+    if (typeof navigator !== 'undefined' && 'clearAppBadge' in navigator) {
+      navigator.clearAppBadge().catch(() => {});
+    }
+  } catch (e) {
+    // Ignore unsupported
+  }
+}
+

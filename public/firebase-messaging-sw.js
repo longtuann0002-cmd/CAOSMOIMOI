@@ -40,6 +40,12 @@ try {
     const title = payload.notification?.title || payload.data?.title || '🔔 Tiệm Ảnh Nhà Caos';
     const body = payload.notification?.body || payload.data?.body || 'Bạn có thông báo mới!';
 
+    // Update app icon badge if supported (iOS 16.4+ PWA / Android)
+    if ('setAppBadge' in self.navigator) {
+      const badgeCount = payload.data?.badge ? parseInt(payload.data.badge, 10) : 1;
+      self.navigator.setAppBadge(!isNaN(badgeCount) ? badgeCount : 1).catch(() => {});
+    }
+
     // Use fixed tag 'caos-push' so duplicate FCM pushes replace each other
     self.registration.showNotification(title, {
       body: body,
@@ -58,6 +64,9 @@ try {
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  if ('clearAppBadge' in self.navigator) {
+    self.navigator.clearAppBadge().catch(() => {});
+  }
   const targetUrl = event.notification.data?.url || '/';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
