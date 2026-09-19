@@ -330,6 +330,12 @@ export default function App() {
   const [logoSubtitle, setLogoSubtitle] = useState<string>(() =>
     loadStoredData('logoSubtitle', 'CHO THUÊ MÁY ẢNH GIÁ RẺ')
   );
+  const [logoSubtitleCase, setLogoSubtitleCase] = useState<'lowercase' | 'uppercase' | 'normal'>(() =>
+    loadStoredData('logoSubtitleCase', 'lowercase')
+  );
+  const [logoSubtitleFontSize, setLogoSubtitleFontSize] = useState<number>(() =>
+    loadStoredData('logoSubtitleFontSize', 9)
+  );
   const [logoIconType, setLogoIconType] = useState<'camera' | 'aperture' | 'film' | 'sparkles' | 'smile' | 'image' | 'upload'>(() =>
     loadStoredData('logoIconType', 'upload')
   );
@@ -615,6 +621,16 @@ export default function App() {
 
   useEffect(() => {
     if (!loaded) return;
+    saveStoredData('logoSubtitleCase', logoSubtitleCase);
+  }, [loaded, logoSubtitleCase]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    saveStoredData('logoSubtitleFontSize', logoSubtitleFontSize);
+  }, [loaded, logoSubtitleFontSize]);
+
+  useEffect(() => {
+    if (!loaded) return;
     saveStoredData('logoIconType', logoIconType);
   }, [loaded, logoIconType]);
 
@@ -727,7 +743,10 @@ export default function App() {
         expenses,
         registeredUsers,
         logoText,
+        logoFontSize,
         logoSubtitle,
+        logoSubtitleCase,
+        logoSubtitleFontSize,
         logoIconType,
         logoIconColor,
         logoBase64,
@@ -768,7 +787,10 @@ export default function App() {
       if (Array.isArray(parsed.registeredUsers)) setRegisteredUsers(parsed.registeredUsers);
       if (parsed.systemDate) setSystemDate(parsed.systemDate);
       if (parsed.logoText !== undefined) setLogoText(parsed.logoText);
+      if (parsed.logoFontSize !== undefined) setLogoFontSize(parsed.logoFontSize);
       if (parsed.logoSubtitle !== undefined) setLogoSubtitle(parsed.logoSubtitle);
+      if (parsed.logoSubtitleCase !== undefined) setLogoSubtitleCase(parsed.logoSubtitleCase);
+      if (parsed.logoSubtitleFontSize !== undefined) setLogoSubtitleFontSize(parsed.logoSubtitleFontSize);
       if (parsed.logoIconType !== undefined) setLogoIconType(parsed.logoIconType);
       if (parsed.logoIconColor !== undefined) setLogoIconColor(parsed.logoIconColor);
       if (parsed.logoBase64 !== undefined) setLogoBase64(parsed.logoBase64);
@@ -808,7 +830,10 @@ export default function App() {
         expenses,
         registeredUsers,
         logoText,
+        logoFontSize,
         logoSubtitle,
+        logoSubtitleCase,
+        logoSubtitleFontSize,
         logoIconType,
         logoIconColor,
         logoBase64
@@ -833,7 +858,10 @@ export default function App() {
       if (Array.isArray(data.registeredUsers)) setRegisteredUsers(data.registeredUsers);
       if (snap.systemDate) setSystemDate(snap.systemDate);
       if (data.logoText !== undefined) setLogoText(data.logoText);
+      if (data.logoFontSize !== undefined) setLogoFontSize(data.logoFontSize);
       if (data.logoSubtitle !== undefined) setLogoSubtitle(data.logoSubtitle);
+      if (data.logoSubtitleCase !== undefined) setLogoSubtitleCase(data.logoSubtitleCase);
+      if (data.logoSubtitleFontSize !== undefined) setLogoSubtitleFontSize(data.logoSubtitleFontSize);
       if (data.logoIconType !== undefined) setLogoIconType(data.logoIconType);
       if (data.logoIconColor !== undefined) setLogoIconColor(data.logoIconColor);
       if (data.logoBase64 !== undefined) setLogoBase64(data.logoBase64);
@@ -2153,8 +2181,13 @@ export default function App() {
                 >
                   {logoText || 'TIỆM ẢNH NHÀ CAOS'}
                 </span>
-                <span className="text-[9px] text-gray-400 font-medium block tracking-wide lowercase truncate mt-0.5">
-                  {logoSubtitle || 'CHO THUÊ MÁY ẢNH GIÁ RẺ'}
+                <span 
+                  className={`text-gray-400 font-medium block tracking-wide truncate mt-0.5 ${
+                    logoSubtitleCase === 'uppercase' ? 'uppercase' : logoSubtitleCase === 'lowercase' ? 'lowercase' : ''
+                  }`}
+                  style={{ fontSize: `${logoSubtitleFontSize || 9}px` }}
+                >
+                  {logoSubtitle || 'cho thuê máy ảnh giá rẻ'}
                 </span>
               </div>
             )}
@@ -3069,8 +3102,13 @@ export default function App() {
                     >
                       {logoText || 'TIỆM ẢNH NHÀ CAOS'}
                     </span>
-                    <span className="text-[10px] text-gray-400 font-normal block tracking-wide lowercase mt-0.5">
-                      {logoSubtitle || 'CHO THUÊ MÁY ẢNH GIÁ RẺ'}
+                    <span 
+                      className={`text-gray-400 font-normal block tracking-wide mt-0.5 ${
+                        logoSubtitleCase === 'uppercase' ? 'uppercase' : logoSubtitleCase === 'lowercase' ? 'lowercase' : ''
+                      }`}
+                      style={{ fontSize: `${logoSubtitleFontSize || 9.5}px` }}
+                    >
+                      {logoSubtitle || 'cho thuê máy ảnh giá rẻ'}
                     </span>
                   </div>
                 </div>
@@ -3142,17 +3180,116 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Tagline / Subtitle Input */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Dòng chữ phụ (Subtitle/Version)</label>
+                {/* Tagline / Subtitle Input & Controls */}
+                <div className="space-y-2.5">
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Dòng chữ phụ (Subtitle / Slogan)
+                  </label>
                   <input
                     type="text"
-                    maxLength={30}
+                    maxLength={35}
                     value={logoSubtitle}
                     onChange={(e) => setLogoSubtitle(e.target.value)}
-                    placeholder="ví dụ: SYSTEM v1.0"
-                    className="w-full px-3 py-2 text-sm border border-gray-250 rounded-lg focus:outline-hidden focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-mono text-gray-650 text-xs"
+                    placeholder="ví dụ: cho thuê máy ảnh hà nội"
+                    className="w-full px-3 py-2 text-sm border border-gray-250 rounded-lg focus:outline-hidden focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-medium text-gray-700 text-xs"
                   />
+
+                  {/* Subtitle Style: Viết hoa / Viết thường & Cỡ chữ */}
+                  <div className="bg-gray-50/90 p-3 rounded-xl border border-gray-200/90 space-y-3">
+                    {/* Kiểu hiển thị chữ hoa / thường */}
+                    <div>
+                      <span className="block font-bold text-gray-700 uppercase tracking-wider text-[10.5px] mb-1.5">
+                        Kiểu viết hoa / thường dòng phụ
+                      </span>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setLogoSubtitleCase('lowercase')}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1 ${
+                            logoSubtitleCase === 'lowercase'
+                              ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
+                              : 'bg-white text-gray-650 hover:bg-gray-100 border-gray-200'
+                          }`}
+                        >
+                          <span className="font-mono">abc</span>
+                          <span className="text-[10px] font-normal opacity-90">(Viết thường)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLogoSubtitleCase('uppercase')}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1 ${
+                            logoSubtitleCase === 'uppercase'
+                              ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
+                              : 'bg-white text-gray-650 hover:bg-gray-100 border-gray-200'
+                          }`}
+                        >
+                          <span className="font-mono font-black">ABC</span>
+                          <span className="text-[10px] font-normal opacity-90">(Viết hoa)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLogoSubtitleCase('normal')}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1 ${
+                            logoSubtitleCase === 'normal'
+                              ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
+                              : 'bg-white text-gray-650 hover:bg-gray-100 border-gray-200'
+                          }`}
+                        >
+                          <span className="font-mono font-bold">Aa</span>
+                          <span className="text-[10px] font-normal opacity-90">(Theo ý gõ)</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Cỡ chữ dòng phụ */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-gray-700 uppercase tracking-wider text-[10.5px]">
+                          Điều chỉnh cỡ chữ dòng phụ
+                        </span>
+                        <span className="font-mono font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200 text-xs">
+                          {logoSubtitleFontSize || 9}px
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-gray-400 font-bold">8px</span>
+                        <input
+                          type="range"
+                          min={8}
+                          max={13}
+                          step={0.5}
+                          value={logoSubtitleFontSize || 9}
+                          onChange={(e) => setLogoSubtitleFontSize(parseFloat(e.target.value))}
+                          className="flex-1 accent-orange-600 h-2 bg-gray-200 rounded-lg cursor-pointer"
+                        />
+                        <span className="text-[10px] text-gray-400 font-bold">13px</span>
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto scrollbar-none">
+                        {[
+                          { label: 'Cực nhỏ', size: 8 },
+                          { label: 'Nhỏ (Chuẩn)', size: 9 },
+                          { label: 'Vừa', size: 10 },
+                          { label: 'Lớn', size: 11.5 },
+                        ].map((preset) => (
+                          <button
+                            key={preset.size}
+                            type="button"
+                            onClick={() => setLogoSubtitleFontSize(preset.size)}
+                            className={`px-2.5 py-1 rounded-md text-[10.5px] font-bold border transition cursor-pointer shrink-0 ${
+                              logoSubtitleFontSize === preset.size
+                                ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
+                                : 'bg-white text-gray-650 hover:bg-gray-100 hover:text-gray-900 border-gray-200'
+                            }`}
+                          >
+                            {preset.label} ({preset.size}px)
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Icon option selector */}
@@ -3370,7 +3507,9 @@ export default function App() {
                 onClick={() => {
                   setLogoText('TIỆM ẢNH NHÀ CAOS');
                   setLogoFontSize(15.5);
-                  setLogoSubtitle('CHO THUÊ MÁY ẢNH GIÁ RẺ');
+                  setLogoSubtitle('cho thuê máy ảnh giá rẻ');
+                  setLogoSubtitleCase('lowercase');
+                  setLogoSubtitleFontSize(9);
                   setLogoIconType('upload');
                   setLogoIconColor('#ea580c');
                   setLogoBase64('/logocaos.png');
