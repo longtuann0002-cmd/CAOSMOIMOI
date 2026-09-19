@@ -14,6 +14,7 @@ import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from '../util
 import { formatDMY } from '../utils/dateUtils';
 import { generateVietQrString, generateQrSvg } from '../utils/vietqr';
 import { toPng } from 'html-to-image';
+import { matchContract } from '../utils/searchUtils';
 
 interface ContractManagerProps {
   contracts: RentalContract[];
@@ -24,6 +25,7 @@ interface ContractManagerProps {
   onDeleteContract?: (id: string) => void;
   onUpdateContractNote?: (id: string, note: string) => void;
   onUpdateContractCustomer?: (id: string, customerName: string, customerPhone: string, customerDocType: RentalContract['customerDocType'], customerDocNote: string) => void;
+  initialSearchQuery?: string;
   systemDate: string;
 }
 
@@ -134,9 +136,16 @@ export default function ContractManager({
   onDeleteContract,
   onUpdateContractNote,
   onUpdateContractCustomer,
+  initialSearchQuery,
   systemDate
 }: ContractManagerProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery || '');
+
+  useEffect(() => {
+    if (initialSearchQuery !== undefined) {
+      setSearchQuery(initialSearchQuery);
+    }
+  }, [initialSearchQuery]);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
   const [hideCustomerSuggestions, setHideCustomerSuggestions] = useState(false);
@@ -581,11 +590,8 @@ export default function ContractManager({
   const filteredContracts = useMemo(() => {
     return (contracts || []).filter(c => {
       if (!c) return false;
-      const query = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        (c.customerName || '').toLowerCase().includes(query) ||
-        (c.customerPhone || '').includes(query) ||
-        (c.contractCode || '').toLowerCase().includes(query);
+      const query = searchQuery.trim();
+      const matchesSearch = matchContract(c, query).matched;
 
       let matchesStatus = true;
       if (statusFilter === 'UNPAID_DEPOSIT') {

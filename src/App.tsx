@@ -14,6 +14,7 @@ import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from './utils
 import { formatDMY } from './utils/dateUtils';
 import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushNotification, updateAppBadge, clearAppBadge } from './utils/pushNotification';
 import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken } from './utils/firebasePush';
+import { matchContract, matchCamera, matchCustomer } from './utils/searchUtils';
 
 
 // Component imports
@@ -281,6 +282,10 @@ export default function App() {
   // Modern Spotlight Search State
   const [headerSearchQuery, setHeaderSearchQuery] = useState('');
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [searchFilterTab, setSearchFilterTab] = useState<'all' | 'contracts' | 'equipment' | 'customers'>('all');
+  const [contractManagerSearch, setContractManagerSearch] = useState('');
+  const [equipmentTrackerSearch, setEquipmentTrackerSearch] = useState('');
+  const [customerManagerSearch, setCustomerManagerSearch] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -419,27 +424,33 @@ export default function App() {
   }, []);
 
   const searchResults = useMemo(() => {
-    const q = headerSearchQuery.trim().toLowerCase();
-    if (!q) return { contracts: [], cameras: [], customers: [] };
+    const q = headerSearchQuery.trim();
+    if (!q) return { contracts: [], cameras: [], customers: [], total: 0 };
 
-    const matchedContracts = contracts.filter(c => 
-      c.contractCode.toLowerCase().includes(q) ||
-      c.customerName.toLowerCase().includes(q) ||
-      c.customerPhone.toLowerCase().includes(q)
-    ).slice(0, 4);
+    const matchedContracts = (contracts || [])
+      .map(c => ({ item: c, ...matchContract(c, q) }))
+      .filter(r => r.matched)
+      .sort((a, b) => b.score - a.score)
+      .map(r => r.item);
 
-    const matchedCameras = cameras.filter(cam => 
-      cam.name.toLowerCase().includes(q) ||
-      cam.shortName.toLowerCase().includes(q) ||
-      cam.serialNumber.toLowerCase().includes(q)
-    ).slice(0, 4);
+    const matchedCameras = (cameras || [])
+      .map(c => ({ item: c, ...matchCamera(c, q) }))
+      .filter(r => r.matched)
+      .sort((a, b) => b.score - a.score)
+      .map(r => r.item);
 
-    const matchedCustomers = customers.filter(cust => 
-      cust.name.toLowerCase().includes(q) ||
-      cust.phone.toLowerCase().includes(q)
-    ).slice(0, 4);
+    const matchedCustomers = (customers || [])
+      .map(c => ({ item: c, ...matchCustomer(c, q) }))
+      .filter(r => r.matched)
+      .sort((a, b) => b.score - a.score)
+      .map(r => r.item);
 
-    return { contracts: matchedContracts, cameras: matchedCameras, customers: matchedCustomers };
+    return {
+      contracts: matchedContracts,
+      cameras: matchedCameras,
+      customers: matchedCustomers,
+      total: matchedContracts.length + matchedCameras.length + matchedCustomers.length
+    };
   }, [headerSearchQuery, contracts, cameras, customers]);
 
   const pendingOrOverdueContractsCount = useMemo(() => {
@@ -2142,7 +2153,7 @@ export default function App() {
                 >
                   {logoText || 'TIỆM ẢNH NHÀ CAOS'}
                 </span>
-                <span className="text-[9px] text-orange-600 font-extrabold block tracking-wider uppercase truncate mt-0.5">
+                <span className="text-[9px] text-gray-400 font-medium block tracking-wide lowercase truncate mt-0.5">
                   {logoSubtitle || 'CHO THUÊ MÁY ẢNH GIÁ RẺ'}
                 </span>
               </div>
@@ -2689,6 +2700,7 @@ export default function App() {
                   onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
                   onUpdateContractNote={handleUpdateContractNote}
                   onUpdateContractCustomer={handleUpdateContractCustomer}
+                  initialSearchQuery={contractManagerSearch}
                   systemDate={systemDate}
                 />
               </TabErrorBoundary>
@@ -2704,6 +2716,7 @@ export default function App() {
                   onReorderCameras={handleReorderCameras}
                   currentUserRole={currentUser?.role}
                   contracts={contracts}
+                  initialSearchQuery={equipmentTrackerSearch}
                   systemDate={systemDate}
                 />
               </TabErrorBoundary>
@@ -2735,6 +2748,7 @@ export default function App() {
                   onAddCustomer={handleAddCustomer}
                   onUpdateCustomer={handleUpdateCustomer}
                   onDeleteCustomer={currentUser?.role === 'admin' ? handleDeleteCustomer : undefined}
+                  initialSearchQuery={customerManagerSearch}
                 />
               </TabErrorBoundary>
             )}
@@ -2790,98 +2804,215 @@ export default function App() {
               </span>
             </div>
 
+            {/* Search Filter Category Tabs (Visible when typing) */}
+            {headerSearchQuery.trim() && (
+              <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setSearchFilterTab('all')}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
+                    searchFilterTab === 'all'
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Tất cả ({searchResults.total})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchFilterTab('contracts')}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
+                    searchFilterTab === 'contracts'
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Đơn thuê ({searchResults.contracts.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchFilterTab('equipment')}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
+                    searchFilterTab === 'equipment'
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Thiết bị ({searchResults.cameras.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchFilterTab('customers')}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
+                    searchFilterTab === 'customers'
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Khách hàng ({searchResults.customers.length})
+                </button>
+              </div>
+            )}
+
             {/* Results Area */}
-            <div className="max-h-96 overflow-y-auto p-3">
+            <div className="max-h-[60vh] overflow-y-auto p-3">
               {!headerSearchQuery.trim() ? (
-                <div className="py-8 text-center text-slate-400 text-xs">
-                  Nhập từ khóa để tìm kiếm nhanh theo mã đơn, khách hàng hoặc thiết bị...
+                <div className="py-10 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 mx-auto flex items-center justify-center font-bold">
+                    <Search className="w-5 h-5" />
+                  </div>
+                  <div className="text-xs font-bold text-slate-700">Tìm kiếm thông minh toàn hệ thống</div>
+                  <p className="text-[11px] text-slate-400 max-w-sm mx-auto leading-relaxed">
+                    Hỗ trợ gõ tiếng Việt <b>có dấu hoặc không dấu</b>, tìm theo mã hợp đồng, tên khách, số điện thoại, CCCD hoặc tên thiết bị thuê.
+                  </p>
                 </div>
-              ) : searchResults.contracts.length === 0 && searchResults.cameras.length === 0 && searchResults.customers.length === 0 ? (
-                <div className="py-8 text-center text-slate-400 text-xs">
-                  Không tìm thấy kết quả phù hợp với "<span className="font-semibold text-slate-600">{headerSearchQuery}</span>"
+              ) : searchResults.total === 0 ? (
+                <div className="py-10 text-center space-y-1.5">
+                  <div className="text-xs font-bold text-slate-700">Không tìm thấy kết quả phù hợp</div>
+                  <p className="text-[11px] text-slate-400">
+                    Không có đơn thuê, thiết bị hay khách hàng nào khớp với "<span className="font-bold text-slate-600">{headerSearchQuery}</span>"
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {/* Contracts */}
-                  {searchResults.contracts.length > 0 && (
+                  {(searchFilterTab === 'all' || searchFilterTab === 'contracts') && searchResults.contracts.length > 0 && (
                     <div>
-                      <div className="px-2 pb-1 text-[10px] font-black uppercase text-slate-400">Đơn thuê ({searchResults.contracts.length})</div>
-                      {searchResults.contracts.map(c => (
-                        <div
-                          key={c.id}
-                          onClick={() => {
-                            setActiveTab('contracts');
-                            setIsSearchModalOpen(false);
-                            setHeaderSearchQuery('');
-                          }}
-                          className="p-2.5 rounded-2xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition group"
-                        >
-                          <div className="min-w-0">
-                            <span className="font-black text-slate-900 block truncate group-hover:text-orange-600 transition-colors">
-                              {c.customerName} ({c.contractCode})
-                            </span>
-                            <span className="text-[11px] text-slate-400 font-mono block">SĐT: {c.customerPhone}</span>
-                          </div>
-                          <span className="text-[10px] font-extrabold text-orange-600 bg-orange-100/80 px-2 py-0.5 rounded-full shrink-0">
-                            {c.status}
-                          </span>
-                        </div>
-                      ))}
+                      <div className="px-2 pb-1.5 text-[10.5px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                        <span>📋 Đơn thuê ({searchResults.contracts.length})</span>
+                        <span className="text-[9.5px] font-normal lowercase text-slate-400">Bấm để mở đơn</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {searchResults.contracts.map(c => {
+                          const itemsText = (c.items || []).map(i => i.cameraName).join(', ') || 'Chưa chọn thiết bị';
+                          const statusColor = 
+                            c.status === 'Active' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
+                            c.status === 'Pending' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                            c.status === 'Overdue' ? 'bg-rose-100 text-rose-800 border-rose-200' :
+                            'bg-slate-100 text-slate-700 border-slate-200';
+
+                          return (
+                            <div
+                              key={c.id}
+                              onClick={() => {
+                                setContractManagerSearch(c.contractCode);
+                                setActiveTab('contracts');
+                                setIsSearchModalOpen(false);
+                              }}
+                              className="p-3 rounded-2xl border border-slate-150/80 bg-white hover:bg-orange-50/60 hover:border-orange-250 cursor-pointer transition group shadow-3xs"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-black text-slate-900 text-xs sm:text-sm group-hover:text-orange-600 transition-colors truncate">
+                                      {c.customerName}
+                                    </span>
+                                    <span className="font-mono text-[11px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.2 rounded border border-orange-200/60 shrink-0">
+                                      {c.contractCode}
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-600 font-medium mt-1 truncate">
+                                    📷 <span className="text-slate-800 font-semibold">{itemsText}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-[10.5px] text-slate-400 mt-1 font-mono">
+                                    <span>📞 {c.customerPhone}</span>
+                                    <span>📅 {formatDMY(c.startDate)} ➔ {formatDMY(c.endDate)}</span>
+                                  </div>
+                                </div>
+                                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border shrink-0 uppercase tracking-wide ${statusColor}`}>
+                                  {c.status}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
                   {/* Cameras */}
-                  {searchResults.cameras.length > 0 && (
+                  {(searchFilterTab === 'all' || searchFilterTab === 'equipment') && searchResults.cameras.length > 0 && (
                     <div>
-                      <div className="px-2 pb-1 text-[10px] font-black uppercase text-slate-400">Thiết bị ({searchResults.cameras.length})</div>
-                      {searchResults.cameras.map(cam => (
-                        <div
-                          key={cam.id}
-                          onClick={() => {
-                            setActiveTab('equipment');
-                            setIsSearchModalOpen(false);
-                            setHeaderSearchQuery('');
-                          }}
-                          className="p-2.5 rounded-2xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition group"
-                        >
-                          <div className="min-w-0">
-                            <span className="font-black text-slate-900 block truncate group-hover:text-orange-600 transition-colors">
-                              {cam.name}
+                      <div className="px-2 pb-1.5 text-[10.5px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                        <span>📷 Thiết bị ({searchResults.cameras.length})</span>
+                        <span className="text-[9.5px] font-normal lowercase text-slate-400">Bấm để xem kho</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {searchResults.cameras.map(cam => (
+                          <div
+                            key={cam.id}
+                            onClick={() => {
+                              setEquipmentTrackerSearch(cam.name);
+                              setActiveTab('equipment');
+                              setIsSearchModalOpen(false);
+                            }}
+                            className="p-3 rounded-2xl border border-slate-150/80 bg-white hover:bg-orange-50/60 hover:border-orange-250 cursor-pointer flex items-center justify-between transition group shadow-3xs"
+                          >
+                            <div className="min-w-0">
+                              <span className="font-black text-slate-900 text-xs sm:text-sm block truncate group-hover:text-orange-600 transition-colors">
+                                {cam.name}
+                              </span>
+                              <div className="flex items-center gap-2 text-[10.5px] text-slate-500 font-mono mt-0.5">
+                                <span className="bg-slate-100 px-1.5 py-0.2 rounded font-semibold text-slate-600">{cam.category || 'Thiết bị'}</span>
+                                {cam.serialNumber && <span>SN: {cam.serialNumber}</span>}
+                              </div>
+                            </div>
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border shrink-0 ${
+                              cam.status === 'Available'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                : 'bg-blue-100 text-blue-800 border-blue-200'
+                            }`}>
+                              {cam.status === 'Available' ? 'Sẵn sàng' : 'Đang thuê'}
                             </span>
-                            <span className="text-[11px] text-slate-400 font-mono block">SN: {cam.serialNumber || 'N/A'}</span>
                           </div>
-                          <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
-                            {cam.status === 'Available' ? 'Sẵn sàng' : 'Đang thuê'}
-                          </span>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   )}
 
                   {/* Customers */}
-                  {searchResults.customers.length > 0 && (
+                  {(searchFilterTab === 'all' || searchFilterTab === 'customers') && searchResults.customers.length > 0 && (
                     <div>
-                      <div className="px-2 pb-1 text-[10px] font-black uppercase text-slate-400">Khách hàng ({searchResults.customers.length})</div>
-                      {searchResults.customers.map(cust => (
-                        <div
-                          key={cust.id}
-                          onClick={() => {
-                            setActiveTab('customers');
-                            setIsSearchModalOpen(false);
-                            setHeaderSearchQuery('');
-                          }}
-                          className="p-2.5 rounded-2xl hover:bg-orange-50 cursor-pointer flex items-center justify-between transition group"
-                        >
-                          <span className="font-black text-slate-900 block truncate group-hover:text-orange-600 transition-colors">
-                            {cust.name}
-                          </span>
-                          <span className="text-[11px] text-slate-400 font-mono block">{cust.phone}</span>
-                        </div>
-                      ))}
+                      <div className="px-2 pb-1.5 text-[10.5px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                        <span>👤 Khách hàng ({searchResults.customers.length})</span>
+                        <span className="text-[9.5px] font-normal lowercase text-slate-400">Bấm để xem hồ sơ</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {searchResults.customers.map(cust => (
+                          <div
+                            key={cust.id}
+                            onClick={() => {
+                              setCustomerManagerSearch(cust.phone || cust.name);
+                              setActiveTab('customers');
+                              setIsSearchModalOpen(false);
+                            }}
+                            className="p-3 rounded-2xl border border-slate-150/80 bg-white hover:bg-orange-50/60 hover:border-orange-250 cursor-pointer flex items-center justify-between transition group shadow-3xs"
+                          >
+                            <div className="min-w-0">
+                              <span className="font-black text-slate-900 text-xs sm:text-sm block truncate group-hover:text-orange-600 transition-colors">
+                                {cust.name}
+                              </span>
+                              <div className="flex items-center gap-3 text-[10.5px] text-slate-500 font-mono mt-0.5">
+                                <span>📞 {cust.phone}</span>
+                                {(cust.idCard || cust.idNumber) && <span>CCCD: {cust.idCard || cust.idNumber}</span>}
+                              </div>
+                            </div>
+                            <span className="text-xs font-bold text-orange-600 group-hover:translate-x-0.5 transition-transform">
+                              Xem hồ sơ ➔
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Footer tips */}
+            <div className="px-4 py-2 bg-slate-50 border-t border-slate-150/70 text-[10.5px] text-slate-400 flex items-center justify-between">
+              <span>💡 Gõ tiếng Việt có dấu hoặc không dấu</span>
+              <span>Bấm <kbd className="font-mono bg-white border border-slate-200 px-1 rounded text-[9.5px]">ESC</kbd> để đóng</span>
             </div>
           </div>
         </div>,
@@ -2938,7 +3069,7 @@ export default function App() {
                     >
                       {logoText || 'TIỆM ẢNH NHÀ CAOS'}
                     </span>
-                    <span className="text-[10px] text-gray-400 font-bold block tracking-wider uppercase mt-0.5">
+                    <span className="text-[10px] text-gray-400 font-normal block tracking-wide lowercase mt-0.5">
                       {logoSubtitle || 'CHO THUÊ MÁY ẢNH GIÁ RẺ'}
                     </span>
                   </div>

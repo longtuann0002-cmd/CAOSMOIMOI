@@ -5,6 +5,7 @@ import MoneyInput from './MoneyInput';
 import { Search, Plus, Filter, Camera as CameraIcon, CheckCircle, Flame, Server, ShieldCheck, RefreshCw, Trash2, Edit2, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Image as ImageIcon, Upload, Link as LinkIcon, Sparkles, ArrowLeft, ArrowRight, GripVertical } from 'lucide-react';
 import { getInitialTieredPrices } from '../utils/pricing';
 import RentalFrequencyChart from './RentalFrequencyChart';
+import { matchCamera } from '../utils/searchUtils';
 
 interface EquipmentTrackerProps {
   cameras: Camera[];
@@ -14,6 +15,7 @@ interface EquipmentTrackerProps {
   onReorderCameras?: (cameras: Camera[]) => void;
   currentUserRole?: string;
   contracts?: RentalContract[];
+  initialSearchQuery?: string;
   systemDate?: string;
 }
 
@@ -25,9 +27,16 @@ export default function EquipmentTracker({
   onReorderCameras,
   currentUserRole,
   contracts = [],
+  initialSearchQuery,
   systemDate = '2026-06-17'
 }: EquipmentTrackerProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery || '');
+
+  useEffect(() => {
+    if (initialSearchQuery !== undefined) {
+      setSearchQuery(initialSearchQuery);
+    }
+  }, [initialSearchQuery]);
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -129,11 +138,8 @@ export default function EquipmentTracker({
 
   const filteredCameras = useMemo(() => {
     return cameras.filter(c => {
-      const query = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        c.name.toLowerCase().includes(query) ||
-        c.serialNumber.toLowerCase().includes(query) ||
-        c.shortName.toLowerCase().includes(query);
+      const query = searchQuery.trim();
+      const matchesSearch = matchCamera(c, query).matched;
 
       const matchesCategory = categoryFilter === 'ALL' || c.category === categoryFilter;
       const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;

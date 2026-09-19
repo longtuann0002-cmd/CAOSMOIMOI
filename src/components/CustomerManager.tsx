@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Customer, RentalContract } from '../types';
 import { formatDMY } from '../utils/dateUtils';
+import { matchCustomer } from '../utils/searchUtils';
 import { Search, Plus, Trash2, Edit2, Shield, User, Heart, AlertTriangle, Phone, Globe, MapPin, ChevronLeft, ChevronRight, FileSpreadsheet, Eye, Calendar, DollarSign, FileText, CheckCircle2, Clock, X, Info, ArrowUpDown, Filter, SortDesc, Sparkles } from 'lucide-react';
 
 interface CustomerManagerProps {
@@ -10,6 +11,7 @@ interface CustomerManagerProps {
   onAddCustomer: (customer: Customer) => void;
   onUpdateCustomer: (customer: Customer) => void;
   onDeleteCustomer?: (id: string) => void;
+  initialSearchQuery?: string;
 }
 
 export type CustomerSortOption =
@@ -28,9 +30,16 @@ export default function CustomerManager({
   contracts = [],
   onAddCustomer,
   onUpdateCustomer,
-  onDeleteCustomer
+  onDeleteCustomer,
+  initialSearchQuery
 }: CustomerManagerProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery || '');
+
+  useEffect(() => {
+    if (initialSearchQuery !== undefined) {
+      setSearchQuery(initialSearchQuery);
+    }
+  }, [initialSearchQuery]);
   const [debtFilter, setDebtFilter] = useState<'ALL' | 'UNPAID_DEPOSIT' | 'HAS_DEBT' | 'NO_DEBT'>('ALL');
   const [trustFilter, setTrustFilter] = useState<'ALL' | 'High' | 'Medium' | 'Low'>('ALL');
   const [sortBy, setSortBy] = useState<CustomerSortOption>('RENTAL_DESC');
@@ -126,12 +135,8 @@ export default function CustomerManager({
     return (customers || [])
       .filter(c => {
         if (!c) return false;
-        const query = searchQuery.toLowerCase().trim();
-        const nameMatch = (c.name || '').toLowerCase().includes(query);
-        const phoneMatch = (c.phone || '').includes(query);
-        const emailMatch = !!(c.email && c.email.toLowerCase().includes(query));
-        const idMatch = !!(c.idNumber && c.idNumber.toLowerCase().includes(query));
-        const matchesSearch = nameMatch || phoneMatch || emailMatch || idMatch;
+        const query = searchQuery.trim();
+        const matchesSearch = matchCustomer(c, query).matched;
 
         if (!matchesSearch) return false;
 

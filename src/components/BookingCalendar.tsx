@@ -727,7 +727,7 @@ export default function BookingCalendar({
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="w-2 h-2 rounded-full bg-orange-600 animate-pulse shrink-0"></span>
             <span className="text-[11px] sm:text-xs font-black text-gray-800 uppercase tracking-wider truncate">
-              Trạng thái máy ({selectedDate})
+              Trạng thái máy ({formatDMY(selectedDate)})
             </span>
             <span className="text-[10px] text-gray-400 font-bold hidden sm:inline-block shrink-0">
               • {systemStatusInfo.filter(c => c.statusText === 'Còn trống cả ngày').length} trống / {systemStatusInfo.length} máy
@@ -1251,7 +1251,7 @@ export default function BookingCalendar({
         ) : (
           <div className="p-6 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 text-center select-none space-y-2">
             <p className="text-sm text-gray-500 font-medium">
-              Không có lịch đặt nào cho ngày {selectedDate}. Toàn bộ thiết bị sẵn sàng cho thuê!
+              Không có lịch đặt nào cho ngày {formatDMY(selectedDate)}. Toàn bộ thiết bị sẵn sàng cho thuê!
             </p>
             <button
               type="button"
