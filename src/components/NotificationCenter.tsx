@@ -37,7 +37,9 @@ import {
   requestNotificationPermission,
   sendTestNotification,
   sendOperationNotification,
-  checkAndTriggerMorningBriefing
+  checkAndTriggerMorningBriefing,
+  updateAppBadge,
+  clearAppBadge
 } from '../utils/pushNotification';
 import {
   isFirebaseConfigured,
@@ -225,6 +227,8 @@ export default function NotificationCenter({
     if (result.granted) {
       setPushPermission('granted');
       setShowIPhoneGuide(false);
+      await registerDeviceFCMToken().catch(() => {});
+      updateAppBadge(1);
       await sendTestNotification();
     } else {
       setPushPermission(getNotificationPermission());
@@ -240,6 +244,7 @@ export default function NotificationCenter({
   const handleSendTestPush = async () => {
     setIsSendingTest(true);
     setTestSentSuccess(false);
+    updateAppBadge(1);
     const ok = await sendTestNotification();
     setIsSendingTest(false);
     if (ok) {
@@ -250,6 +255,25 @@ export default function NotificationCenter({
 
   const [isTestingMorning, setIsTestingMorning] = useState(false);
   const [testMorningSent, setTestMorningSent] = useState(false);
+  const [badgeSetSuccess, setBadgeSetSuccess] = useState(false);
+
+  const handleTestBadge = () => {
+    updateAppBadge(1);
+    setBadgeSetSuccess(true);
+    setToastMessage('🔴 Đã kích hoạt số 1 đỏ! Bạn hãy vuốt về Màn hình chính của iPhone để xem icon ứng dụng nhé!');
+    setShowToast(true);
+    setTimeout(() => {
+      setBadgeSetSuccess(false);
+      setShowToast(false);
+    }, 6000);
+  };
+
+  const handleClearBadge = () => {
+    clearAppBadge();
+    setToastMessage('Đã xóa số đỏ ngoài Icon app!');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
   const handleTestMorning = async () => {
     setIsTestingMorning(true);
@@ -899,8 +923,8 @@ export default function NotificationCenter({
                 {/* Section 2: Test Tools */}
                 <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-800">Công cụ thử nghiệm chuông</span>
-                    <span className="text-[10.5px] text-slate-500">Kiểm tra âm thanh & đẩy</span>
+                    <span className="text-xs font-black text-slate-800">Công cụ thử nghiệm chuông & huy hiệu</span>
+                    <span className="text-[10.5px] text-slate-500">Kiểm tra âm thanh & icon</span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-1.5">
@@ -933,6 +957,42 @@ export default function NotificationCenter({
                       <Radio className={`w-3.5 h-3.5 text-indigo-600 ${isBroadcastingTest ? 'animate-spin' : ''}`} />
                       <span>{broadcastSent ? 'Đã bắn tín hiệu!' : 'Bắn thử TẤT CẢ máy'}</span>
                     </button>
+                  </div>
+
+                  {/* App Icon Badge Test Area */}
+                  <div className="p-2 bg-rose-50/60 border border-rose-200/80 rounded-xl flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="relative shrink-0">
+                        <div className="w-7 h-7 rounded-lg bg-white border border-rose-200 flex items-center justify-center text-xs font-black text-rose-600 shadow-2xs">
+                          App
+                        </div>
+                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center shadow-xs">
+                          1
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-black text-slate-800">Số đỏ ngoài biểu tượng Icon</div>
+                        <div className="text-[9.5px] text-slate-500 truncate">Hiện số 1 đỏ trên icon app ngoài màn hình chính</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleTestBadge}
+                        className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[10.5px] font-bold transition shadow-xs active:scale-95 cursor-pointer"
+                      >
+                        {badgeSetSuccess ? 'Đã bật!' : 'Bật số 1 đỏ'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleClearBadge}
+                        className="px-2 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 text-[10.5px] font-bold transition cursor-pointer"
+                        title="Xóa số đỏ"
+                      >
+                        Xóa
+                      </button>
+                    </div>
                   </div>
 
                   {/* 9 AM schedule note */}

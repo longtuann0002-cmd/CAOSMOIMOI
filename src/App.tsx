@@ -13,7 +13,7 @@ import {
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from './utils/supabase';
 import { formatDMY } from './utils/dateUtils';
 import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushNotification, updateAppBadge, clearAppBadge } from './utils/pushNotification';
-import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud } from './utils/firebasePush';
+import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken } from './utils/firebasePush';
 
 
 // Component imports
@@ -403,6 +403,11 @@ export default function App() {
   useEffect(() => {
     initFirebaseMessaging();
 
+    // Auto-register device FCM token if permission was already granted
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      registerDeviceFCMToken().catch(() => {});
+    }
+
     const unsubscribe = listenToCrossDeviceAlerts((alert) => {
       // App is OPEN: only show in-app toast (no extra push — FCM already delivered it outside)
       addToast(alert.title, 'info', alert.body);
@@ -410,16 +415,6 @@ export default function App() {
 
     return () => {
       unsubscribe();
-    };
-  }, []);
-
-  // Clear app icon badge on phone/desktop when app is opened or focused
-  useEffect(() => {
-    clearAppBadge();
-    const handleFocus = () => clearAppBadge();
-    window.addEventListener('focus', handleFocus);
-    return () => {
-      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
@@ -450,6 +445,16 @@ export default function App() {
   const pendingOrOverdueContractsCount = useMemo(() => {
     return contracts.filter(c => c.status === 'Pending' || c.status === 'Overdue').length;
   }, [contracts]);
+
+  // Sync app icon badge on mobile/desktop home screen with pending/overdue contracts count
+  useEffect(() => {
+    if (!loaded) return;
+    if (pendingOrOverdueContractsCount > 0) {
+      updateAppBadge(pendingOrOverdueContractsCount);
+    } else {
+      clearAppBadge();
+    }
+  }, [loaded, pendingOrOverdueContractsCount]);
 
   // Sync data states to local storage and Supabase
   useEffect(() => {

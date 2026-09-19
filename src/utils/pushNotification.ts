@@ -119,6 +119,7 @@ export async function showPushNotification(
         renotify: true,
         data: { url: '/' }
       } as any);
+      updateAppBadge(1);
       return true;
     } else if (typeof Notification !== 'undefined') {
       new Notification(title, {
@@ -126,6 +127,7 @@ export async function showPushNotification(
         icon: '/logocaosdt.png',
         tag: notificationTag
       });
+      updateAppBadge(1);
       return true;
     }
     return false;
@@ -137,6 +139,7 @@ export async function showPushNotification(
 
 // Send a test notification to verify device behavior
 export async function sendTestNotification(): Promise<boolean> {
+  updateAppBadge(1);
   return showPushNotification(
     '📷 Tiệm Ảnh Nhà Caos - Trợ lý vận hành',
     'Thông báo trên iPhone của bạn đã hoạt động hoàn hảo! 🎉',
