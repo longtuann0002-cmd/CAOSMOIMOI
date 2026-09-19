@@ -15,6 +15,7 @@ import { formatDMY } from './utils/dateUtils';
 import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushNotification, updateAppBadge, clearAppBadge } from './utils/pushNotification';
 import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken } from './utils/firebasePush';
 import { matchContract, matchCamera, matchCustomer } from './utils/searchUtils';
+import { compressImageFile } from './utils/imageUtils';
 
 
 // Component imports
@@ -513,6 +514,20 @@ export default function App() {
       syncToSupabase('customers', customers);
     }
   }, [loaded, customers]);
+
+  // Sync registered user accounts and current session to local storage & Supabase
+  useEffect(() => {
+    if (!loaded) return;
+    saveStoredData('registeredUsers', registeredUsers);
+    if (isSupabaseConfigured) {
+      syncToSupabase('registeredUsers', registeredUsers);
+    }
+  }, [loaded, registeredUsers]);
+
+  useEffect(() => {
+    if (!loaded || !currentUser) return;
+    saveStoredData('currentUser', currentUser);
+  }, [loaded, currentUser]);
 
   // Auto-sync: Ensure every existing contract's customer is present in Customer Management
   // Also removes auto-created customers whose phone/id no longer appears in any contract
@@ -1477,17 +1492,35 @@ export default function App() {
   };
 
   const handleChangeAvatar = (newAvatarUrl: string) => {
-    if (!newAvatarUrl) return;
+    if (!newAvatarUrl || !currentUser) return;
 
+    const updatedUser = { ...currentUser, avatar: newAvatarUrl };
     const updatedUsers = registeredUsers.map(u => {
-      if (u.id === currentUser?.id) {
-        return { ...u, avatar: newAvatarUrl };
+      if (u.id === currentUser.id) {
+        return updatedUser;
       }
       return u;
     });
-    setRegisteredUsers(updatedUsers);
 
-    setCurrentUser(prev => prev ? { ...prev, avatar: newAvatarUrl } : null);
+    setRegisteredUsers(updatedUsers);
+    setCurrentUser(updatedUser);
+    saveStoredData('registeredUsers', updatedUsers);
+    saveStoredData('currentUser', updatedUser);
+
+    if (isSupabaseConfigured) {
+      syncToSupabase('registeredUsers', updatedUsers);
+    }
+
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const ch = new BroadcastChannel('caos_profile_sync');
+        ch.postMessage({ type: 'USERS_UPDATED', users: updatedUsers });
+        ch.close();
+      } catch (err) {
+        console.warn('Broadcast error:', err);
+      }
+    }
+
     addToast('Đã cập nhật ảnh đại diện thành công!', 'success');
     setShowChangeAvatarModal(false);
   };
@@ -1586,17 +1619,33 @@ export default function App() {
     }
 
     // Save updated users list
+    const updatedUser = { ...currentUser, password: changePasswordState.newPassword };
     const updatedUsers = registeredUsers.map(u => {
       if (u.id === currentUser?.id) {
-        return { ...u, password: changePasswordState.newPassword };
+        return updatedUser;
       }
       return u;
     });
 
     setRegisteredUsers(updatedUsers);
-    
-    // Update active currentUser session state
-    setCurrentUser(prev => prev ? { ...prev, password: changePasswordState.newPassword } : null);
+    setCurrentUser(updatedUser);
+    saveStoredData('registeredUsers', updatedUsers);
+    saveStoredData('currentUser', updatedUser);
+
+    if (isSupabaseConfigured) {
+      syncToSupabase('registeredUsers', updatedUsers);
+    }
+
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const ch = new BroadcastChannel('caos_profile_sync');
+        ch.postMessage({ type: 'USERS_UPDATED', users: updatedUsers });
+        ch.close();
+      } catch (err) {
+        console.warn('Broadcast error:', err);
+      }
+    }
+
     setChangePasswordSuccess('Chúc mừng! Đã đổi mật khẩu thành công!');
     setChangePasswordState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   };
@@ -2724,7 +2773,11 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setSidebarDropdownOpen(false); setShowChangeAvatarModal(true); }}
+                    onClick={() => { 
+                      setSidebarDropdownOpen(false); 
+                      setSelectedAvatarUrl(currentUser?.avatar || '');
+                      setShowChangeAvatarModal(true); 
+                    }}
                     className="w-full px-3.5 py-2 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2"
                   >
                     <Smile className="w-3.5 h-3.5 text-slate-400" />
@@ -2846,7 +2899,11 @@ export default function App() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setProfileDropdownOpen(false); setShowChangeAvatarModal(true); }}
+                        onClick={() => { 
+                          setProfileDropdownOpen(false); 
+                          setSelectedAvatarUrl(currentUser?.avatar || '');
+                          setShowChangeAvatarModal(true); 
+                        }}
                         className="w-full px-3.5 py-2.5 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2.5 cursor-pointer"
                       >
                         <Smile className="w-4 h-4 text-slate-400" />
@@ -3729,15 +3786,21 @@ export default function App() {
                         type="file"
                         accept="image/*"
                         id="logo-upload-input"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setLogoBase64(reader.result as string);
+                            try {
+                              const compressed = await compressImageFile(file, 256, 256, 0.85);
+                              setLogoBase64(compressed);
                               setLogoIconType('upload');
-                            };
-                            reader.readAsDataURL(file);
+                            } catch {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setLogoBase64(reader.result as string);
+                                setLogoIconType('upload');
+                              };
+                              reader.readAsDataURL(file);
+                            }
                           }
                         }}
                         className="hidden"
@@ -3900,12 +3963,17 @@ export default function App() {
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => setEditProfileAvatar(reader.result as string);
-                            reader.readAsDataURL(file);
+                            try {
+                              const compressed = await compressImageFile(file, 256, 256, 0.85);
+                              setEditProfileAvatar(compressed);
+                            } catch {
+                              const reader = new FileReader();
+                              reader.onloadend = () => setEditProfileAvatar(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
                           }
                         }}
                       />
@@ -4134,14 +4202,19 @@ export default function App() {
                       type="file"
                       accept="image/*"
                       id="avatar-file-upload-input"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setSelectedAvatarUrl(reader.result as string);
-                          };
-                          reader.readAsDataURL(file);
+                          try {
+                            const compressed = await compressImageFile(file, 256, 256, 0.85);
+                            setSelectedAvatarUrl(compressed);
+                          } catch {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setSelectedAvatarUrl(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
                         }
                       }}
                       className="hidden"
