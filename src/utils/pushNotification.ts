@@ -156,6 +156,8 @@ export async function sendOrderCreatedNotification(contract: RentalContract): Pr
   return showPushNotification(title, body, `order-${contract.id}-${Date.now()}`);
 }
 
+let inFlightBriefingDate: string | null = null;
+
 // Check and trigger 9:00 AM daily morning operations briefing
 export async function checkAndTriggerMorningBriefing(
   contracts: RentalContract[],
@@ -178,8 +180,13 @@ export async function checkAndTriggerMorningBriefing(
   }
 
   const morningKey = `morning_briefing_sent_${todayDateStr}`;
-  if (!forceTest && localStorage.getItem(morningKey)) {
-    return false;
+  if (!forceTest) {
+    if (localStorage.getItem(morningKey) || inFlightBriefingDate === todayDateStr) {
+      return false;
+    }
+    // Synchronous lock immediately to prevent any concurrent re-render race condition
+    localStorage.setItem(morningKey, 'processing');
+    inFlightBriefingDate = todayDateStr;
   }
 
   // Calculate operations for today
@@ -210,19 +217,21 @@ export async function checkAndTriggerMorningBriefing(
     ? parts.join('\n')
     : 'Hôm nay không có đơn nào cần xử lý. Chúc ngày tốt lành! ✨';
 
+  const notifTag = `briefing-${todayDateStr}`;
+
   // Broadcast to ALL devices (FCM push) if broadcastFn provided, otherwise local only
   let ok = false;
   if (broadcastFn) {
-    ok = await broadcastFn(title, body, { type: 'morning_briefing', date: todayDateStr });
+    ok = await broadcastFn(title, body, { type: 'morning_briefing', date: todayDateStr, tag: notifTag });
     if (hasLocalPermission) {
-      showPushNotification(title, body, `morning-${todayDateStr}`);
+      showPushNotification(title, body, notifTag);
     }
   } else if (hasLocalPermission) {
-    ok = await showPushNotification(title, body, `morning-${todayDateStr}`);
+    ok = await showPushNotification(title, body, notifTag);
   }
 
-  if (ok && !forceTest) {
-    localStorage.setItem(morningKey, 'sent');
+  if (!forceTest) {
+    localStorage.setItem(morningKey, ok ? 'sent' : 'checked_done');
   }
   return ok;
 }

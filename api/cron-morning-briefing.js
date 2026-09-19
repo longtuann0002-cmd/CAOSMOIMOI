@@ -1,4 +1,4 @@
-import { getGoogleAccessToken, sendFCMMessage, getRegisteredTokens, SERVICE_ACCOUNT } from './_fcmHelper.js';
+﻿import { getGoogleAccessToken, sendFCMMessage, getRegisteredTokens, SERVICE_ACCOUNT } from './_fcmHelper.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,10 +24,35 @@ export default async function handler(req, res) {
     const tomorrowDd = String(tomorrowNow.getUTCDate()).padStart(2, '0');
     const tomorrowDateStr = `${tomorrowYyyy}-${tomorrowMm}-${tomorrowDd}`;
 
-    // 2. Fetch contracts from Firestore doc: caos_cloud_data/contracts
+    const force = req.query?.force === 'true';
+    const accessToken = await getGoogleAccessToken();
+
+    // 2. Cloud Deduplication Lock: Check if already sent today in Firestore
+    const briefingDocUrl = `https://firestore.googleapis.com/v1/projects/${SERVICE_ACCOUNT.project_id}/databases/(default)/documents/caos_cloud_data/morning_briefing`;
+    if (!force) {
+      try {
+        const lockRes = await fetch(briefingDocUrl, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (lockRes.ok) {
+          const lockData = await lockRes.json();
+          const lastDate = lockData.fields?.lastSentDate?.stringValue;
+          if (lastDate === todayDateStr) {
+            return res.status(200).json({
+              success: true,
+              message: `Morning briefing for today (${todayDateStr}) was already sent once. Skipped duplicate.`,
+              date: todayDateStr
+            });
+          }
+        }
+      } catch (lockErr) {
+        console.warn('Could not read briefing lock from Firestore:', lockErr);
+      }
+    }
+
+    // 3. Fetch contracts from Firestore doc: caos_cloud_data/contracts
     let contracts = [];
     try {
-      const accessToken = await getGoogleAccessToken();
       const url = `https://firestore.googleapis.com/v1/projects/${SERVICE_ACCOUNT.project_id}/databases/(default)/documents/caos_cloud_data/contracts`;
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -46,7 +71,7 @@ export default async function handler(req, res) {
       console.error('Error fetching contracts from Firestore:', readErr);
     }
 
-    // 3. Filter operations for today
+    // 4. Filter operations for today
     const handoverToday = (contracts || []).filter(c => c.startDate === todayDateStr && (c.status === 'Pending' || c.status === 'Active'));
     const returnToday   = (contracts || []).filter(c => c.endDate === todayDateStr && c.status === 'Active');
     const overdueList   = (contracts || []).filter(c => c.status === 'Overdue' || (c.status === 'Active' && c.endDate < todayDateStr));
@@ -54,10 +79,25 @@ export default async function handler(req, res) {
 
     const total = handoverToday.length + returnToday.length + overdueList.length + upcomingTomorrow.length;
 
-    // Optional query parameter ?force=true for testing
-    const force = req.query?.force === 'true';
-
     if (total === 0 && !force) {
+      // Record empty check to avoid re-triggering
+      try {
+        await fetch(briefingDocUrl, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fields: {
+              lastSentDate: { stringValue: todayDateStr },
+              sentAt: { stringValue: new Date().toISOString() },
+              status: { stringValue: 'no_operations_empty' }
+            }
+          })
+        });
+      } catch (e) {}
+
       return res.status(200).json({
         success: true,
         message: 'No pending/active operations for today. Notification skipped to prevent spam.',
@@ -65,7 +105,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4. Compose briefing message
+    // 5. Compose briefing message
     const parts = [];
     if (handoverToday.length > 0)   parts.push(`🟡 ${handoverToday.length} đơn giao hôm nay`);
     if (returnToday.length > 0)     parts.push(`🔵 ${returnToday.length} đơn thu hồi hôm nay`);
@@ -77,7 +117,29 @@ export default async function handler(req, res) {
       ? parts.join('\n')
       : 'Hôm nay không có đơn nào cần xử lý. Chúc ngày tốt lành! ✨';
 
-    // 5. Send FCM push to all registered devices
+    // 6. Write Cloud Lock BEFORE sending push so no concurrent request can double-send
+    if (!force) {
+      try {
+        await fetch(briefingDocUrl, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fields: {
+              lastSentDate: { stringValue: todayDateStr },
+              sentAt: { stringValue: new Date().toISOString() },
+              status: { stringValue: 'sent' }
+            }
+          })
+        });
+      } catch (e) {
+        console.warn('Could not save briefing lock:', e);
+      }
+    }
+
+    // 7. Send FCM push to all registered devices
     const tokens = await getRegisteredTokens();
     if (tokens.length === 0) {
       return res.status(200).json({
@@ -91,7 +153,8 @@ export default async function handler(req, res) {
     const payloadData = {
       type: 'morning_briefing',
       date: todayDateStr,
-      badge: total > 0 ? total : 1
+      badge: total > 0 ? total : 1,
+      tag: `briefing-${todayDateStr}` // Deduplication tag: will collapse duplicates on phones
     };
 
     const results = await Promise.allSettled(

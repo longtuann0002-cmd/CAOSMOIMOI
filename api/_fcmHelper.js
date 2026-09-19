@@ -80,15 +80,15 @@ export async function sendFCMMessage(targetToken, title, body, dataPayload = {})
           icon: '/logocaosdt.png',
           badge: '/logocaosdt.png',
           vibrate: [200, 100, 200],
-          tag: 'caos-push',
-          renotify: true,
+          tag: dataPayload?.tag || 'caos-push',
+          renotify: false,
           requireInteraction: false
         }
       },
       apns: {
         headers: {
           'apns-priority': '10',
-          'apns-collapse-id': 'caos-push'
+          'apns-collapse-id': dataPayload?.tag || 'caos-push'
         },
         payload: {
           aps: {

@@ -370,10 +370,18 @@ export default function App() {
     return closestDate;
   });
 
-  // 9:00 AM Daily Morning Operations Briefing Scheduler
+  const morningBriefingCheckedRef = useRef(false);
+
+  // 9:00 AM Daily Morning Operations Briefing Scheduler (Client Local Fallback)
+  // Note: Central broadcast to all phones is handled by Vercel Cloud Cron at 9:00 AM.
+  // Client only checks locally once upon loading, without blasting all devices.
   useEffect(() => {
-    // If opened anytime at or after 9:00 AM and briefing has not been sent today, trigger
-    checkAndTriggerMorningBriefing(contracts, systemDate, false, broadcastToAllDevices);
+    if (!loaded) return;
+
+    if (!morningBriefingCheckedRef.current) {
+      morningBriefingCheckedRef.current = true;
+      checkAndTriggerMorningBriefing(contracts, systemDate, false);
+    }
 
     const now = new Date();
     const target = new Date();
@@ -383,14 +391,13 @@ export default function App() {
     }
     const msUntil9AM = target.getTime() - now.getTime();
     const timer = setTimeout(() => {
-      // Broadcast morning briefing to ALL devices (FCM push)
-      checkAndTriggerMorningBriefing(contracts, systemDate, false, broadcastToAllDevices);
+      checkAndTriggerMorningBriefing(contracts, systemDate, false);
     }, msUntil9AM);
 
     return () => {
       clearTimeout(timer);
     };
-  }, [contracts, systemDate]);
+  }, [loaded]);
 
   // Listen to cross-device notification broadcasts from other devices/staff
   useEffect(() => {
