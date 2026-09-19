@@ -1800,12 +1800,12 @@ export default function App() {
           {/* Dynamic Top Brand section */}
           <div className="flex items-center gap-3.5 relative z-10 bg-slate-950/40 backdrop-blur-md p-4 rounded-3xl border border-white/10 w-fit">
             {logoIconType === 'upload' && logoBase64 ? (
-              <div className="w-14 h-14 rounded-2xl overflow-hidden border border-white/20 bg-white/10 flex items-center justify-center shadow-xl">
+              <div className="w-14 h-14 rounded-full overflow-hidden border border-white/20 bg-white/10 flex items-center justify-center shadow-xl">
                 <img src={logoBase64} alt="Custom Logo" className="w-full h-full object-cover" />
               </div>
             ) : (
               <span 
-                className="w-14 h-14 rounded-2xl text-white shadow-xl flex items-center justify-center transition scale-100 hover:scale-105 font-bold"
+                className="w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center transition scale-100 hover:scale-105 font-bold"
                 style={{ backgroundColor: logoIconColor }}
               >
                 {logoIconType === 'aperture' && <Aperture className="w-8 h-8" />}
@@ -1880,12 +1880,12 @@ export default function App() {
             {/* Mobile-only beautiful branding logotype */}
             <div className="flex md:hidden items-center justify-center gap-2.5 mb-7 select-none animate-fade-in">
               {logoIconType === 'upload' && logoBase64 ? (
-                <div className="w-11 h-11 rounded-xl overflow-hidden border border-white/20 bg-slate-900 flex items-center justify-center shadow-lg shadow-orange-500/10 shrink-0">
+                <div className="w-11 h-11 rounded-full overflow-hidden border border-white/20 bg-slate-900 flex items-center justify-center shadow-lg shadow-orange-500/10 shrink-0">
                   <img src={logoBase64} alt="Custom Logo" className="w-full h-full object-cover" />
                 </div>
               ) : (
                 <span 
-                  className="w-11 h-11 rounded-xl text-white shadow-lg flex items-center justify-center shadow-orange-500/10 shrink-0 font-bold"
+                  className="w-11 h-11 rounded-full text-white shadow-lg flex items-center justify-center shadow-orange-500/10 shrink-0 font-bold"
                   style={{ backgroundColor: logoIconColor }}
                 >
                   {logoIconType === 'aperture' && <Aperture className="w-6.5 h-6.5" />}
@@ -2440,12 +2440,12 @@ export default function App() {
             title="Thay đổi Logo & Thương hiệu"
           >
             {logoIconType === 'upload' && logoBase64 ? (
-              <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-200/80 flex items-center justify-center bg-white shrink-0 shadow-xs group-hover/logo:scale-105 group-hover/logo:shadow-md transition-all">
+              <div className="w-11 h-11 rounded-full overflow-hidden border border-slate-200/80 flex items-center justify-center bg-white shrink-0 shadow-xs group-hover/logo:scale-105 group-hover/logo:shadow-md transition-all">
                 <img src={logoBase64} alt="Logo" className="w-full h-full object-cover" />
               </div>
             ) : (
               <div 
-                className="w-11 h-11 rounded-2xl text-white shrink-0 shadow-xs flex items-center justify-center font-bold group-hover/logo:scale-105 transition-transform"
+                className="w-11 h-11 rounded-full text-white shrink-0 shadow-xs flex items-center justify-center font-bold group-hover/logo:scale-105 transition-transform"
                 style={{ backgroundColor: logoIconColor }}
               >
                 {logoIconType === 'aperture' && <Aperture className="w-5.5 h-5.5" />}
