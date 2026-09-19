@@ -27,7 +27,10 @@ export default function RevenueDashboard({
     const realCurrentYear = new Date().getFullYear();
     yearsSet.add(realCurrentYear - 1);
     yearsSet.add(realCurrentYear);
-    yearsSet.add(realCurrentYear + 1);
+    // Add 5 future years
+    for (let i = 1; i <= 5; i++) {
+      yearsSet.add(realCurrentYear + i);
+    }
 
     (contracts || []).forEach(c => {
       if (c.startDate) {

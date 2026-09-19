@@ -3036,6 +3036,7 @@ export default function App() {
                   onUpdateContractCustomer={handleUpdateContractCustomer}
                   initialSearchQuery={contractManagerSearch}
                   systemDate={systemDate}
+                  isAdmin={currentUser?.role === 'admin'}
                 />
               </TabErrorBoundary>
             )}

@@ -27,6 +27,7 @@ interface ContractManagerProps {
   onUpdateContractCustomer?: (id: string, customerName: string, customerPhone: string, customerDocType: RentalContract['customerDocType'], customerDocNote: string) => void;
   initialSearchQuery?: string;
   systemDate: string;
+  isAdmin?: boolean;
 }
 
 export const VIET_BANKS = [
@@ -137,7 +138,8 @@ export default function ContractManager({
   onUpdateContractNote,
   onUpdateContractCustomer,
   initialSearchQuery,
-  systemDate
+  systemDate,
+  isAdmin = false
 }: ContractManagerProps) {
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery || '');
 
@@ -1602,7 +1604,7 @@ export default function ContractManager({
                         <span className="text-[8px] sm:text-[9.5px] font-black uppercase text-gray-700 tracking-wider whitespace-nowrap">
                           QR THANH TOÁN
                         </span>
-                        {!isExporting && (
+                        {!isExporting && isAdmin && (
                           <button
                             type="button"
                             data-no-export="true"
@@ -2729,7 +2731,7 @@ export default function ContractManager({
         document.body
       )}
       {/* Bank & QR Settings Modal */}
-      {showBankSettings && typeof document !== 'undefined' && createPortal(
+      {showBankSettings && isAdmin && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-scale-up border border-gray-100 p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
