@@ -56,6 +56,7 @@ import {
   Settings,
   ShieldCheck,
   UserMinus,
+  Pencil,
   ChevronRight,
   Database,
   Download,
@@ -198,6 +199,17 @@ export default function App() {
   const [showManageUsersModal, setShowManageUsersModal] = useState(false);
   const [showChangeAvatarModal, setShowChangeAvatarModal] = useState(false);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState('');
+
+  // Edit Current User Profile States
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editProfileFullName, setEditProfileFullName] = useState('');
+  const [editProfileUsername, setEditProfileUsername] = useState('');
+  const [editProfileAvatar, setEditProfileAvatar] = useState('');
+  const [editProfilePassword, setEditProfilePassword] = useState('');
+  const [editProfileError, setEditProfileError] = useState('');
+
+  // Edit Staff in Admin Manage Users Modal
+  const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
 
   // Backup & Snapshot States
   const [showBackupModal, setShowBackupModal] = useState(false);
@@ -346,6 +358,9 @@ export default function App() {
     const stored = loadStoredData('logoBase64', '');
     return stored || '/logocaos.png';
   });
+  const [accountSectionTitle, setAccountSectionTitle] = useState<string>(() =>
+    loadStoredData('accountSectionTitle', 'Tài khoản')
+  );
   const [showLogoModal, setShowLogoModal] = useState<boolean>(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -604,45 +619,64 @@ export default function App() {
     return () => clearTimeout(timeoutId);
   }, []); // Run once on mount
 
+  // Synchronize brand settings to localStorage, Supabase and BroadcastChannel
   useEffect(() => {
     if (!loaded) return;
     saveStoredData('logoText', logoText);
-  }, [loaded, logoText]);
-
-  useEffect(() => {
-    if (!loaded) return;
     saveStoredData('logoFontSize', logoFontSize);
-  }, [loaded, logoFontSize]);
-
-  useEffect(() => {
-    if (!loaded) return;
     saveStoredData('logoSubtitle', logoSubtitle);
-  }, [loaded, logoSubtitle]);
-
-  useEffect(() => {
-    if (!loaded) return;
     saveStoredData('logoSubtitleCase', logoSubtitleCase);
-  }, [loaded, logoSubtitleCase]);
-
-  useEffect(() => {
-    if (!loaded) return;
     saveStoredData('logoSubtitleFontSize', logoSubtitleFontSize);
-  }, [loaded, logoSubtitleFontSize]);
-
-  useEffect(() => {
-    if (!loaded) return;
     saveStoredData('logoIconType', logoIconType);
-  }, [loaded, logoIconType]);
-
-  useEffect(() => {
-    if (!loaded) return;
     saveStoredData('logoIconColor', logoIconColor);
-  }, [loaded, logoIconColor]);
-
-  useEffect(() => {
-    if (!loaded) return;
     saveStoredData('logoBase64', logoBase64);
-  }, [loaded, logoBase64]);
+    saveStoredData('accountSectionTitle', accountSectionTitle);
+
+    const brandData = {
+      logoText,
+      logoFontSize,
+      logoSubtitle,
+      logoSubtitleCase,
+      logoSubtitleFontSize,
+      logoIconType,
+      logoIconColor,
+      logoBase64,
+      accountSectionTitle
+    };
+    saveStoredData('brand_settings', brandData);
+
+    if (isSupabaseConfigured) {
+      syncToSupabase('brand_settings', brandData);
+    }
+
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const ch = new BroadcastChannel('caos_brand_sync');
+        ch.postMessage({ type: 'BRAND_UPDATE', data: brandData });
+        ch.close();
+      } catch (e) {
+        console.warn('Brand BroadcastChannel error:', e);
+      }
+    }
+  }, [
+    loaded,
+    logoText,
+    logoFontSize,
+    logoSubtitle,
+    logoSubtitleCase,
+    logoSubtitleFontSize,
+    logoIconType,
+    logoIconColor,
+    logoBase64,
+    accountSectionTitle
+  ]);
+
+  // Sync document title dynamically with brand settings
+  useEffect(() => {
+    if (logoText) {
+      document.title = `${logoText} - ${logoSubtitle || 'Cho Thuê Máy Ảnh'}`;
+    }
+  }, [logoText, logoSubtitle]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -716,6 +750,37 @@ export default function App() {
         if (cloudCustomQr) {
           saveStoredData('custom_payment_qr_image', cloudCustomQr);
         }
+
+        // Fetch Brand & Store Identity settings from Supabase
+        const cloudBrand = await fetchFromSupabase('brand_settings');
+        if (cloudBrand) {
+          if (cloudBrand.logoText !== undefined) { setLogoText(cloudBrand.logoText); saveStoredData('logoText', cloudBrand.logoText); }
+          if (cloudBrand.logoFontSize !== undefined) { setLogoFontSize(cloudBrand.logoFontSize); saveStoredData('logoFontSize', cloudBrand.logoFontSize); }
+          if (cloudBrand.logoSubtitle !== undefined) { setLogoSubtitle(cloudBrand.logoSubtitle); saveStoredData('logoSubtitle', cloudBrand.logoSubtitle); }
+          if (cloudBrand.logoSubtitleCase !== undefined) { setLogoSubtitleCase(cloudBrand.logoSubtitleCase); saveStoredData('logoSubtitleCase', cloudBrand.logoSubtitleCase); }
+          if (cloudBrand.logoSubtitleFontSize !== undefined) { setLogoSubtitleFontSize(cloudBrand.logoSubtitleFontSize); saveStoredData('logoSubtitleFontSize', cloudBrand.logoSubtitleFontSize); }
+          if (cloudBrand.logoIconType !== undefined) { setLogoIconType(cloudBrand.logoIconType); saveStoredData('logoIconType', cloudBrand.logoIconType); }
+          if (cloudBrand.logoIconColor !== undefined) { setLogoIconColor(cloudBrand.logoIconColor); saveStoredData('logoIconColor', cloudBrand.logoIconColor); }
+          if (cloudBrand.logoBase64 !== undefined) { setLogoBase64(cloudBrand.logoBase64); saveStoredData('logoBase64', cloudBrand.logoBase64); }
+          if (cloudBrand.accountSectionTitle !== undefined) { setAccountSectionTitle(cloudBrand.accountSectionTitle); saveStoredData('accountSectionTitle', cloudBrand.accountSectionTitle); }
+        }
+
+        // Fetch Registered User Accounts from Supabase
+        const cloudUsers = await fetchFromSupabase('registeredUsers');
+        if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+          setRegisteredUsers(cloudUsers);
+          saveStoredData('registeredUsers', cloudUsers);
+
+          // Update active session currentUser if info changed in cloud
+          const savedCurrent = loadStoredData('currentUser', null);
+          if (savedCurrent) {
+            const matched = cloudUsers.find((u: any) => u.id === savedCurrent.id || u.username.toLowerCase() === savedCurrent.username.toLowerCase());
+            if (matched) {
+              setCurrentUser(matched);
+              saveStoredData('currentUser', matched);
+            }
+          }
+        }
       } catch (err) {
         console.error('[Supabase] Fetch error, falling back locally', err);
         setCameras(loadStoredData('cameras', INITIAL_CAMERAS));
@@ -728,6 +793,87 @@ export default function App() {
     };
 
     loadInitialData();
+  }, []);
+
+  // Multi-tab and background sync listener
+  useEffect(() => {
+    let brandChannel: BroadcastChannel | null = null;
+    let profileChannel: BroadcastChannel | null = null;
+
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        brandChannel = new BroadcastChannel('caos_brand_sync');
+        brandChannel.onmessage = (e) => {
+          if (e.data && e.data.type === 'BRAND_UPDATE' && e.data.data) {
+            const d = e.data.data;
+            if (d.logoText !== undefined) setLogoText(d.logoText);
+            if (d.logoFontSize !== undefined) setLogoFontSize(d.logoFontSize);
+            if (d.logoSubtitle !== undefined) setLogoSubtitle(d.logoSubtitle);
+            if (d.logoSubtitleCase !== undefined) setLogoSubtitleCase(d.logoSubtitleCase);
+            if (d.logoSubtitleFontSize !== undefined) setLogoSubtitleFontSize(d.logoSubtitleFontSize);
+            if (d.logoIconType !== undefined) setLogoIconType(d.logoIconType);
+            if (d.logoIconColor !== undefined) setLogoIconColor(d.logoIconColor);
+            if (d.logoBase64 !== undefined) setLogoBase64(d.logoBase64);
+            if (d.accountSectionTitle !== undefined) setAccountSectionTitle(d.accountSectionTitle);
+          }
+        };
+
+        profileChannel = new BroadcastChannel('caos_profile_sync');
+        profileChannel.onmessage = (e) => {
+          if (e.data && e.data.type === 'USERS_UPDATED' && Array.isArray(e.data.users)) {
+            setRegisteredUsers(e.data.users);
+            setCurrentUser(prev => {
+              if (!prev) return null;
+              const matched = e.data.users.find((u: any) => u.id === prev.id);
+              return matched || prev;
+            });
+          }
+        };
+      } catch (err) {
+        console.warn('BroadcastChannel error:', err);
+      }
+    }
+
+    // Refresh from Supabase when switching back to tab
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isSupabaseConfigured) {
+        try {
+          const [cloudBrand, cloudUsers] = await Promise.all([
+            fetchFromSupabase('brand_settings'),
+            fetchFromSupabase('registeredUsers')
+          ]);
+          if (cloudBrand) {
+            if (cloudBrand.logoText !== undefined) setLogoText(cloudBrand.logoText);
+            if (cloudBrand.logoFontSize !== undefined) setLogoFontSize(cloudBrand.logoFontSize);
+            if (cloudBrand.logoSubtitle !== undefined) setLogoSubtitle(cloudBrand.logoSubtitle);
+            if (cloudBrand.logoSubtitleCase !== undefined) setLogoSubtitleCase(cloudBrand.logoSubtitleCase);
+            if (cloudBrand.logoSubtitleFontSize !== undefined) setLogoSubtitleFontSize(cloudBrand.logoSubtitleFontSize);
+            if (cloudBrand.logoIconType !== undefined) setLogoIconType(cloudBrand.logoIconType);
+            if (cloudBrand.logoIconColor !== undefined) setLogoIconColor(cloudBrand.logoIconColor);
+            if (cloudBrand.logoBase64 !== undefined) setLogoBase64(cloudBrand.logoBase64);
+            if (cloudBrand.accountSectionTitle !== undefined) setAccountSectionTitle(cloudBrand.accountSectionTitle);
+          }
+          if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+            setRegisteredUsers(cloudUsers);
+            setCurrentUser(prev => {
+              if (!prev) return null;
+              const matched = cloudUsers.find((u: any) => u.id === prev.id || u.username.toLowerCase() === prev.username.toLowerCase());
+              return matched || prev;
+            });
+          }
+        } catch (err) {
+          console.warn('Visibility live sync error:', err);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (brandChannel) brandChannel.close();
+      if (profileChannel) profileChannel.close();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Operations: BACKUP & RESTORE
@@ -750,6 +896,7 @@ export default function App() {
         logoIconType,
         logoIconColor,
         logoBase64,
+        accountSectionTitle,
         bankConfig: loadStoredData('rental_bank_config', null),
         customQrImage: loadStoredData('custom_payment_qr_image', '')
       };
@@ -794,6 +941,7 @@ export default function App() {
       if (parsed.logoIconType !== undefined) setLogoIconType(parsed.logoIconType);
       if (parsed.logoIconColor !== undefined) setLogoIconColor(parsed.logoIconColor);
       if (parsed.logoBase64 !== undefined) setLogoBase64(parsed.logoBase64);
+      if (parsed.accountSectionTitle !== undefined) setAccountSectionTitle(parsed.accountSectionTitle);
       if (parsed.bankConfig) {
         saveStoredData('rental_bank_config', parsed.bankConfig);
         if (isSupabaseConfigured) syncToSupabase('rental_bank_config', parsed.bankConfig);
@@ -836,7 +984,8 @@ export default function App() {
         logoSubtitleFontSize,
         logoIconType,
         logoIconColor,
-        logoBase64
+        logoBase64,
+        accountSectionTitle
       }
     };
 
@@ -865,6 +1014,7 @@ export default function App() {
       if (data.logoIconType !== undefined) setLogoIconType(data.logoIconType);
       if (data.logoIconColor !== undefined) setLogoIconColor(data.logoIconColor);
       if (data.logoBase64 !== undefined) setLogoBase64(data.logoBase64);
+      if (data.accountSectionTitle !== undefined) setAccountSectionTitle(data.accountSectionTitle);
 
       addToast('Khôi phục thành công!', 'success', `Hệ thống đã phục hồi về trạng thái của điểm: "${snap.name}".`);
     } catch (err: any) {
@@ -1342,6 +1492,73 @@ export default function App() {
     setShowChangeAvatarModal(false);
   };
 
+  const handleOpenEditProfile = () => {
+    if (!currentUser) return;
+    setEditProfileFullName(currentUser.fullName || '');
+    setEditProfileUsername(currentUser.username || '');
+    setEditProfileAvatar(currentUser.avatar || '');
+    setEditProfilePassword('');
+    setEditProfileError('');
+    setShowEditProfileModal(true);
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditProfileError('');
+    const trimmedName = editProfileFullName.trim();
+    const trimmedUsername = editProfileUsername.trim().toLowerCase();
+
+    if (!trimmedName || !trimmedUsername) {
+      setEditProfileError('Vui lòng nhập đầy đủ Họ và tên và Tên đăng nhập!');
+      return;
+    }
+
+    if (trimmedUsername.length < 3) {
+      setEditProfileError('Tên đăng nhập phải có ít nhất 3 ký tự!');
+      return;
+    }
+
+    // Check if username is used by another user
+    const isTaken = registeredUsers.some(
+      u => u.id !== currentUser?.id && u.username.toLowerCase() === trimmedUsername
+    );
+    if (isTaken) {
+      setEditProfileError('Tên đăng nhập này đã được sử dụng bởi tài khoản khác!');
+      return;
+    }
+
+    const updatedUser = {
+      ...currentUser,
+      fullName: trimmedName,
+      username: trimmedUsername,
+      avatar: editProfileAvatar || currentUser?.avatar,
+      password: editProfilePassword.trim() ? editProfilePassword.trim() : currentUser?.password
+    };
+
+    const updatedUsers = registeredUsers.map(u => u.id === currentUser?.id ? updatedUser : u);
+    setRegisteredUsers(updatedUsers);
+    setCurrentUser(updatedUser);
+    saveStoredData('registeredUsers', updatedUsers);
+    saveStoredData('currentUser', updatedUser);
+
+    if (isSupabaseConfigured) {
+      syncToSupabase('registeredUsers', updatedUsers);
+    }
+
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const ch = new BroadcastChannel('caos_profile_sync');
+        ch.postMessage({ type: 'USERS_UPDATED', users: updatedUsers });
+        ch.close();
+      } catch (err) {
+        console.warn('Broadcast error:', err);
+      }
+    }
+
+    addToast('Đã cập nhật thông tin hồ sơ!', 'success', `Cập nhật thành công cho @${trimmedUsername}`);
+    setShowEditProfileModal(false);
+  };
+
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
     setChangePasswordError('');
@@ -1466,6 +1683,57 @@ export default function App() {
       return;
     }
 
+    // Handle Edit Mode
+    if (editingStaffId) {
+      const isTaken = registeredUsers.some(u => u.id !== editingStaffId && u.username.toLowerCase() === username);
+      if (isTaken) {
+        setStaffError('Tên tài khoản này đã được sử dụng!');
+        return;
+      }
+
+      const updatedUsers = registeredUsers.map(u => {
+        if (u.id === editingStaffId) {
+          return {
+            ...u,
+            username,
+            fullName,
+            password,
+            role
+          };
+        }
+        return u;
+      });
+
+      setRegisteredUsers(updatedUsers);
+      saveStoredData('registeredUsers', updatedUsers);
+      if (isSupabaseConfigured) {
+        syncToSupabase('registeredUsers', updatedUsers);
+      }
+
+      if (editingStaffId === currentUser?.id) {
+        const updatedSelf = { ...currentUser, username, fullName, password, role };
+        setCurrentUser(updatedSelf);
+        saveStoredData('currentUser', updatedSelf);
+      }
+
+      if (typeof BroadcastChannel !== 'undefined') {
+        try {
+          const ch = new BroadcastChannel('caos_profile_sync');
+          ch.postMessage({ type: 'USERS_UPDATED', users: updatedUsers });
+          ch.close();
+        } catch (err) {
+          console.warn('Broadcast error:', err);
+        }
+      }
+
+      setEditingStaffId(null);
+      setNewStaffUser({ username: '', password: '', fullName: '', role: 'staff' });
+      setStaffError('Đã cập nhật tài khoản thành công!');
+      addToast('Cập nhật tài khoản thành công!', 'success');
+      return;
+    }
+
+    // Add Mode
     if (registeredUsers.some(u => u.username.toLowerCase() === username)) {
       setStaffError('Tên tài khoản này đã được sử dụng!');
       return;
@@ -1482,14 +1750,30 @@ export default function App() {
         : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces'
     };
 
-    setRegisteredUsers(prev => [...prev, newUserObj]);
+    const nextUsers = [...registeredUsers, newUserObj];
+    setRegisteredUsers(nextUsers);
+    saveStoredData('registeredUsers', nextUsers);
+    if (isSupabaseConfigured) {
+      syncToSupabase('registeredUsers', nextUsers);
+    }
     setNewStaffUser({ username: '', password: '', fullName: '', role: 'staff' });
     setStaffError('Đã tạo tài khoản thành công!');
+    addToast('Đã tạo tài khoản nhân viên mới!', 'success');
   };
 
   const handleDeleteStaff = (id: string) => {
-    setRegisteredUsers(prev => prev.filter(u => u.id !== id));
+    const nextUsers = registeredUsers.filter(u => u.id !== id);
+    setRegisteredUsers(nextUsers);
+    saveStoredData('registeredUsers', nextUsers);
+    if (isSupabaseConfigured) {
+      syncToSupabase('registeredUsers', nextUsers);
+    }
+    if (editingStaffId === id) {
+      setEditingStaffId(null);
+      setNewStaffUser({ username: '', password: '', fullName: '', role: 'staff' });
+    }
     setStaffError('Đã xóa tài khoản thành công!');
+    addToast('Đã xóa tài khoản!', 'info');
   };
 
   // If user is not authenticated, render the glorious login experience screen
@@ -2366,12 +2650,13 @@ export default function App() {
         <div className="pt-2 relative">
           {!sidebarCollapsed && (
             <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Tài khoản
+              {accountSectionTitle || 'Tài khoản'}
             </div>
           )}
           <div 
             onClick={() => setSidebarDropdownOpen(!sidebarDropdownOpen)}
             className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} p-2 rounded-2xl hover:bg-white/80 transition-all cursor-pointer group/prof`}
+            title="Nhấp để tùy chọn hồ sơ & tài khoản"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="relative shrink-0">
@@ -2416,11 +2701,19 @@ export default function App() {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setSidebarDropdownOpen(false)} />
               <div className={`absolute ${sidebarCollapsed ? 'left-full ml-2 bottom-2' : 'left-1 right-1 bottom-full mb-2'} bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 text-left text-xs text-slate-800 animate-fade-in divide-y divide-slate-100 w-56`}>
-                <div className="px-3.5 py-2">
+                <div className="px-3.5 py-2 bg-gradient-to-br from-slate-50 to-orange-50/30">
                   <p className="font-black text-slate-900 text-xs truncate">{currentUser?.fullName}</p>
                   <p className="text-[10.5px] text-slate-400 font-mono truncate">@{currentUser?.username} • {currentUser?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}</p>
                 </div>
                 <div className="py-1">
+                  <button
+                    type="button"
+                    onClick={() => { setSidebarDropdownOpen(false); handleOpenEditProfile(); }}
+                    className="w-full px-3.5 py-2 hover:bg-orange-50 text-left font-bold text-slate-800 hover:text-orange-600 transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Chỉnh sửa hồ sơ cá nhân</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => { setSidebarDropdownOpen(false); setShowChangePasswordModal(true); }}
@@ -2537,6 +2830,14 @@ export default function App() {
                     <div className="py-1">
                       <button
                         type="button"
+                        onClick={() => { setProfileDropdownOpen(false); handleOpenEditProfile(); }}
+                        className="w-full px-3.5 py-2.5 hover:bg-orange-50 text-left font-bold text-slate-800 hover:text-orange-600 transition flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <UserCheck className="w-4 h-4 text-orange-500" />
+                        <span>Chỉnh sửa hồ sơ cá nhân</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => { setProfileDropdownOpen(false); setShowChangePasswordModal(true); }}
                         className="w-full px-3.5 py-2.5 hover:bg-orange-50 text-left font-bold text-slate-700 hover:text-orange-600 transition flex items-center gap-2.5 cursor-pointer"
                       >
@@ -2598,7 +2899,7 @@ export default function App() {
 
             {/* Desktop Clean Breadcrumb (As seen in Reference: Maham > Overview) */}
             <div className="hidden md:flex items-center gap-2 text-xs">
-              <span className="text-slate-400 font-medium">Tiệm ảnh Nhà Caos</span>
+              <span className="text-slate-400 font-medium">{logoText || 'Tiệm ảnh Nhà Caos'}</span>
               <ChevronRight className="w-3.5 h-3.5 text-slate-300 stroke-[2.5]" />
               <div className="flex items-center gap-1.5 text-slate-800 font-extrabold bg-slate-100/70 px-2.5 py-1 rounded-xl border border-slate-200/50">
                 {activeTab === 'calendar' && <Calendar className="w-3.5 h-3.5 text-orange-600" />}
@@ -3292,9 +3593,23 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Account Section Title */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Nhãn mục "Tài khoản" trên sidebar</label>
+                  <input
+                    type="text"
+                    maxLength={20}
+                    value={accountSectionTitle}
+                    onChange={(e) => setAccountSectionTitle(e.target.value)}
+                    placeholder="ví dụ: Tài khoản, Account, ..."
+                    className="w-full px-3 py-2 text-sm border border-gray-250 rounded-lg focus:outline-hidden focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-medium text-gray-700 text-xs"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">Nhãn hiển thị phía trên khu vực tài khoản trong sidebar.</p>
+                </div>
+
                 {/* Icon option selector */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Phương thức & Kiểu biểu tượng (Icon)</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Phương thức &amp; Kiểu biểu tượng (Icon)</label>
                   <div className="grid grid-cols-4 gap-2 mb-3">
                     
                     {/* Camera */}
@@ -3528,6 +3843,131 @@ export default function App() {
               </button>
             </div>
 
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditProfileModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in text-left">
+          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col">
+            <div className="px-6 py-4.5 border-b border-gray-150 flex justify-between items-center bg-gray-50/70 select-none">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-orange-50 text-orange-600 rounded-lg">
+                  <UserCheck className="w-4.5 h-4.5" />
+                </span>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">Chỉnh sửa hồ sơ cá nhân</h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5">Cập nhật tên, tên đăng nhập, mật khẩu và ảnh đại diện</p>
+                </div>
+              </div>
+              <button onClick={() => setShowEditProfileModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer">
+                <X className="w-4.5 h-4.5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="p-6 space-y-4 overflow-y-auto">
+              {editProfileError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">{editProfileError}</div>
+              )}
+
+              {/* Avatar Preview */}
+              <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-xl border border-slate-150">
+                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-orange-200 shrink-0 shadow-sm">
+                  <img
+                    src={editProfileAvatar || currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'; }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Ảnh đại diện (URL hoặc tải lên)</label>
+                  <input
+                    type="text"
+                    value={editProfileAvatar.startsWith('data:') ? '' : editProfileAvatar}
+                    onChange={(e) => setEditProfileAvatar(e.target.value)}
+                    placeholder="Dán URL ảnh từ Internet..."
+                    className="w-full px-2.5 py-1.5 text-xs border border-gray-250 rounded-lg focus:outline-none focus:border-orange-500 text-gray-700"
+                  />
+                  <div className="mt-1.5">
+                    <label className="text-[10px] text-gray-400 cursor-pointer hover:text-orange-600 font-bold inline-flex items-center gap-1">
+                      <Upload className="w-3 h-3" />
+                      <span>Tải ảnh từ máy</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setEditProfileAvatar(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Full Name */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-gray-700">Họ và tên hiển thị</label>
+                <input
+                  type="text"
+                  required
+                  value={editProfileFullName}
+                  onChange={(e) => setEditProfileFullName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-250 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:border-orange-500"
+                  placeholder="Nhập họ và tên..."
+                />
+              </div>
+
+              {/* Username */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-gray-700">Tên đăng nhập</label>
+                <input
+                  type="text"
+                  required
+                  value={editProfileUsername}
+                  onChange={(e) => setEditProfileUsername(e.target.value.toLowerCase())}
+                  className="w-full px-3 py-2 border border-gray-250 rounded-xl text-sm font-bold font-mono text-gray-800 focus:outline-none focus:border-orange-500 lowercase"
+                  placeholder="Tên đăng nhập..."
+                />
+              </div>
+
+              {/* New Password (optional) */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-gray-700">Mật khẩu mới <span className="text-gray-400 font-normal">(để trống = giữ nguyên)</span></label>
+                <input
+                  type="password"
+                  value={editProfilePassword}
+                  onChange={(e) => setEditProfilePassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-250 rounded-xl text-sm font-mono text-gray-800 focus:outline-none focus:border-orange-500"
+                  placeholder="Mật khẩu mới (tùy chọn)..."
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditProfileModal(false)}
+                  className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  Lưu thay đổi
+                </button>
+              </div>
+            </form>
           </div>
         </div>,
         document.body
@@ -3813,8 +4253,23 @@ export default function App() {
               
               {/* Left Column: Form to register a user */}
               <div className="md:w-5/12 space-y-4">
-                <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider pb-2 border-b border-gray-100 select-none">
-                  Đăng ký tài khoản mới
+                <h4 className="text-xs font-black uppercase tracking-wider pb-2 border-b border-gray-100 select-none flex items-center justify-between gap-2">
+                  <span className={editingStaffId ? 'text-indigo-600' : 'text-gray-400'}>
+                    {editingStaffId ? '✏️ Chỉnh sửa tài khoản' : 'Đăng ký tài khoản mới'}
+                  </span>
+                  {editingStaffId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingStaffId(null);
+                        setNewStaffUser({ username: '', password: '', fullName: '', role: 'staff' });
+                        setStaffError('');
+                      }}
+                      className="text-[10px] font-bold text-gray-400 hover:text-rose-600 bg-gray-100 hover:bg-rose-50 px-2 py-0.5 rounded-md border border-gray-200 hover:border-rose-200 transition cursor-pointer"
+                    >
+                      Hủy chỉnh sửa
+                    </button>
+                  )}
                 </h4>
 
                 {staffError && (
@@ -3857,13 +4312,15 @@ export default function App() {
 
                   {/* Password */}
                   <div className="space-y-1">
-                    <label className="block font-bold text-gray-705">Mật khẩu cấp ban đầu</label>
+                    <label className="block font-bold text-gray-705">
+                      Mật khẩu {editingStaffId && <span className="text-gray-400 font-normal">(để trống = giữ nguyên)</span>}
+                    </label>
                     <input
                       type="text"
-                      required
+                      required={!editingStaffId}
                       value={newStaffUser.password}
                       onChange={(e) => setNewStaffUser(prev => ({ ...prev, password: e.target.value }))}
-                      placeholder="Mật khẩu truy cập..."
+                      placeholder={editingStaffId ? 'Để trống để giữ mật khẩu cũ...' : 'Mật khẩu truy cập...'}
                       className="w-full px-2.5 py-2 border border-gray-250 rounded-lg text-xs font-bold text-gray-800 font-mono"
                     />
                   </div>
@@ -3899,10 +4356,17 @@ export default function App() {
 
                   <button
                     type="submit"
-                    className="w-full py-2 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-850 transition flex items-center justify-center gap-1.5 mt-2 cursor-pointer text-xs"
+                    className={`w-full py-2 text-white font-bold rounded-lg transition flex items-center justify-center gap-1.5 mt-2 cursor-pointer text-xs ${
+                      editingStaffId
+                        ? 'bg-indigo-600 hover:bg-indigo-700'
+                        : 'bg-slate-900 hover:bg-slate-850'
+                    }`}
                   >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    Đăng ký tài khoản
+                    {editingStaffId ? (
+                      <><Check className="w-3.5 h-3.5" />Lưu chỉnh sửa</>
+                    ) : (
+                      <><UserPlus className="w-3.5 h-3.5" />Đăng ký tài khoản</>
+                    )}
                   </button>
 
                 </form>
@@ -3920,7 +4384,9 @@ export default function App() {
                     <div 
                       key={user.id} 
                       className={`p-3 border rounded-xl flex items-center justify-between gap-3 transition-colors ${
-                        user.id === currentUser?.id ? 'border-orange-250 bg-orange-50/15' : 'border-gray-150 bg-white'
+                        editingStaffId === user.id
+                          ? 'border-indigo-300 bg-indigo-50/20'
+                          : user.id === currentUser?.id ? 'border-orange-250 bg-orange-50/15' : 'border-gray-150 bg-white'
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -3949,7 +4415,7 @@ export default function App() {
                       </div>
 
                       {/* Role & Actions */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                           user.role === 'admin' 
                             ? 'bg-indigo-50 text-indigo-650 border border-indigo-150/40' 
@@ -3958,6 +4424,24 @@ export default function App() {
                           {user.role}
                         </span>
                         
+                        {/* Edit button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingStaffId(user.id);
+                            setNewStaffUser({ username: user.username, password: user.password, fullName: user.fullName, role: user.role });
+                            setStaffError('');
+                          }}
+                          className={`p-1.5 rounded-lg border transition cursor-pointer ${
+                            editingStaffId === user.id
+                              ? 'text-indigo-600 bg-indigo-50 border-indigo-200'
+                              : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 border-transparent hover:border-indigo-150'
+                          }`}
+                          title="Chỉnh sửa tài khoản"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+
                         {/* Remove actions - cannot delete yourself */}
                         {user.id !== currentUser?.id ? (
                           <button
