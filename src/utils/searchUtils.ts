@@ -174,3 +174,52 @@ export function matchCustomer(cust: any, query: string): { matched: boolean; sco
 
   return { matched: true, score: Math.max(nameScore, phoneScore, idScore) };
 }
+
+/**
+ * Smartly check if a rental contract belongs to a customer.
+ * Supports:
+ * 1. Matching customerId (if both available)
+ * 2. Normalized phone numbers (digits-only, handles spaces, dots, dashes, +84)
+ * 3. Exact trimmed phone match
+ * 4. Fallback: Normalized Vietnamese customer name
+ */
+export function isContractOfCustomer(
+  contract: { customerId?: string; customerPhone?: string; customerName?: string } | null | undefined,
+  cust: { id?: string; phone?: string; name?: string } | null | undefined
+): boolean {
+  if (!contract || !cust) return false;
+
+  // 1. Direct customerId match
+  if (contract.customerId && cust.id && contract.customerId === cust.id) {
+    return true;
+  }
+
+  // 2. Normalized phone number match
+  const normContractPhone = normalizePhoneNumber(contract.customerPhone || '');
+  const normCustPhone = normalizePhoneNumber(cust.phone || '');
+  if (normContractPhone && normCustPhone && normContractPhone === normCustPhone) {
+    return true;
+  }
+
+  // 3. Trimmed raw phone equality
+  if (
+    contract.customerPhone &&
+    cust.phone &&
+    contract.customerPhone.trim() === cust.phone.trim()
+  ) {
+    return true;
+  }
+
+  // 4. Fallback: Normalized full name match
+  const normContractName = normalizeSearchText(contract.customerName || '');
+  const normCustName = normalizeSearchText(cust.name || '');
+  if (normContractName && normCustName && normContractName === normCustName) {
+    // If names match, ensure phones don't blatantly conflict
+    if (!normContractPhone || !normCustPhone || normContractPhone === normCustPhone) {
+      return true;
+    }
+  }
+
+  return false;
+}
+

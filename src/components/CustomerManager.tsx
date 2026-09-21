@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Customer, RentalContract } from '../types';
 import { formatDMY } from '../utils/dateUtils';
-import { matchCustomer } from '../utils/searchUtils';
+import { matchCustomer, isContractOfCustomer } from '../utils/searchUtils';
 import { Search, Plus, Trash2, Edit2, Shield, User, Heart, AlertTriangle, Phone, Globe, MapPin, ChevronLeft, ChevronRight, FileSpreadsheet, Eye, Calendar, DollarSign, FileText, CheckCircle2, Clock, X, Info, ArrowUpDown, Filter, SortDesc, Sparkles } from 'lucide-react';
 
 interface CustomerManagerProps {
@@ -59,9 +59,10 @@ export default function CustomerManager({
     notes: ''
   });
 
-  // Calculate customer debt and financials helper
-  const getCustomerFinancials = (phone: string) => {
-    if (!phone) {
+  // Calculate customer debt and financials helper (smart matching via isContractOfCustomer)
+  const getCustomerFinancials = (custOrPhone: Customer | string) => {
+    const cust = typeof custOrPhone === 'string' ? { phone: custOrPhone } : custOrPhone;
+    if (!cust || (!cust.phone && !cust.id && !cust.name)) {
       return {
         custContracts: [],
         totalDebt: 0,
@@ -72,7 +73,7 @@ export default function CustomerManager({
         pendingDepositAmount: 0
       };
     }
-    const custContracts = (contracts || []).filter(c => c && c.customerPhone === phone && c.status !== 'Cancelled');
+    const custContracts = (contracts || []).filter(c => c && isContractOfCustomer(c, cust) && c.status !== 'Cancelled');
     const totalDebt = custContracts.reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) - (c.paidAmount || 0)), 0);
     const totalSpent = custContracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
     const totalExpected = custContracts.reduce((sum, c) => sum + (c.totalPrice || 0), 0);
@@ -114,21 +115,19 @@ export default function CustomerManager({
   }, [contracts]);
 
   const debtorCount = useMemo(() => {
-    const debtorPhones = new Set(
-      (contracts || [])
-        .filter(c => c && c.status !== 'Cancelled' && ((c.totalPrice || 0) > (c.paidAmount || 0)) && c.customerPhone)
-        .map(c => c.customerPhone)
-    );
-    return (customers || []).filter(c => c && c.phone && debtorPhones.has(c.phone)).length;
+    return (customers || []).filter(cust => {
+      if (!cust) return false;
+      const { totalDebt } = getCustomerFinancials(cust);
+      return totalDebt > 0;
+    }).length;
   }, [contracts, customers]);
 
   const pendingDepositCustomerCount = useMemo(() => {
-    const pendingPhones = new Set(
-      (contracts || [])
-        .filter(c => c && c.status === 'Pending' && (c.paidAmount || 0) < Math.round((c.totalPrice || 0) * 0.5) && c.customerPhone)
-        .map(c => c.customerPhone)
-    );
-    return (customers || []).filter(c => c && c.phone && pendingPhones.has(c.phone)).length;
+    return (customers || []).filter(cust => {
+      if (!cust) return false;
+      const { pendingDepositCount } = getCustomerFinancials(cust);
+      return pendingDepositCount > 0;
+    }).length;
   }, [contracts, customers]);
 
   const filteredCustomers = useMemo(() => {
@@ -147,23 +146,23 @@ export default function CustomerManager({
 
         // Filter by financial status
         if (debtFilter === 'UNPAID_DEPOSIT') {
-          const { pendingDepositCount } = getCustomerFinancials(c.phone);
+          const { pendingDepositCount } = getCustomerFinancials(c);
           return pendingDepositCount > 0;
         }
         if (debtFilter === 'HAS_DEBT') {
-          const { totalDebt } = getCustomerFinancials(c.phone);
+          const { totalDebt } = getCustomerFinancials(c);
           return totalDebt > 0;
         }
         if (debtFilter === 'NO_DEBT') {
-          const { totalDebt, pendingDepositCount } = getCustomerFinancials(c.phone);
+          const { totalDebt, pendingDepositCount } = getCustomerFinancials(c);
           return totalDebt === 0 && pendingDepositCount === 0;
         }
 
         return true;
       })
       .sort((a, b) => {
-        const contractsA = (contracts || []).filter(c => c && c.customerPhone === a.phone && c.status !== 'Cancelled');
-        const contractsB = (contracts || []).filter(c => c && c.customerPhone === b.phone && c.status !== 'Cancelled');
+        const contractsA = (contracts || []).filter(c => c && isContractOfCustomer(c, a) && c.status !== 'Cancelled');
+        const contractsB = (contracts || []).filter(c => c && isContractOfCustomer(c, b) && c.status !== 'Cancelled');
 
         const countA = contractsA.length || (a.rentalCount || 0);
         const countB = contractsB.length || (b.rentalCount || 0);
@@ -171,8 +170,8 @@ export default function CustomerManager({
         const spentA = contractsA.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
         const spentB = contractsB.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
 
-        const financialsA = getCustomerFinancials(a.phone);
-        const financialsB = getCustomerFinancials(b.phone);
+        const financialsA = getCustomerFinancials(a);
+        const financialsB = getCustomerFinancials(b);
 
         if (sortBy === 'RENTAL_DESC') {
           if (countB !== countA) return countB - countA;
@@ -594,12 +593,10 @@ export default function CustomerManager({
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
         {paginatedCustomers.map(cust => {
           const sortedContracts = (contracts || [])
-            .filter(contract => 
-              contract.customerPhone === cust.phone
-            )
+            .filter(contract => isContractOfCustomer(contract, cust))
             .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
-          const financials = getCustomerFinancials(cust.phone);
+          const financials = getCustomerFinancials(cust);
 
           return (
             <div key={cust.id} className={`bg-white border rounded-xl p-3 sm:p-4 shadow-3xs space-y-2 sm:space-y-3 flex flex-col justify-between hover:shadow-xs transition-all ${
@@ -627,7 +624,11 @@ export default function CustomerManager({
                     </span>
                   </div>
                   <span className="text-[9.5px] sm:text-[10px] font-extrabold text-orange-700 bg-orange-50 border border-orange-200/80 px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap">
-                    {sortedContracts.length || cust.rentalCount} đơn
+                    {sortedContracts.length > 0 
+                      ? `${sortedContracts.length} đơn` 
+                      : (cust.rentalCount || 0) > 0 
+                        ? `${cust.rentalCount} lượt cũ` 
+                        : '0 đơn'}
                   </span>
                 </div>
 
@@ -690,7 +691,11 @@ export default function CustomerManager({
                     Đơn thuê gần đây ({sortedContracts.length})
                   </span>
                   {sortedContracts.length === 0 ? (
-                    <p className="text-[10px] text-gray-400 italic">Chưa có đơn thuê</p>
+                    <p className="text-[10px] text-gray-400 italic">
+                      {(cust.rentalCount || 0) > 0 
+                        ? `Hồ sơ có ${cust.rentalCount} lượt thuê cũ (đơn gốc đã xóa hoặc chưa liên kết)`
+                        : 'Chưa có đơn thuê'}
+                    </p>
                   ) : (
                     <div className="space-y-1 max-h-[140px] overflow-y-auto pr-0.5 scrollbar-thin">
                       {[...sortedContracts].reverse().slice(0, 2).map((contract) => {
@@ -739,7 +744,13 @@ export default function CustomerManager({
                   title="Xem toàn bộ lịch sử"
                 >
                   <Eye className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{sortedContracts.length} đơn</span>
+                  <span className="truncate">
+                    {sortedContracts.length > 0 
+                      ? `${sortedContracts.length} đơn` 
+                      : (cust.rentalCount || 0) > 0 
+                        ? `${cust.rentalCount} lượt cũ` 
+                        : '0 đơn'}
+                  </span>
                 </button>
                 <button
                   onClick={() => handleOpenEditModal(cust)}
@@ -991,9 +1002,7 @@ export default function CustomerManager({
       {selectedCustomerForHistory && typeof document !== 'undefined' && createPortal(
         (() => {
           const sortedContracts = (contracts || [])
-            .filter(contract => 
-              contract.customerPhone === selectedCustomerForHistory.phone
-            )
+            .filter(contract => isContractOfCustomer(contract, selectedCustomerForHistory))
             .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
           // Reverse to show newest orders first
