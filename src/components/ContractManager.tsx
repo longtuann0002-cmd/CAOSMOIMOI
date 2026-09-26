@@ -2540,7 +2540,7 @@ export default function ContractManager({
                           onClick={() => setNewContractForm({ ...newContractForm, depositAmount: calculatedRecommendedDeposit })}
                           className="text-[11px] text-amber-850 bg-amber-100/70 hover:bg-amber-100 border border-amber-300/80 px-2 py-0.5 rounded-lg font-semibold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
                         >
-                          💡 Cọc máy quy định: {calculatedRecommendedDeposit.toLocaleString()}đ
+                          💡 Cọc quy định: {calculatedRecommendedDeposit.toLocaleString()}đ
                         </button>
                       </div>
                     )}
@@ -2548,10 +2548,10 @@ export default function ContractManager({
 
                   {/* Cột 2: Cọc giữ máy trước */}
                   <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-gray-750">Cọc giữ máy trước (VND)</label>
+                    <div className="flex items-center justify-between gap-1">
+                      <label className="text-xs font-bold text-gray-750 whitespace-nowrap">Cọc giữ máy (VND)</label>
                       {newContractForm.paidAmount > 0 && calculatedTotal > 0 && (
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
                           newContractForm.paidAmount === Math.round(calculatedTotal * 0.5)
                             ? 'bg-amber-200/80 text-amber-900 border border-amber-300'
                             : 'bg-blue-100 text-blue-900 border border-blue-200'
@@ -2580,7 +2580,7 @@ export default function ContractManager({
                         }`}
                         title={`Cọc 50% (${(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)`}
                       >
-                        Cọc 50% ({(Math.round(calculatedTotal * 0.5)).toLocaleString()}đ)
+                        50% ({(Math.round(calculatedTotal * 0.5)).toLocaleString()}đ)
                       </button>
                       <button
                         type="button"
@@ -2620,14 +2620,14 @@ export default function ContractManager({
                 {/* Cột 1: Tự giảm giá cho khách */}
                 <div className="bg-gray-50/70 border border-gray-200/80 rounded-2xl p-3 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold text-gray-800">Tự giảm giá cho khách</label>
+                    <div className="flex items-center justify-between mb-1.5 gap-1">
+                      <label className="text-xs font-bold text-gray-800 whitespace-nowrap">Tự giảm giá</label>
                       {newContractForm.discountPercent > 0 && totalBeforeDiscount > 0 ? (
                         <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full shrink-0">
                           -{(totalBeforeDiscount - calculatedTotal).toLocaleString()}đ (-{newContractForm.discountPercent}%)
                         </span>
                       ) : (
-                        <span className="text-[10px] text-gray-500 font-medium">
+                        <span className="text-[10px] text-gray-500 font-medium shrink-0">
                           Gốc: {(totalBeforeDiscount || 0).toLocaleString()}đ
                         </span>
                       )}
@@ -2678,15 +2678,15 @@ export default function ContractManager({
                             }));
                           }}
                           allowZero={true}
-                          placeholder="Giá chốt sau giảm (đ)"
+                          placeholder="Giá chốt (đ)"
                           className="w-full bg-white border border-gray-250 rounded-xl p-2 text-sm font-semibold focus:ring-2 focus:ring-orange-500 focus:outline-none"
                           suffixColor="gray"
                         />
                       </div>
                     </div>
-                    <div className="flex items-center justify-between text-[10.5px] text-gray-500 mt-1 px-0.5">
-                      <span>Nhập % giảm</span>
-                      <span>Hoặc nhập giá chốt cuối (đ)</span>
+                    <div className="flex items-center justify-between text-[10px] text-gray-400 mt-1 px-0.5">
+                      <span>% giảm</span>
+                      <span>Giá chốt cuối (đ)</span>
                     </div>
                   </div>
 
