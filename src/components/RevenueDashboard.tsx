@@ -9,6 +9,7 @@ import {
   Camera as CameraIcon, Search, X, Clock, Layers, ArrowUpRight, CheckCircle2,
   AlertTriangle, Phone
 } from 'lucide-react';
+import { useScrollLock } from '../utils/useScrollLock';
 
 interface RevenueDashboardProps {
   contracts: RentalContract[];
@@ -78,6 +79,9 @@ export default function RevenueDashboard({
   // State for opening uncollected receivables drill-down modal
   const [showReceivablesModal, setShowReceivablesModal] = useState<boolean>(false);
   const [receivablesModalTab, setReceivablesModalTab] = useState<'debt' | 'deposit'>('debt');
+
+  // Lock body scroll whenever modal is open
+  useScrollLock(Boolean(selectedCameraForModal || showReceivablesModal));
 
   // Equipment table search and filter
   const [equipmentSearch, setEquipmentSearch] = useState<string>('');
@@ -1626,7 +1630,12 @@ export default function RevenueDashboard({
 
       {/* POPUP MODAL: SPECIFIC RENTAL DATES & REVENUE DETAILS FOR SELECTED EQUIPMENT */}
       {modalCameraDetail && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] overflow-y-auto animate-fade-in">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] animate-fade-in"
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) e.preventDefault();
+          }}
+        >
           <div className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh] animate-scale-up">
             
             {/* Modal Header */}
@@ -1721,7 +1730,10 @@ export default function RevenueDashboard({
             </div>
 
             {/* Modal Body: Specific Rental Dates List */}
-            <div className="p-3.5 sm:p-6 overflow-y-auto space-y-3 flex-1">
+            <div 
+              className="p-3.5 sm:p-6 overflow-y-auto space-y-3 flex-1 overscroll-contain modal-scrollable"
+              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            >
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600" />
@@ -1869,7 +1881,12 @@ export default function RevenueDashboard({
       {/* MODAL 2: UNCOLLECTED RECEIVABLES & PENDING DEPOSITS DRILL-DOWN MODAL       */}
       {/* ========================================================================= */}
       {showReceivablesModal && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] overflow-y-auto animate-fade-in">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] animate-fade-in"
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) e.preventDefault();
+          }}
+        >
           <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden self-center animate-scale-up border border-gray-200 flex flex-col max-h-[90vh]">
             
             {/* Modal Header */}
@@ -1974,7 +1991,10 @@ export default function RevenueDashboard({
             )}
 
             {/* List of debtor or pending deposit contracts */}
-            <div className="p-3.5 sm:p-6 overflow-y-auto space-y-3 flex-1">
+            <div 
+              className="p-3.5 sm:p-6 overflow-y-auto space-y-3 flex-1 overscroll-contain modal-scrollable"
+              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            >
               {receivablesModalTab === 'debt' ? (
                 receivableContracts.length === 0 ? (
                   <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-200 text-gray-400 font-medium text-xs sm:text-sm">

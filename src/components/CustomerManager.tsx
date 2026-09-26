@@ -4,6 +4,7 @@ import { Customer, RentalContract } from '../types';
 import { formatDMY } from '../utils/dateUtils';
 import { matchCustomer, isContractOfCustomer } from '../utils/searchUtils';
 import { Search, Plus, Trash2, Edit2, Shield, User, Heart, AlertTriangle, Phone, Globe, MapPin, ChevronLeft, ChevronRight, FileSpreadsheet, Eye, Calendar, DollarSign, FileText, CheckCircle2, Clock, X, Info, ArrowUpDown, Filter, SortDesc, Sparkles } from 'lucide-react';
+import { useScrollLock } from '../utils/useScrollLock';
 
 interface CustomerManagerProps {
   customers: Customer[];
@@ -48,6 +49,9 @@ export default function CustomerManager({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<Customer | null>(null);
+
+  // Lock body scroll whenever modal is open
+  useScrollLock(Boolean(showAddModal || deleteConfirmId || selectedCustomerForHistory));
 
   const [formState, setFormState] = useState({
     name: '',
@@ -832,9 +836,14 @@ export default function CustomerManager({
 
       {/* Customer Add/Edit Modal */}
       {showAddModal && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden self-center border border-gray-100 animate-scale-up">
-            <div className="bg-orange-600 text-white px-6 py-4 flex justify-between items-center">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in"
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) e.preventDefault();
+          }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden self-center border border-gray-100 animate-scale-up flex flex-col max-h-[90vh]">
+            <div className="bg-orange-600 text-white px-6 py-4 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <User className="w-5 h-5" /> {editingCustomer ? 'Sửa Hồ Sơ Khách Hàng' : 'Tạo Hồ Sơ Khách Mới'}
               </h3>
@@ -847,7 +856,11 @@ export default function CustomerManager({
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+            <form 
+              onSubmit={handleSubmit} 
+              className="p-6 space-y-4 flex-1 overflow-y-auto overscroll-contain modal-scrollable"
+              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            >
               {validationError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
                   <span>⚠</span> {validationError}
@@ -1009,7 +1022,12 @@ export default function CustomerManager({
           const displayContracts = [...sortedContracts].reverse();
 
           return (
-            <div className="fixed inset-0 bg-black/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 pt-[max(20px,env(safe-area-inset-top,20px))] pb-[max(16px,env(safe-area-inset-bottom,16px))] z-[9999] animate-fade-in">
+            <div 
+              className="fixed inset-0 bg-black/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 pt-[max(20px,env(safe-area-inset-top,20px))] pb-[max(16px,env(safe-area-inset-bottom,16px))] z-[9999] animate-fade-in"
+              onTouchMove={(e) => {
+                if (e.target === e.currentTarget) e.preventDefault();
+              }}
+            >
               <div className="bg-slate-50 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[88vh] sm:max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 animate-scale-up my-auto">
                 {/* Modal Header */}
                 <div className="bg-indigo-600 text-white px-4 sm:px-5 py-3 sm:py-3.5 flex justify-between items-center shrink-0">
@@ -1034,7 +1052,10 @@ export default function CustomerManager({
                 </div>
 
                 {/* Modal Body */}
-                <div className="p-3 sm:p-5 overflow-y-auto space-y-3.5 sm:space-y-4 flex-1 select-none">
+                <div 
+                  className="p-3 sm:p-5 overflow-y-auto space-y-3.5 sm:space-y-4 flex-1 select-none overscroll-contain modal-scrollable"
+                  style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+                >
                   {/* Profile detail section */}
                   <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 shadow-3xs grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-1.5">

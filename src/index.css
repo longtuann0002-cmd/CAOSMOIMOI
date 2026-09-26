@@ -172,3 +172,18 @@ input[type="date"]::-webkit-date-and-time-value {
   scrollbar-width: none;  /* Firefox */
 }
 
+/* Modal scroll isolation & prevent mobile background scrolling */
+body.modal-locked {
+  overflow: hidden !important;
+  touch-action: none !important;
+  -webkit-overflow-scrolling: auto !important;
+  height: 100% !important;
+}
+
+.modal-scrollable,
+.overscroll-contain {
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+}
+

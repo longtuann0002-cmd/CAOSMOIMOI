@@ -15,6 +15,7 @@ import { formatDMY } from '../utils/dateUtils';
 import { generateVietQrString, generateQrSvg } from '../utils/vietqr';
 import { toPng } from 'html-to-image';
 import { matchContract } from '../utils/searchUtils';
+import { useScrollLock } from '../utils/useScrollLock';
 
 interface ContractManagerProps {
   contracts: RentalContract[];
@@ -154,6 +155,9 @@ export default function ContractManager({
   const [selectedContract, setSelectedContract] = useState<RentalContract | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [customAlertMessage, setCustomAlertMessage] = useState<string | null>(null);
+
+  // Lock body scroll whenever any modal is open to prevent background scrolling on mobile
+  useScrollLock(Boolean(selectedContract || showAddModal || deleteConfirmId || customAlertMessage || showBankSettings));
 
   // States for inline quick notes
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -1455,7 +1459,12 @@ export default function ContractManager({
 
       {/* Contract Detail & Status Transition Modal */}
       {selectedContract && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] overflow-y-auto animate-fade-in">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] animate-fade-in"
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) e.preventDefault();
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl max-w-[480px] w-full overflow-hidden self-center animate-scale-up border border-gray-100 flex flex-col max-h-[92vh] sm:max-h-[90vh]">
             {/* Modal Header */}
             <div className="bg-orange-600 text-white px-4 sm:px-5 py-3 sm:py-3.5 flex justify-between items-center shrink-0">
@@ -1474,7 +1483,10 @@ export default function ContractManager({
             </div>
 
             {/* Modal Content */}
-            <div className="p-3 sm:p-4 space-y-3.5 flex-1 overflow-y-auto">
+            <div 
+              className="p-3 sm:p-4 space-y-3.5 flex-1 overflow-y-auto overscroll-contain modal-scrollable"
+              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            >
               {/* Overdue Alert banner */}
               {selectedContract.status === 'Overdue' && (
                 <div className="bg-rose-50 border border-rose-200 p-3 sm:p-3.5 rounded-xl flex items-start gap-2 text-rose-800">
@@ -1949,9 +1961,14 @@ export default function ContractManager({
 
       {/* Add New Contract Form Modal */}
       {showAddModal && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden self-center border border-gray-100 animate-scale-up">
-            <div className="bg-orange-600 px-6 py-4 text-white flex justify-between items-center">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in"
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) e.preventDefault();
+          }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden self-center border border-gray-100 animate-scale-up flex flex-col max-h-[90vh]">
+            <div className="bg-orange-600 px-6 py-4 text-white flex justify-between items-center shrink-0">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <FileText className="w-5 h-5" /> Lập Hợp Đồng Thuê Máy Mới
               </h3>
@@ -1964,7 +1981,11 @@ export default function ContractManager({
               </button>
             </div>
 
-            <form onSubmit={handleCreateContract} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+            <form 
+              onSubmit={handleCreateContract} 
+              className="p-6 space-y-4 flex-1 overflow-y-auto overscroll-contain modal-scrollable"
+              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="relative">
                   <label className="block text-xs font-bold text-gray-700 mb-1">Họ tên khách hàng *</label>

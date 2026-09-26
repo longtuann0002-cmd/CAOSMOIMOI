@@ -6,6 +6,7 @@ import { Search, Plus, Filter, Camera as CameraIcon, CheckCircle, Flame, Server,
 import { getInitialTieredPrices } from '../utils/pricing';
 import RentalFrequencyChart from './RentalFrequencyChart';
 import { matchCamera } from '../utils/searchUtils';
+import { useScrollLock } from '../utils/useScrollLock';
 
 interface EquipmentTrackerProps {
   cameras: Camera[];
@@ -44,6 +45,9 @@ export default function EquipmentTracker({
   const [cameraToDelete, setCameraToDelete] = useState<Camera | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Lock body scroll whenever modal is open
+  useScrollLock(Boolean(showAddModal || cameraToDelete));
   const [expandedPrices, setExpandedPrices] = useState<Record<string, boolean>>({});
 
   const togglePricingExpanded = (id: string) => {
@@ -849,9 +853,14 @@ export default function EquipmentTracker({
 
       {/* Camera Add/Edit Modal */}
       {showAddModal && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden self-center border border-gray-100 animate-scale-up">
-            <div className="bg-orange-600 text-white px-6 py-4 flex justify-between items-center">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in"
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) e.preventDefault();
+          }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden self-center border border-gray-100 animate-scale-up flex flex-col max-h-[90vh]">
+            <div className="bg-orange-600 text-white px-6 py-4 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <CameraIcon className="w-5 h-5" /> {editingCamera ? 'Cập Nhật Thiết Bị' : 'Thêm Máy Mới Vào Kho'}
               </h3>
@@ -864,7 +873,11 @@ export default function EquipmentTracker({
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+            <form 
+              onSubmit={handleSubmit} 
+              className="p-6 space-y-4 flex-1 overflow-y-auto overscroll-contain modal-scrollable"
+              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            >
               {validationError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
                   <span>⚠</span> {validationError}
@@ -1271,7 +1284,12 @@ export default function EquipmentTracker({
 
       {/* Custom Delete Confirmation Modal */}
       {cameraToDelete && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in"
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) e.preventDefault();
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100 animate-scale-up">
             <div className="bg-rose-600 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-bold text-base flex items-center gap-2">

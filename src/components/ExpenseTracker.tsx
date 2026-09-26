@@ -4,6 +4,7 @@ import { Expense } from '../types';
 import MoneyInput from './MoneyInput';
 import { formatDMY } from '../utils/dateUtils';
 import { Search, Plus, Trash2, Tag, Calendar, User, DollarSign, ListCollapse, ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react';
+import { useScrollLock } from '../utils/useScrollLock';
 
 interface ExpenseTrackerProps {
   expenses: Expense[];
@@ -21,6 +22,9 @@ export default function ExpenseTracker({
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Lock body scroll whenever modal is open
+  useScrollLock(Boolean(showAddModal || deleteConfirmId));
 
   const [formState, setFormState] = useState({
     description: '',
@@ -392,9 +396,14 @@ export default function ExpenseTracker({
 
       {/* Add New Expense Modal */}
       {showAddModal && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden self-center border border-gray-100 animate-scale-up">
-            <div className="bg-orange-600 text-white px-6 py-4 flex justify-between items-center">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-[9999] animate-fade-in"
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) e.preventDefault();
+          }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden self-center border border-gray-100 animate-scale-up flex flex-col max-h-[90vh]">
+            <div className="bg-orange-600 text-white px-6 py-4 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <DollarSign className="w-5 h-5" /> Kê Khai Khoản Chi Vận Hành Mới
               </h3>
@@ -407,7 +416,11 @@ export default function ExpenseTracker({
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form 
+              onSubmit={handleSubmit} 
+              className="p-6 space-y-4 flex-1 overflow-y-auto overscroll-contain modal-scrollable"
+              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            >
               {validationError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
                   <span>⚠</span> {validationError}
@@ -503,7 +516,12 @@ export default function ExpenseTracker({
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in"
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) e.preventDefault();
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-scale-up border border-gray-100 p-6 space-y-4">
             <div className="flex items-center gap-3 text-red-655">
               <span className="p-2 bg-red-50 rounded-xl">
