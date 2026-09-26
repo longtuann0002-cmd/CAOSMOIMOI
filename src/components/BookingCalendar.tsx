@@ -279,15 +279,18 @@ export default function BookingCalendar({
     return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   }, [formData.startDate, formData.endDate, formData.is6Hours]);
 
-  const calculatedTotal = useMemo(() => {
+  const totalBeforeDiscount = useMemo(() => {
     const dailyTotal = formData.selectedCameraIds.reduce((sum, id) => {
       const cam = cameras.find(c => c.id === id);
       return sum + (cam ? getCameraRateForDuration(cam, calculatedDays, formData.is6Hours) : 0);
     }, 0);
-    const totalBeforeDiscount = formData.is6Hours ? dailyTotal : dailyTotal * calculatedDays;
-    const discountAmount = Math.round(totalBeforeDiscount * (formData.discountPercent / 100));
+    return formData.is6Hours ? dailyTotal : dailyTotal * calculatedDays;
+  }, [formData.selectedCameraIds, calculatedDays, formData.is6Hours, cameras]);
+
+  const calculatedTotal = useMemo(() => {
+    const discountAmount = Math.round(totalBeforeDiscount * ((formData.discountPercent || 0) / 100));
     return Math.max(0, totalBeforeDiscount - discountAmount);
-  }, [formData.selectedCameraIds, calculatedDays, formData.is6Hours, formData.discountPercent, cameras]);
+  }, [totalBeforeDiscount, formData.discountPercent]);
 
   const getCameraRecommendedDeposit = (id: string): number => {
     const cam = cameras.find(c => c.id === id);
@@ -320,7 +323,7 @@ export default function BookingCalendar({
   useEffect(() => {
     if (calculatedTotal !== prevCalculatedTotal) {
       const prevHalfPrice = Math.round(prevCalculatedTotal * 0.5);
-      if (formData.paidAmount === 0 || formData.paidAmount === prevHalfPrice) {
+      if (prevCalculatedTotal === 0 || formData.paidAmount === prevHalfPrice) {
         setFormData(prev => ({
           ...prev,
           paidAmount: Math.round(calculatedTotal * 0.5)
@@ -1887,7 +1890,20 @@ export default function BookingCalendar({
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Cọc giữ máy trước (VND)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-gray-700">Cọc giữ máy trước (VND)</label>
+                    {formData.paidAmount > 0 && calculatedTotal > 0 && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        formData.paidAmount === Math.round(calculatedTotal * 0.5)
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : 'bg-blue-50 text-blue-800 border border-blue-200'
+                      }`}>
+                        {formData.paidAmount === Math.round(calculatedTotal * 0.5)
+                          ? 'Đúng 50%'
+                          : `${Math.round((formData.paidAmount / calculatedTotal) * 100)}%`}
+                      </span>
+                    )}
+                  </div>
                   <MoneyInput
                     value={formData.paidAmount || 0}
                     onChange={v => setFormData({ ...formData, paidAmount: v })}
@@ -1900,11 +1916,11 @@ export default function BookingCalendar({
                       type="button"
                       onClick={() => setFormData({ ...formData, paidAmount: Math.round(calculatedTotal * 0.5) })}
                       className={`w-full min-w-0 text-[10.5px] sm:text-[11px] font-bold py-1.5 px-1 rounded-lg border transition-all cursor-pointer text-center truncate ${
-                        formData.paidAmount === Math.round(calculatedTotal * 0.5)
-                          ? 'bg-amber-100 border-amber-300 text-amber-900 shadow-xs font-extrabold'
-                          : 'bg-amber-50/50 hover:bg-amber-100/70 text-amber-800 border-amber-200'
+                        formData.paidAmount === Math.round(calculatedTotal * 0.5) && calculatedTotal > 0
+                          ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-xs font-extrabold'
+                          : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300'
                       }`}
-                      title={`Cọc 50% (${(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)`}
+                      title={`Điền cọc 50% (${(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)`}
                     >
                       Cọc 50% ({(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)
                     </button>
@@ -1914,50 +1930,98 @@ export default function BookingCalendar({
                       className={`w-full min-w-0 text-[10.5px] sm:text-[11px] font-bold py-1.5 px-1 rounded-lg border transition-all cursor-pointer text-center truncate ${
                         formData.paidAmount === 0
                           ? 'bg-gray-200 border-gray-400 text-gray-800 shadow-xs font-extrabold'
-                          : 'bg-gray-50 hover:bg-gray-150 text-gray-700 border-gray-200'
+                          : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300'
                       }`}
                       title="Không thu cọc giữ máy (0 đ)"
                     >
                       Không cọc (0 đ)
                     </button>
                   </div>
+                  <div className="mt-1 text-[11px] text-gray-500 font-medium">
+                    {formData.paidAmount > 0 ? (
+                      <span className="text-gray-700">
+                        {formData.paidAmount === Math.round(calculatedTotal * 0.5) ? (
+                          <span className="text-amber-800 font-semibold">✓ Đã cọc 50% ({(formData.paidAmount).toLocaleString()} đ)</span>
+                        ) : (
+                          <span className="text-blue-700 font-semibold">✓ Cọc {calculatedTotal > 0 ? Math.round((formData.paidAmount / calculatedTotal) * 100) : 0}% ({(formData.paidAmount).toLocaleString()} đ)</span>
+                        )}
+                        {calculatedTotal > formData.paidAmount && (
+                          <span className="text-gray-500"> · Còn thu: <strong className="text-gray-800">{(calculatedTotal - formData.paidAmount).toLocaleString()} đ</strong></span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">Chưa thu cọc · Còn thu: <strong className="text-gray-800">{(calculatedTotal).toLocaleString()} đ</strong></span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Tự giảm giá cho khách (%)</label>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={formData.discountPercent || ''}
-                      onChange={e => {
-                        const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-                        setFormData({ ...formData, discountPercent: val });
-                      }}
-                      className="w-16 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
-                      placeholder="0"
-                    />
-                    <div className="flex-1 flex gap-1 overflow-x-auto py-0.5 no-scrollbar">
-                      {[0, 5, 10, 15, 20, 50].map((pct) => (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, discountPercent: pct })}
-                          className={`px-2 py-1 text-xs font-bold rounded-md border transition-all cursor-pointer shrink-0 ${
-                            formData.discountPercent === pct
-                              ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
-                              : 'bg-white hover:bg-gray-50 text-gray-650 border-gray-200'
-                          }`}
-                        >
-                          {pct}%
-                        </button>
-                      ))}
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-gray-700">Tự giảm giá cho khách</label>
+                    {formData.discountPercent > 0 && totalBeforeDiscount > 0 && (
+                      <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded">
+                        Giảm: {Math.round(totalBeforeDiscount * (formData.discountPercent / 100)).toLocaleString()} đ (-{formData.discountPercent}%)
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="block text-[10px] font-semibold text-gray-500 mb-0.5">Giảm theo %</span>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="any"
+                          value={formData.discountPercent || ''}
+                          onChange={e => {
+                            const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                            setFormData({ ...formData, discountPercent: val });
+                          }}
+                          className="w-full border border-gray-300 rounded-lg p-2 pr-7 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
+                          placeholder="0"
+                        />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 select-none">%</span>
+                      </div>
                     </div>
+                    <div>
+                      <span className="block text-[10px] font-semibold text-gray-500 mb-0.5">Giảm theo số tiền (VND)</span>
+                      <MoneyInput
+                        value={Math.round(totalBeforeDiscount * ((formData.discountPercent || 0) / 100))}
+                        onChange={amount => {
+                          if (!totalBeforeDiscount || totalBeforeDiscount <= 0) {
+                            setFormData({ ...formData, discountPercent: 0 });
+                            return;
+                          }
+                          const validAmount = Math.min(totalBeforeDiscount, Math.max(0, amount || 0));
+                          const rawPct = (validAmount / totalBeforeDiscount) * 100;
+                          const calculatedPct = Number((Math.round(rawPct * 10) / 10).toFixed(1));
+                          setFormData({ ...formData, discountPercent: calculatedPct });
+                        }}
+                        placeholder="VD: 50.000"
+                        className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                        suffixColor="gray"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-1 overflow-x-auto py-1 mt-1 no-scrollbar items-center">
+                    <span className="text-[10px] font-semibold text-gray-400 shrink-0">Chọn nhanh:</span>
+                    {[0, 5, 10, 15, 20, 50].map((pct) => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, discountPercent: pct })}
+                        className={`px-2 py-0.5 text-xs font-bold rounded-md border transition-all cursor-pointer shrink-0 ${
+                          formData.discountPercent === pct
+                            ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
+                            : 'bg-white hover:bg-gray-50 text-gray-650 border-gray-200'
+                        }`}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
                   </div>
                 </div>
 

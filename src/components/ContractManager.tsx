@@ -664,15 +664,18 @@ export default function ContractManager({
     return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   }, [newContractForm.startDate, newContractForm.endDate, newContractForm.is6Hours]);
 
-  const calculatedTotal = useMemo(() => {
+  const totalBeforeDiscount = useMemo(() => {
     const dailyTotal = newContractForm.selectedCameraIds.reduce((sum, id) => {
       const cam = cameras.find(c => c.id === id);
       return sum + (cam ? getCameraRateForDuration(cam, calculatedDays, newContractForm.is6Hours) : 0);
     }, 0);
-    const totalBeforeDiscount = newContractForm.is6Hours ? dailyTotal : dailyTotal * calculatedDays;
+    return newContractForm.is6Hours ? dailyTotal : dailyTotal * calculatedDays;
+  }, [newContractForm.selectedCameraIds, calculatedDays, newContractForm.is6Hours, cameras]);
+
+  const calculatedTotal = useMemo(() => {
     const discountAmount = Math.round(totalBeforeDiscount * ((newContractForm.discountPercent || 0) / 100));
     return Math.max(0, totalBeforeDiscount - discountAmount);
-  }, [newContractForm.selectedCameraIds, calculatedDays, newContractForm.is6Hours, newContractForm.discountPercent, cameras]);
+  }, [totalBeforeDiscount, newContractForm.discountPercent]);
 
   const getCameraRecommendedDeposit = (id: string): number => {
     const cam = cameras.find(c => c.id === id);
@@ -705,7 +708,7 @@ export default function ContractManager({
   useEffect(() => {
     if (calculatedTotal !== prevCalculatedTotal) {
       const prevHalfPrice = Math.round(prevCalculatedTotal * 0.5);
-      if (newContractForm.paidAmount === 0 || newContractForm.paidAmount === prevHalfPrice) {
+      if (prevCalculatedTotal === 0 || newContractForm.paidAmount === prevHalfPrice) {
         setNewContractForm(prev => ({
           ...prev,
           paidAmount: Math.round(calculatedTotal * 0.5)
@@ -1028,25 +1031,30 @@ export default function ContractManager({
                       </span>
                     </div>
                     {c.status === 'Pending' ? (
-                      (c.paidAmount || 0) >= Math.round((c.totalPrice || 0) * 0.5) || (c.paidAmount || 0) > 0 ? (
-                        <>
-                          <div className="flex items-center justify-between text-xs pb-1 border-b border-gray-100">
-                            <span className="text-emerald-700 font-medium">Đã cọc 50% giữ máy:</span>
-                            <span className="font-mono font-bold text-emerald-700">
-                              {c.paidAmount.toLocaleString()} đ
-                            </span>
-                          </div>
-                          <div className="pt-1 select-none flex items-center justify-between gap-2">
-                            <div className="text-[10px] text-gray-400 font-medium">
-                              Cọc thế chấp: <strong className="text-gray-750">{c.depositAmount > 0 ? `${c.depositAmount.toLocaleString()} đ` : 'Không có'}</strong>
-                            </div>
-                            <div>
-                              <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-bold shadow-3xs">
-                                ✓ Đã đóng cọc 50%
-                              </span>
-                            </div>
-                          </div>
-                        </>
+                      (c.paidAmount || 0) > 0 ? (
+                        (() => {
+                          const pct = c.totalPrice > 0 ? Math.round(((c.paidAmount || 0) / c.totalPrice) * 100) : 0;
+                          return (
+                            <>
+                              <div className="flex items-center justify-between text-xs pb-1 border-b border-gray-100">
+                                <span className="text-emerald-700 font-medium">Đã cọc {pct}% giữ máy:</span>
+                                <span className="font-mono font-bold text-emerald-700">
+                                  {c.paidAmount.toLocaleString()} đ
+                                </span>
+                              </div>
+                              <div className="pt-1 select-none flex items-center justify-between gap-2">
+                                <div className="text-[10px] text-gray-400 font-medium">
+                                  Cọc thế chấp: <strong className="text-gray-750">{c.depositAmount > 0 ? `${c.depositAmount.toLocaleString()} đ` : 'Không có'}</strong>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-bold shadow-3xs">
+                                    ✓ Đã cọc {pct}%
+                                  </span>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })()
                       ) : (
                         <>
                           <div className="flex items-center justify-between text-xs text-amber-850 bg-amber-50/40 px-1 rounded-sm">
@@ -1313,13 +1321,18 @@ export default function ContractManager({
                         </div>
                         <div className="text-[10px] text-gray-400 font-sans font-normal">
                           {c.status === 'Pending' ? (
-                            (c.paidAmount || 0) >= Math.round((c.totalPrice || 0) * 0.5) || (c.paidAmount || 0) > 0 ? (
-                              <span className="text-emerald-700 font-bold inline-block bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px]" title="Đã nhận đủ 50% tiền cọc giữ máy">
-                                ✓ Đã cọc 50%: {c.paidAmount.toLocaleString()} đ
-                              </span>
+                            (c.paidAmount || 0) > 0 ? (
+                              (() => {
+                                const pct = c.totalPrice > 0 ? Math.round(((c.paidAmount || 0) / c.totalPrice) * 100) : 0;
+                                return (
+                                  <span className="text-emerald-700 font-bold inline-block bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px]" title={`Đã nhận ${c.paidAmount.toLocaleString()} đ tiền cọc giữ máy (${pct}%)`}>
+                                    ✓ Đã cọc {pct}%: {c.paidAmount.toLocaleString()} đ
+                                  </span>
+                                );
+                              })()
                             ) : (
                               <span className="text-amber-700 font-bold inline-block bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-[10px]" title="Khoản cọc giữ máy cần chuyển khoản để hoàn thiện duyệt lịch">
-                                ⏳ Cọc 50%: {(Math.round((c.totalPrice || 0) * 0.5)).toLocaleString()} đ (Chưa đóng)
+                                ⏳ Chưa cọc giữ máy
                               </span>
                             )
                           ) : (
@@ -2524,7 +2537,20 @@ export default function ContractManager({
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Cọc giữ máy trước (VND)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-gray-700">Cọc giữ máy trước (VND)</label>
+                    {newContractForm.paidAmount > 0 && calculatedTotal > 0 && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        newContractForm.paidAmount === Math.round(calculatedTotal * 0.5)
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : 'bg-blue-50 text-blue-800 border border-blue-200'
+                      }`}>
+                        {newContractForm.paidAmount === Math.round(calculatedTotal * 0.5)
+                          ? 'Đúng 50%'
+                          : `${Math.round((newContractForm.paidAmount / calculatedTotal) * 100)}%`}
+                      </span>
+                    )}
+                  </div>
                   <MoneyInput
                     value={newContractForm.paidAmount || 0}
                     onChange={v => setNewContractForm({ ...newContractForm, paidAmount: v })}
@@ -2537,11 +2563,11 @@ export default function ContractManager({
                       type="button"
                       onClick={() => setNewContractForm({ ...newContractForm, paidAmount: Math.round(calculatedTotal * 0.5) })}
                       className={`w-full min-w-0 text-[10.5px] sm:text-[11px] font-bold py-1.5 px-1 rounded-lg border transition-all cursor-pointer text-center truncate ${
-                        newContractForm.paidAmount === Math.round(calculatedTotal * 0.5)
-                          ? 'bg-amber-100 border-amber-300 text-amber-900 shadow-xs font-extrabold'
-                          : 'bg-amber-50/50 hover:bg-amber-100/70 text-amber-800 border-amber-200'
+                        newContractForm.paidAmount === Math.round(calculatedTotal * 0.5) && calculatedTotal > 0
+                          ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-xs font-extrabold'
+                          : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300'
                       }`}
-                      title={`Cọc 50% (${(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)`}
+                      title={`Điền cọc 50% (${(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)`}
                     >
                       Cọc 50% ({(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)
                     </button>
@@ -2551,51 +2577,99 @@ export default function ContractManager({
                       className={`w-full min-w-0 text-[10.5px] sm:text-[11px] font-bold py-1.5 px-1 rounded-lg border transition-all cursor-pointer text-center truncate ${
                         newContractForm.paidAmount === 0
                           ? 'bg-gray-200 border-gray-400 text-gray-800 shadow-xs font-extrabold'
-                          : 'bg-gray-50 hover:bg-gray-150 text-gray-700 border-gray-200'
+                          : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300'
                       }`}
                       title="Không thu cọc giữ máy (0 đ)"
                     >
                       Không cọc (0 đ)
                     </button>
                   </div>
+                  <div className="mt-1 text-[11px] text-gray-500 font-medium">
+                    {newContractForm.paidAmount > 0 ? (
+                      <span className="text-gray-700">
+                        {newContractForm.paidAmount === Math.round(calculatedTotal * 0.5) ? (
+                          <span className="text-amber-800 font-semibold">✓ Đã cọc 50% ({(newContractForm.paidAmount).toLocaleString()} đ)</span>
+                        ) : (
+                          <span className="text-blue-700 font-semibold">✓ Cọc {calculatedTotal > 0 ? Math.round((newContractForm.paidAmount / calculatedTotal) * 100) : 0}% ({(newContractForm.paidAmount).toLocaleString()} đ)</span>
+                        )}
+                        {calculatedTotal > newContractForm.paidAmount && (
+                          <span className="text-gray-500"> · Còn thu: <strong className="text-gray-800">{(calculatedTotal - newContractForm.paidAmount).toLocaleString()} đ</strong></span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">Chưa thu cọc · Còn thu: <strong className="text-gray-800">{(calculatedTotal).toLocaleString()} đ</strong></span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-
- 
               {/* Special Discount & Note Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Tự giảm giá cho khách (%)</label>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={newContractForm.discountPercent || ''}
-                      onChange={e => {
-                        const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-                        setNewContractForm({ ...newContractForm, discountPercent: val });
-                      }}
-                      className="w-16 border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
-                      placeholder="0"
-                    />
-                    <div className="flex-1 flex gap-1 overflow-x-auto py-0.5 no-scrollbar">
-                      {[0, 5, 10, 15, 20, 50].map((pct) => (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => setNewContractForm({ ...newContractForm, discountPercent: pct })}
-                          className={`px-2 py-1 text-xs font-bold rounded-md border transition-all cursor-pointer shrink-0 ${
-                            newContractForm.discountPercent === pct
-                              ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
-                              : 'bg-white hover:bg-gray-50 text-gray-650 border-gray-200'
-                          }`}
-                        >
-                          {pct}%
-                        </button>
-                      ))}
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-gray-700">Tự giảm giá cho khách</label>
+                    {newContractForm.discountPercent > 0 && totalBeforeDiscount > 0 && (
+                      <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded">
+                        Giảm: {Math.round(totalBeforeDiscount * (newContractForm.discountPercent / 100)).toLocaleString()} đ (-{newContractForm.discountPercent}%)
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="block text-[10px] font-semibold text-gray-500 mb-0.5">Giảm theo %</span>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="any"
+                          value={newContractForm.discountPercent || ''}
+                          onChange={e => {
+                            const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                            setNewContractForm({ ...newContractForm, discountPercent: val });
+                          }}
+                          className="w-full border border-gray-200 rounded-lg p-2 pr-7 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
+                          placeholder="0"
+                        />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 select-none">%</span>
+                      </div>
                     </div>
+                    <div>
+                      <span className="block text-[10px] font-semibold text-gray-500 mb-0.5">Giảm theo số tiền (VND)</span>
+                      <MoneyInput
+                        value={Math.round(totalBeforeDiscount * ((newContractForm.discountPercent || 0) / 100))}
+                        onChange={amount => {
+                          if (!totalBeforeDiscount || totalBeforeDiscount <= 0) {
+                            setNewContractForm({ ...newContractForm, discountPercent: 0 });
+                            return;
+                          }
+                          const validAmount = Math.min(totalBeforeDiscount, Math.max(0, amount || 0));
+                          const rawPct = (validAmount / totalBeforeDiscount) * 100;
+                          const calculatedPct = Number((Math.round(rawPct * 10) / 10).toFixed(1));
+                          setNewContractForm({ ...newContractForm, discountPercent: calculatedPct });
+                        }}
+                        placeholder="VD: 50.000"
+                        className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                        suffixColor="gray"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-1 overflow-x-auto py-1 mt-1 no-scrollbar items-center">
+                    <span className="text-[10px] font-semibold text-gray-400 shrink-0">Chọn nhanh:</span>
+                    {[0, 5, 10, 15, 20, 50].map((pct) => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => setNewContractForm({ ...newContractForm, discountPercent: pct })}
+                        className={`px-2 py-0.5 text-xs font-bold rounded-md border transition-all cursor-pointer shrink-0 ${
+                          newContractForm.discountPercent === pct
+                            ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
+                            : 'bg-white hover:bg-gray-50 text-gray-650 border-gray-200'
+                        }`}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
                   </div>
                 </div>
 
