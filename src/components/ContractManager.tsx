@@ -675,7 +675,7 @@ export default function ContractManager({
 
   const calculatedTotal = useMemo(() => {
     if (newContractForm.customFinalPrice !== null && newContractForm.customFinalPrice !== undefined) {
-      return Math.min(totalBeforeDiscount, Math.max(0, newContractForm.customFinalPrice));
+      return Math.max(0, newContractForm.customFinalPrice);
     }
     const discountAmount = Math.round(totalBeforeDiscount * ((newContractForm.discountPercent || 0) / 100));
     return Math.max(0, totalBeforeDiscount - discountAmount);
@@ -2665,10 +2665,12 @@ export default function ContractManager({
                               return;
                             }
                             const val = finalPrice ?? 0;
-                            const clampedFinal = Math.min(totalBeforeDiscount, Math.max(0, val));
-                            const discountAmount = Math.max(0, totalBeforeDiscount - clampedFinal);
-                            const rawPct = (discountAmount / totalBeforeDiscount) * 100;
-                            const calculatedPct = Number((Math.round(rawPct * 10) / 10).toFixed(1));
+                            let calculatedPct = 0;
+                            if (totalBeforeDiscount > 0 && val < totalBeforeDiscount) {
+                              const discountAmount = totalBeforeDiscount - val;
+                              const rawPct = (discountAmount / totalBeforeDiscount) * 100;
+                              calculatedPct = Number(rawPct.toFixed(2));
+                            }
                             setNewContractForm(prev => ({
                               ...prev,
                               customFinalPrice: val,

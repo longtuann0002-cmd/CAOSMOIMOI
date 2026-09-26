@@ -290,7 +290,7 @@ export default function BookingCalendar({
 
   const calculatedTotal = useMemo(() => {
     if (formData.customFinalPrice !== null && formData.customFinalPrice !== undefined) {
-      return Math.min(totalBeforeDiscount, Math.max(0, formData.customFinalPrice));
+      return Math.max(0, formData.customFinalPrice);
     }
     const discountAmount = Math.round(totalBeforeDiscount * ((formData.discountPercent || 0) / 100));
     return Math.max(0, totalBeforeDiscount - discountAmount);
@@ -2019,10 +2019,12 @@ export default function BookingCalendar({
                               return;
                             }
                             const val = finalPrice ?? 0;
-                            const clampedFinal = Math.min(totalBeforeDiscount, Math.max(0, val));
-                            const discountAmount = Math.max(0, totalBeforeDiscount - clampedFinal);
-                            const rawPct = (discountAmount / totalBeforeDiscount) * 100;
-                            const calculatedPct = Number((Math.round(rawPct * 10) / 10).toFixed(1));
+                            let calculatedPct = 0;
+                            if (totalBeforeDiscount > 0 && val < totalBeforeDiscount) {
+                              const discountAmount = totalBeforeDiscount - val;
+                              const rawPct = (discountAmount / totalBeforeDiscount) * 100;
+                              calculatedPct = Number(rawPct.toFixed(2));
+                            }
                             setFormData(prev => ({
                               ...prev,
                               customFinalPrice: val,

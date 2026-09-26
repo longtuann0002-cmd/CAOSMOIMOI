@@ -39,7 +39,7 @@ const MoneyInput: React.FC<MoneyInputProps> = ({
   const [display, setDisplay] = useState<string>(toDisplayString(value));
   useEffect(() => {
     const numeric = parseRaw(display);
-    if (numeric !== value || (value === 0 && allowZero && display !== '0')) {
+    if (numeric !== value) {
       setDisplay(toDisplayString(value));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
