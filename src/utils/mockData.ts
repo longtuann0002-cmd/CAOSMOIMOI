@@ -85,6 +85,27 @@ export const INITIAL_CAMERAS: Camera[] = [
     serialNumber: 'SIG-56-88741',
     description: 'Ống kính chụp chân dung xóa phông hoàn hảo cho máy ảnh crop APS-C.',
     image: 'https://images.unsplash.com/photo-1607462109225-6b64ae2dd3cb?auto=format&fit=crop&q=80&w=400'
+  },
+  {
+    id: 'cam-printer-1',
+    name: 'Máy in ảnh mini lấy liền (Canon Selphy CP1500)',
+    shortName: 'Máy In Ảnh',
+    category: 'Printer',
+    isPrinter: true,
+    dailyRate: 40000,
+    price6Hours: 40000,
+    price1Day: 40000,
+    price2Days: 70000,
+    price3Days: 100000,
+    price4DaysPlus: 33000,
+    depositAmount: 1000000,
+    status: 'Available',
+    serialNumber: 'PRN-CP1500-01',
+    description: 'Máy in ảnh mini lấy liền chất lượng cao, chống nước, chống bay màu. Bảng giá in ảnh: 1-2 tấm: 40K/tấm, 3-9 tấm: 35K/tấm, từ 10 tấm trở lên: 33K/tấm.',
+    image: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&q=80&w=400',
+    printPrice1To2: 40000,
+    printPrice3To9: 35000,
+    printPrice10Plus: 33000
   }
 ];
 
@@ -491,6 +512,16 @@ export function loadStoredData<T>(key: string, defaultVal: T): T {
           ...c,
           note: cleanSystemNote(c.note)
         })) as unknown as T;
+      }
+      if (key === 'cameras' && Array.isArray(parsed)) {
+        const hasPrinter = parsed.some((c: any) => c.category === 'Printer' || c.id === 'cam-printer-1');
+        if (!hasPrinter) {
+          const defaultPrinter = INITIAL_CAMERAS.find(c => c.id === 'cam-printer-1');
+          if (defaultPrinter) {
+            return [...parsed, defaultPrinter] as unknown as T;
+          }
+        }
+        return parsed;
       }
       return parsed;
     }

@@ -123,6 +123,7 @@ export default function EquipmentTracker({
     name: '',
     shortName: '',
     category: 'Body' as Camera['category'],
+    isPrinter: false,
     dailyRate: 290000,
     price6Hours: 200000,
     price1Day: 290000,
@@ -133,7 +134,10 @@ export default function EquipmentTracker({
     status: 'Available' as Camera['status'],
     serialNumber: '',
     description: '',
-    image: ''
+    image: '',
+    printPrice1To2: 40000,
+    printPrice3To9: 35000,
+    printPrice10Plus: 33000,
   });
 
   const filteredCameras = useMemo(() => {
@@ -156,6 +160,7 @@ export default function EquipmentTracker({
       Lens: cameras.filter(c => c.category === 'Lens').length,
       Combo: cameras.filter(c => c.category === 'Combo').length,
       Accessory: cameras.filter(c => c.category === 'Accessory').length,
+      Printer: cameras.filter(c => c.category === 'Printer').length,
     };
   }, [cameras]);
 
@@ -179,6 +184,7 @@ export default function EquipmentTracker({
       name: '',
       shortName: '',
       category: 'Body',
+      isPrinter: false,
       dailyRate: 290000,
       price6Hours: 200000,
       price1Day: 290000,
@@ -189,7 +195,10 @@ export default function EquipmentTracker({
       status: 'Available',
       serialNumber: '',
       description: '',
-      image: ''
+      image: '',
+      printPrice1To2: 40000,
+      printPrice3To9: 35000,
+      printPrice10Plus: 33000,
     });
     setEditingCamera(null);
     setShowAddModal(true);
@@ -206,17 +215,21 @@ export default function EquipmentTracker({
       name: cam.name,
       shortName: cam.shortName,
       category: cam.category,
+      isPrinter: cam.category === 'Printer' || Boolean(cam.isPrinter),
       dailyRate: cam.dailyRate,
       price6Hours: cam.price6Hours ?? p6hFallback,
       price1Day: p1,
       price2Days: Math.round((cam.price2Days ?? ((p1 + p2_daily) / 2)) * 2),
       price3Days: Math.round((cam.price3Days ?? ((p1 + p2_daily + p3_daily) / 3)) * 3),
       price4DaysPlus: cam.price4DaysPlus ?? p4_daily,
-      depositAmount: cam.depositAmount ?? 5000000,
+      depositAmount: cam.depositAmount ?? (cam.category === 'Printer' ? 1000000 : 5000000),
       status: cam.status,
       serialNumber: cam.serialNumber,
       description: cam.description || '',
-      image: cam.image || ''
+      image: cam.image || '',
+      printPrice1To2: cam.printPrice1To2 ?? 40000,
+      printPrice3To9: cam.printPrice3To9 ?? 35000,
+      printPrice10Plus: cam.printPrice10Plus ?? 33000,
     });
     setEditingCamera(cam);
     setShowAddModal(true);
@@ -234,6 +247,7 @@ export default function EquipmentTracker({
     // Chia 2 cho giá ngày thứ 2, chia 3 cho ngày thứ 3 để có đơn giá/ngày đúng (giữ số thập phân chính xác tuyệt đối thay vì làm tròn)
     const savedFormState = {
       ...formState,
+      isPrinter: formState.category === 'Printer',
       price2Days: formState.price2Days / 2,
       price3Days: formState.price3Days / 3
     };
@@ -280,6 +294,7 @@ export default function EquipmentTracker({
       else if (cam.category === 'Lens') categoryVN = 'Ống kính';
       else if (cam.category === 'Combo') categoryVN = 'Bộ máy (Combo)';
       else if (cam.category === 'Accessory') categoryVN = 'Phụ kiện';
+      else if (cam.category === 'Printer') categoryVN = 'Máy in ảnh';
 
       let statusVN = cam.status;
       if (cam.status === 'Available') statusVN = 'Sẵn sàng';
@@ -373,6 +388,7 @@ export default function EquipmentTracker({
               <option value="Lens">Ống kính (Lens)</option>
               <option value="Combo">Combo Bộ máy</option>
               <option value="Accessory">Phụ kiện kèm theo</option>
+              <option value="Printer">Máy in ảnh (Printer)</option>
             </select>
           </div>
 
@@ -406,6 +422,7 @@ export default function EquipmentTracker({
               { id: 'Lens', name: 'Ống kính', fullName: 'Ống kính (Lens)', count: categoryCounts.Lens, color: 'bg-purple-600 border-purple-600 text-white' },
               { id: 'Combo', name: 'Combo', fullName: 'Bộ máy (Combo)', count: categoryCounts.Combo, color: 'bg-indigo-600 border-orange-500 text-white' },
               { id: 'Accessory', name: 'Phụ kiện', fullName: 'Phụ kiện máy ảnh', count: categoryCounts.Accessory, color: 'bg-emerald-600 border-emerald-600 text-white' },
+              { id: 'Printer', name: 'Máy in', fullName: 'Máy in ảnh', count: categoryCounts.Printer, color: 'bg-rose-600 border-rose-600 text-white' },
             ].map(cat => {
               const isSelected = categoryFilter === cat.id;
               return (
@@ -477,7 +494,8 @@ export default function EquipmentTracker({
                     <span className="bg-black/60 backdrop-blur-xs text-white text-[9px] sm:text-[10px] uppercase font-bold px-2 py-0.5 rounded-full tracking-wider">
                       {cam.category === 'Body' ? 'Thân máy' :
                        cam.category === 'Lens' ? 'Ống kính' :
-                       cam.category === 'Combo' ? 'Bộ Gear' : 'Phụ kiện'}
+                       cam.category === 'Combo' ? 'Bộ Gear' :
+                       cam.category === 'Printer' ? 'Máy in ảnh' : 'Phụ kiện'}
                     </span>
                     <span className="bg-orange-600 text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full">
                       {cam.shortName}
@@ -512,76 +530,34 @@ export default function EquipmentTracker({
 
                 {/* Dynamic Tiered Rates info */}
                 {/* Desktop Version: Always visible */}
-                <div className="hidden md:block border-t border-gray-100 pt-3 space-y-1.5 bg-orange-50/30 p-3 rounded-xl border border-orange-200/70">
-                  <div className="flex justify-between items-center text-[10px] text-gray-500 font-extrabold uppercase tracking-wider pb-0.5 border-b border-orange-200/50">
-                    <span>Thời hạn</span>
-                    <span>Đơn giá/ngày (Hoặc buổi)</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 pt-1 text-[11px] font-semibold">
-                    {(() => {
-                      const p1 = cam.price1Day ?? cam.dailyRate;
-                      const p6h = cam.price6Hours ?? (Math.round((p1 * 0.7) / 10000) * 10000);
-                      const p2_daily = Math.max(0, p1 - 30000);
-                      const p4_daily = Math.max(0, p1 - 40000);
-                      const p3_daily = p4_daily;
-                      const total2Days = Math.round((cam.price2Days ?? ((p1 + p2_daily) / 2)) * 2);
-                      const total3Days = Math.round((cam.price3Days ?? ((p1 + p2_daily + p3_daily) / 3)) * 3);
-                      const rateFrom4Days = cam.price4DaysPlus ?? p4_daily;
-
-                      return (
-                        <>
-                          <div className="flex justify-between items-center bg-amber-50 px-2 py-1 rounded-lg border border-amber-300 col-span-2 mb-1 shadow-3xs">
-                            <span className="text-amber-900 font-extrabold">Thuê ngắn hạn (6 tiếng):</span>
-                            <span className="font-mono text-amber-700 font-extrabold">{p6h.toLocaleString()}đ</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600 font-medium">Thuê 1 ngày:</span>
-                            <span className="font-mono text-gray-800 font-bold">{p1.toLocaleString()}đ</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600 font-medium">Thuê 2 ngày:</span>
-                            <span className="font-mono text-gray-800 font-bold">{total2Days.toLocaleString()}đ</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600 font-medium">Thuê 3 ngày:</span>
-                            <span className="font-mono text-gray-800 font-bold">{total3Days.toLocaleString()}đ</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600 font-medium">Từ 4 ngày:</span>
-                            <span className="font-mono text-orange-600 font-extrabold">{rateFrom4Days.toLocaleString()}đ/ngày</span>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                {/* Mobile Version: Collapsed by default, elegant toggle button */}
-                <div className="block md:hidden border-t border-gray-100/60 pt-2.5">
-                  <div className="flex justify-between items-center bg-orange-50/50 p-2 sm:p-2.5 rounded-xl border border-orange-200/80">
-                    <div>
-                      <span className="text-[9px] text-gray-500 font-extrabold block uppercase tracking-wide">Giá ngày cơ bản</span>
-                      <span className="text-xs sm:text-sm font-extrabold text-orange-600">
-                        {(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ
-                        <span className="text-[9px] font-normal text-gray-400">/ngày</span>
-                      </span>
+                {cam.category === 'Printer' ? (
+                  <div className="hidden md:block border-t border-gray-100 pt-3 space-y-1.5 bg-rose-50/40 p-3 rounded-xl border border-rose-200/70">
+                    <div className="flex justify-between items-center text-[10px] text-gray-500 font-extrabold uppercase tracking-wider pb-0.5 border-b border-rose-200/50">
+                      <span>BẢNG GIÁ IN ẢNH</span>
+                      <span>ĐƠN GIÁ / TẤM</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => togglePricingExpanded(cam.id)}
-                      className="px-2.5 py-1.5 text-[9px] sm:text-[10px] bg-white border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-50 active:scale-95 transition-all font-bold cursor-pointer flex items-center gap-1 shrink-0 shadow-3xs"
-                    >
-                      {expandedPrices[cam.id] ? 'Thu gọn bảng giá' : 'Bảng giá lũy tiến'}
-                      <span className="text-[8px] text-gray-500 transition-transform duration-200" style={{ transform: expandedPrices[cam.id] ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
-                    </button>
-                  </div>
-
-                  {expandedPrices[cam.id] && (
-                    <div className="mt-2 space-y-1.5 bg-orange-50/30 p-2.5 rounded-xl border border-orange-200/80 text-[10px] sm:text-[11px] font-medium transition-all duration-300">
-                      <div className="flex justify-between items-center text-[9px] text-gray-500 font-bold uppercase tracking-wider pb-0.5 border-b border-orange-200/60">
-                        <span>Thời hạn</span>
-                        <span>Đơn giá/ngày (hoặc buổi)</span>
+                    <div className="space-y-1.5 pt-1 text-[11px] font-semibold">
+                      <div className="flex justify-between items-center bg-white px-2.5 py-1.5 rounded-lg border border-rose-200 shadow-3xs">
+                        <span className="text-gray-700 font-bold">1 - 2 tấm:</span>
+                        <span className="font-mono text-rose-700 font-bold">{(cam.printPrice1To2 ?? 40000).toLocaleString()}đ/tấm</span>
                       </div>
+                      <div className="flex justify-between items-center bg-white px-2.5 py-1.5 rounded-lg border border-rose-200 shadow-3xs">
+                        <span className="text-gray-700 font-bold">3 - 9 tấm:</span>
+                        <span className="font-mono text-rose-700 font-bold">{(cam.printPrice3To9 ?? 35000).toLocaleString()}đ/tấm</span>
+                      </div>
+                      <div className="flex justify-between items-center bg-rose-100/80 px-2.5 py-1.5 rounded-lg border border-rose-300 shadow-3xs">
+                        <span className="text-rose-950 font-black">Từ 10 tấm trở lên:</span>
+                        <span className="font-mono text-rose-700 font-black">{(cam.printPrice10Plus ?? 33000).toLocaleString()}đ/tấm</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="hidden md:block border-t border-gray-100 pt-3 space-y-1.5 bg-orange-50/30 p-3 rounded-xl border border-orange-200/70">
+                    <div className="flex justify-between items-center text-[10px] text-gray-500 font-extrabold uppercase tracking-wider pb-0.5 border-b border-orange-200/50">
+                      <span>Thời hạn</span>
+                      <span>Đơn giá/ngày (Hoặc buổi)</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 pt-1 text-[11px] font-semibold">
                       {(() => {
                         const p1 = cam.price1Day ?? cam.dailyRate;
                         const p6h = cam.price6Hours ?? (Math.round((p1 * 0.7) / 10000) * 10000);
@@ -594,29 +570,135 @@ export default function EquipmentTracker({
 
                         return (
                           <>
-                            <div className="flex justify-between items-center bg-amber-50 p-1.5 rounded-lg border border-amber-300 font-bold">
-                              <span className="text-amber-900 font-extrabold">Ngắn hạn (6 tiếng):</span>
+                            <div className="flex justify-between items-center bg-amber-50 px-2 py-1 rounded-lg border border-amber-300 col-span-2 mb-1 shadow-3xs">
+                              <span className="text-amber-900 font-extrabold">Thuê ngắn hạn (6 tiếng):</span>
                               <span className="font-mono text-amber-700 font-extrabold">{p6h.toLocaleString()}đ</span>
                             </div>
-                            <div className="flex justify-between items-center px-1">
-                              <span className="text-gray-600">Thuê 1 ngày:</span>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 font-medium">Thuê 1 ngày:</span>
                               <span className="font-mono text-gray-800 font-bold">{p1.toLocaleString()}đ</span>
                             </div>
-                            <div className="flex justify-between items-center px-1">
-                              <span className="text-gray-600">Thuê 2 ngày:</span>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 font-medium">Thuê 2 ngày:</span>
                               <span className="font-mono text-gray-800 font-bold">{total2Days.toLocaleString()}đ</span>
                             </div>
-                            <div className="flex justify-between items-center px-1">
-                              <span className="text-gray-600">Thuê 3 ngày:</span>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 font-medium">Thuê 3 ngày:</span>
                               <span className="font-mono text-gray-800 font-bold">{total3Days.toLocaleString()}đ</span>
                             </div>
-                            <div className="flex justify-between items-center px-1">
-                              <span className="text-gray-600">Từ 4 ngày:</span>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 font-medium">Từ 4 ngày:</span>
                               <span className="font-mono text-orange-600 font-extrabold">{rateFrom4Days.toLocaleString()}đ/ngày</span>
                             </div>
                           </>
                         );
                       })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Mobile Version: Collapsed by default, elegant toggle button */}
+                <div className="block md:hidden border-t border-gray-100/60 pt-2.5">
+                  {cam.category === 'Printer' ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center bg-rose-50/70 p-2 sm:p-2.5 rounded-xl border border-rose-200/80">
+                        <div>
+                          <span className="text-[9px] text-rose-800 font-extrabold block uppercase tracking-wide">Giá in ảnh</span>
+                          <span className="text-xs sm:text-sm font-extrabold text-rose-600">
+                            {(cam.printPrice1To2 ?? 40000).toLocaleString()}đ
+                            <span className="text-[9px] font-normal text-gray-500">/tấm (từ 33k)</span>
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => togglePricingExpanded(cam.id)}
+                          className="px-2.5 py-1.5 text-[9px] sm:text-[10px] bg-white border border-rose-200 text-rose-900 rounded-lg hover:bg-rose-50 active:scale-95 transition-all font-bold cursor-pointer flex items-center gap-1 shrink-0 shadow-3xs"
+                        >
+                          {expandedPrices[cam.id] ? 'Thu gọn' : 'Chi tiết 3 mốc'}
+                          <span className="text-[8px] text-gray-500 transition-transform duration-200" style={{ transform: expandedPrices[cam.id] ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                        </button>
+                      </div>
+
+                      {expandedPrices[cam.id] && (
+                        <div className="space-y-1 bg-rose-50/40 p-2.5 rounded-xl border border-rose-200 text-[10.5px] font-medium">
+                          <div className="flex justify-between items-center bg-white p-1.5 rounded-lg border border-rose-100">
+                            <span className="text-gray-700">1 - 2 tấm:</span>
+                            <span className="font-mono text-rose-700 font-bold">{(cam.printPrice1To2 ?? 40000).toLocaleString()}đ/tấm</span>
+                          </div>
+                          <div className="flex justify-between items-center bg-white p-1.5 rounded-lg border border-rose-100">
+                            <span className="text-gray-700">3 - 9 tấm:</span>
+                            <span className="font-mono text-rose-700 font-bold">{(cam.printPrice3To9 ?? 35000).toLocaleString()}đ/tấm</span>
+                          </div>
+                          <div className="flex justify-between items-center bg-rose-100 p-1.5 rounded-lg border border-rose-200 font-bold">
+                            <span className="text-rose-950">Từ 10 tấm:</span>
+                            <span className="font-mono text-rose-700 font-black">{(cam.printPrice10Plus ?? 33000).toLocaleString()}đ/tấm</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex justify-between items-center bg-orange-50/50 p-2 sm:p-2.5 rounded-xl border border-orange-200/80">
+                        <div>
+                          <span className="text-[9px] text-gray-500 font-extrabold block uppercase tracking-wide">Giá ngày cơ bản</span>
+                          <span className="text-xs sm:text-sm font-extrabold text-orange-600">
+                            {(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ
+                            <span className="text-[9px] font-normal text-gray-400">/ngày</span>
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => togglePricingExpanded(cam.id)}
+                          className="px-2.5 py-1.5 text-[9px] sm:text-[10px] bg-white border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-50 active:scale-95 transition-all font-bold cursor-pointer flex items-center gap-1 shrink-0 shadow-3xs"
+                        >
+                          {expandedPrices[cam.id] ? 'Thu gọn bảng giá' : 'Bảng giá lũy tiến'}
+                          <span className="text-[8px] text-gray-500 transition-transform duration-200" style={{ transform: expandedPrices[cam.id] ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                        </button>
+                      </div>
+
+                      {expandedPrices[cam.id] && (
+                        <div className="mt-2 space-y-1.5 bg-orange-50/30 p-2.5 rounded-xl border border-orange-200/80 text-[10px] sm:text-[11px] font-medium transition-all duration-300">
+                          <div className="flex justify-between items-center text-[9px] text-gray-500 font-bold uppercase tracking-wider pb-0.5 border-b border-orange-200/60">
+                            <span>Thời hạn</span>
+                            <span>Đơn giá/ngày (hoặc buổi)</span>
+                          </div>
+                          {(() => {
+                            const p1 = cam.price1Day ?? cam.dailyRate;
+                            const p6h = cam.price6Hours ?? (Math.round((p1 * 0.7) / 10000) * 10000);
+                            const p2_daily = Math.max(0, p1 - 30000);
+                            const p4_daily = Math.max(0, p1 - 40000);
+                            const p3_daily = p4_daily;
+                            const total2Days = Math.round((cam.price2Days ?? ((p1 + p2_daily) / 2)) * 2);
+                            const total3Days = Math.round((cam.price3Days ?? ((p1 + p2_daily + p3_daily) / 3)) * 3);
+                            const rateFrom4Days = cam.price4DaysPlus ?? p4_daily;
+
+                            return (
+                              <>
+                                <div className="flex justify-between items-center bg-amber-50 p-1.5 rounded-lg border border-amber-300 font-bold">
+                                  <span className="text-amber-900 font-extrabold">Ngắn hạn (6 tiếng):</span>
+                                  <span className="font-mono text-amber-700 font-extrabold">{p6h.toLocaleString()}đ</span>
+                                </div>
+                                <div className="flex justify-between items-center px-1">
+                                  <span className="text-gray-600">Thuê 1 ngày:</span>
+                                  <span className="font-mono text-gray-800 font-bold">{p1.toLocaleString()}đ</span>
+                                </div>
+                                <div className="flex justify-between items-center px-1">
+                                  <span className="text-gray-600">Thuê 2 ngày:</span>
+                                  <span className="font-mono text-gray-800 font-bold">{total2Days.toLocaleString()}đ</span>
+                                </div>
+                                <div className="flex justify-between items-center px-1">
+                                  <span className="text-gray-600">Thuê 3 ngày:</span>
+                                  <span className="font-mono text-gray-800 font-bold">{total3Days.toLocaleString()}đ</span>
+                                </div>
+                                <div className="flex justify-between items-center px-1">
+                                  <span className="text-gray-600">Từ 4 ngày:</span>
+                                  <span className="font-mono text-orange-600 font-extrabold">{rateFrom4Days.toLocaleString()}đ/ngày</span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -805,19 +887,27 @@ export default function EquipmentTracker({
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
                   Mục thiết bị / Phân loại chính *
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {[
                     { id: 'Body', label: 'Thân máy', sub: 'Body', icon: '📷' },
                     { id: 'Lens', label: 'Ống kính', sub: 'Lens', icon: '🔍' },
                     { id: 'Combo', label: 'Combo bộ máy', sub: 'Combo', icon: '🎒' },
                     { id: 'Accessory', label: 'Phụ kiện kèm', sub: 'Phụ kiện', icon: '⚡' },
+                    { id: 'Printer', label: 'Máy in ảnh', sub: 'Máy in', icon: '🖨️' },
                   ].map(cat => {
                     const isSelected = formState.category === cat.id;
                     return (
                       <button
                         key={cat.id}
                         type="button"
-                        onClick={() => setFormState(prev => ({ ...prev, category: cat.id as any }))}
+                        onClick={() => setFormState(prev => ({
+                          ...prev,
+                          category: cat.id as any,
+                          isPrinter: cat.id === 'Printer',
+                          depositAmount: cat.id === 'Printer' && prev.depositAmount === 5000000 ? 1000000 : prev.depositAmount,
+                          dailyRate: cat.id === 'Printer' && prev.dailyRate === 290000 ? 40000 : prev.dailyRate,
+                          price1Day: cat.id === 'Printer' && prev.price1Day === 290000 ? 40000 : prev.price1Day,
+                        }))}
                         className={`p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                           isSelected
                             ? 'bg-orange-50 border-orange-500 text-orange-700 font-bold ring-2 ring-orange-200 shadow-3xs'
@@ -968,91 +1058,154 @@ export default function EquipmentTracker({
                 </div>
               </div>
 
-              {/* Tiered Pricing Section */}
-              <div className="bg-orange-50/40 p-3.5 rounded-xl border border-orange-150 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <label className="block text-xs font-extrabold text-orange-950 truncate">
-                    BẢNG GIÁ THEO NGÀY (CHÍNH XÁC THEO TỪNG MỐC)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const p1 = formState.price1Day || formState.dailyRate || 290000;
-                      const p6h = Math.round((p1 * 0.7) / 10000) * 10000;
-                      const p2_daily = Math.max(0, p1 - 30000);
-                      const p4_daily = Math.max(0, p1 - 40000);
-                      const p3_daily = p4_daily;
-
-                      setFormState(prev => ({
-                        ...prev,
-                        price6Hours: p6h,
-                        price1Day: p1,
-                        dailyRate: p1,
-                        price2Days: p1 + p2_daily,
-                        price3Days: p1 + p2_daily + p3_daily,
-                        price4DaysPlus: p4_daily
-                      }));
-                    }}
-                    className="text-[10px] text-orange-850 font-bold bg-orange-100 hover:bg-orange-200 border border-orange-200 px-2 py-0.5 rounded-full transition cursor-pointer shrink-0 flex items-center gap-1"
-                    title="Tự động tính các mốc giá theo giá 1 ngày"
-                  >
-                    <Sparkles className="w-3 h-3 text-orange-600" />
-                    <span>Tính giá lũy tiến</span>
-                  </button>
-                </div>
-
-                <div className="space-y-2.5">
-                  <div className="bg-amber-50/80 p-2 rounded-lg border border-amber-200">
-                    <label className="block text-[11px] font-extrabold text-amber-900 mb-0.5">⚡ Giá thuê gói 6 tiếng (VND)</label>
-                    <MoneyInput
-                      value={formState.price6Hours}
-                      onChange={v => setFormState(prev => ({ ...prev, price6Hours: v }))}
-                      className="border border-amber-300 bg-white rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                      suffixColor="amber"
-                    />
+              {/* Tiered Pricing Section: Dedicated for Printer VS Regular for Cameras */}
+              {formState.category === 'Printer' ? (
+                <div className="bg-rose-50/50 p-3.5 sm:p-4 rounded-xl border border-rose-200 space-y-3">
+                  <div className="flex items-center justify-between gap-2 border-b border-rose-200/80 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🖨️</span>
+                      <div>
+                        <label className="block text-xs font-black text-rose-950 uppercase tracking-wide">
+                          BẢNG GIÁ IN ẢNH THEO SỐ LƯỢNG TẤM
+                        </label>
+                        <span className="text-[10.5px] text-rose-700 font-medium">Đơn giá tự động nhảy theo đúng số lượng tấm ảnh in</span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    <div>
-                      <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 1 ngày (Chuẩn)</label>
+                    <div className="bg-white p-2.5 rounded-xl border border-rose-200 shadow-3xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-gray-700">1 - 2 tấm (Chuẩn)</label>
+                        <span className="text-[9.5px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded">40K</span>
+                      </div>
                       <MoneyInput
-                        value={formState.price1Day}
-                        onChange={v => setFormState(prev => ({ ...prev, price1Day: v, dailyRate: v }))}
-                        className="border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                        suffixColor="gray"
+                        value={formState.printPrice1To2}
+                        onChange={v => setFormState(prev => ({ ...prev, printPrice1To2: v, dailyRate: v, price1Day: v }))}
+                        className="border border-gray-250 bg-white rounded-lg p-2 text-xs font-bold text-rose-900 focus:ring-1 focus:ring-rose-500 focus:outline-none"
+                        suffixColor="rose"
+                        placeholder="40.000"
                       />
+                      <span className="text-[9.5px] text-gray-400 block text-right font-medium">40.000đ / tấm</span>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 2 ngày (VND)</label>
-                      <MoneyInput
-                        value={formState.price2Days}
-                        onChange={v => setFormState(prev => ({ ...prev, price2Days: v }))}
-                        className="border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                        suffixColor="gray"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 3 ngày (VND)</label>
-                      <MoneyInput
-                        value={formState.price3Days}
-                        onChange={v => setFormState(prev => ({ ...prev, price3Days: v }))}
-                        className="border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                        suffixColor="gray"
-                      />
-                    </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá từ ngày thứ 4 trở đi (VND/ngày)</label>
-                    <MoneyInput
-                      value={formState.price4DaysPlus}
-                      onChange={v => setFormState(prev => ({ ...prev, price4DaysPlus: v }))}
-                      className="border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                      suffixColor="gray"
-                    />
+                    <div className="bg-white p-2.5 rounded-xl border border-rose-200 shadow-3xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-gray-700">3 - 9 tấm (Ưu đãi)</label>
+                        <span className="text-[9.5px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">35K</span>
+                      </div>
+                      <MoneyInput
+                        value={formState.printPrice3To9}
+                        onChange={v => setFormState(prev => ({ ...prev, printPrice3To9: v }))}
+                        className="border border-gray-250 bg-white rounded-lg p-2 text-xs font-bold text-rose-900 focus:ring-1 focus:ring-rose-500 focus:outline-none"
+                        suffixColor="rose"
+                        placeholder="35.000"
+                      />
+                      <span className="text-[9.5px] text-gray-400 block text-right font-medium">35.000đ / tấm</span>
+                    </div>
+
+                    <div className="bg-rose-100/60 p-2.5 rounded-xl border border-rose-300 shadow-3xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-black text-rose-950">Từ 10 tấm trở lên</label>
+                        <span className="text-[9.5px] font-extrabold text-white bg-rose-600 px-1.5 py-0.2 rounded">33K</span>
+                      </div>
+                      <MoneyInput
+                        value={formState.printPrice10Plus}
+                        onChange={v => setFormState(prev => ({ ...prev, printPrice10Plus: v }))}
+                        className="border border-rose-300 bg-white rounded-lg p-2 text-xs font-black text-rose-900 focus:ring-1 focus:ring-rose-500 focus:outline-none"
+                        suffixColor="rose"
+                        placeholder="33.000"
+                      />
+                      <span className="text-[9.5px] text-rose-700 block text-right font-bold">33.000đ / tấm</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-orange-50/40 p-3.5 rounded-xl border border-orange-150 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="block text-xs font-extrabold text-orange-950 truncate">
+                      BẢNG GIÁ THEO NGÀY (CHÍNH XÁC THEO TỪNG MỐC)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const p1 = formState.price1Day || formState.dailyRate || 290000;
+                        const p6h = Math.round((p1 * 0.7) / 10000) * 10000;
+                        const p2_daily = Math.max(0, p1 - 30000);
+                        const p4_daily = Math.max(0, p1 - 40000);
+                        const p3_daily = p4_daily;
+
+                        setFormState(prev => ({
+                          ...prev,
+                          price6Hours: p6h,
+                          price1Day: p1,
+                          dailyRate: p1,
+                          price2Days: p1 + p2_daily,
+                          price3Days: p1 + p2_daily + p3_daily,
+                          price4DaysPlus: p4_daily
+                        }));
+                      }}
+                      className="text-[10px] text-orange-850 font-bold bg-orange-100 hover:bg-orange-200 border border-orange-200 px-2 py-0.5 rounded-full transition cursor-pointer shrink-0 flex items-center gap-1"
+                      title="Tự động tính các mốc giá theo giá 1 ngày"
+                    >
+                      <Sparkles className="w-3 h-3 text-orange-600" />
+                      <span>Tính giá lũy tiến</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="bg-amber-50/80 p-2 rounded-lg border border-amber-200">
+                      <label className="block text-[11px] font-extrabold text-amber-900 mb-0.5">⚡ Giá thuê gói 6 tiếng (VND)</label>
+                      <MoneyInput
+                        value={formState.price6Hours}
+                        onChange={v => setFormState(prev => ({ ...prev, price6Hours: v }))}
+                        className="border border-amber-300 bg-white rounded-lg p-2 text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                        suffixColor="amber"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 1 ngày (Chuẩn)</label>
+                        <MoneyInput
+                          value={formState.price1Day}
+                          onChange={v => setFormState(prev => ({ ...prev, price1Day: v, dailyRate: v }))}
+                          className="border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                          suffixColor="gray"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 2 ngày (VND)</label>
+                        <MoneyInput
+                          value={formState.price2Days}
+                          onChange={v => setFormState(prev => ({ ...prev, price2Days: v }))}
+                          className="border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                          suffixColor="gray"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá thuê 3 ngày (VND)</label>
+                        <MoneyInput
+                          value={formState.price3Days}
+                          onChange={v => setFormState(prev => ({ ...prev, price3Days: v }))}
+                          className="border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                          suffixColor="gray"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-650 mb-1">Giá từ ngày thứ 4 trở đi (VND/ngày)</label>
+                      <MoneyInput
+                        value={formState.price4DaysPlus}
+                        onChange={v => setFormState(prev => ({ ...prev, price4DaysPlus: v }))}
+                        className="border border-gray-200 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 focus:outline-none"
+                        suffixColor="gray"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Deposit Money Option */}
               <div className="bg-amber-50/50 p-3.5 rounded-xl border border-amber-200/80 space-y-2">

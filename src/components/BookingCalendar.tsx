@@ -4,7 +4,7 @@ import { Camera, RentalContract, BankConfig, Customer } from '../types';
 import MoneyInput from './MoneyInput';
 import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check } from 'lucide-react';
 import { toPng } from 'html-to-image';
-import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../utils/pricing';
+import { getCameraRateForDuration, checkBookingConflict, add6Hours, getPrintPrice } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from '../utils/supabase';
 import { formatDMY } from '../utils/dateUtils';
@@ -256,6 +256,7 @@ export default function BookingCalendar({
     customerDocType: 'CCCD_And_1M' as const,
     customerDocNote: 'Giữ CCCD gốc + 1.000.000đ',
     selectedCameraIds: [] as string[],
+    printCounts: {} as Record<string, number>,
     startDate: '',
     endDate: '',
     is6Hours: false,
@@ -281,12 +282,24 @@ export default function BookingCalendar({
   }, [formData.startDate, formData.endDate, formData.is6Hours]);
 
   const totalBeforeDiscount = useMemo(() => {
-    const dailyTotal = formData.selectedCameraIds.reduce((sum, id) => {
+    let regularDailyTotal = 0;
+    let printerTotal = 0;
+
+    formData.selectedCameraIds.forEach(id => {
       const cam = cameras.find(c => c.id === id);
-      return sum + (cam ? getCameraRateForDuration(cam, calculatedDays, formData.is6Hours) : 0);
-    }, 0);
-    return formData.is6Hours ? dailyTotal : dailyTotal * calculatedDays;
-  }, [formData.selectedCameraIds, calculatedDays, formData.is6Hours, cameras]);
+      if (!cam) return;
+      if (cam.category === 'Printer' || cam.isPrinter) {
+        const prints = formData.printCounts?.[id] || 5;
+        const { totalPrice } = getPrintPrice(cam, prints);
+        printerTotal += totalPrice;
+      } else {
+        regularDailyTotal += getCameraRateForDuration(cam, calculatedDays, formData.is6Hours);
+      }
+    });
+
+    const camerasCost = formData.is6Hours ? regularDailyTotal : regularDailyTotal * calculatedDays;
+    return camerasCost + printerTotal;
+  }, [formData.selectedCameraIds, formData.printCounts, calculatedDays, formData.is6Hours, cameras]);
 
   const calculatedTotal = useMemo(() => {
     if (formData.customFinalPrice !== null && formData.customFinalPrice !== undefined) {
@@ -658,11 +671,18 @@ export default function BookingCalendar({
 
     const items = formData.selectedCameraIds.map(id => {
       const cam = cameras.find(c => c.id === id);
+      const isPrinter = cam?.category === 'Printer' || Boolean(cam?.isPrinter);
+      const prints = isPrinter ? (formData.printCounts?.[id] || 5) : undefined;
+      const rate = isPrinter && cam
+        ? getPrintPrice(cam, prints!).totalPrice
+        : (cam ? getCameraRateForDuration(cam, calculatedDays, formData.is6Hours) : 100000);
+
       return {
         cameraId: id,
-        cameraName: cam?.name || 'Thiết bị',
-        dailyRate: cam ? getCameraRateForDuration(cam, calculatedDays, formData.is6Hours) : 100000,
-        quantity: 1
+        cameraName: isPrinter ? `${cam?.name || 'Máy in ảnh'} (${prints} tấm)` : (cam?.name || 'Thiết bị'),
+        dailyRate: rate,
+        quantity: 1,
+        printCount: prints
       };
     });
 
@@ -1538,11 +1558,18 @@ export default function BookingCalendar({
                   ) : (
                     cameras.filter(cam => cam.status !== 'Maintenance').map(cam => {
                       const isSelected = formData.selectedCameraIds.includes(cam.id);
-                      const priceLabel = formData.is6Hours 
-                        ? `${(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ/6h` 
-                        : (calculatedDays > 0 
-                          ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày (${calculatedDays}n)` 
-                          : `${(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ/ngày`
+                      const isPrinter = cam.category === 'Printer' || Boolean(cam.isPrinter);
+                      const printCount = formData.printCounts?.[cam.id] || 5;
+                      const printPricing = isPrinter ? getPrintPrice(cam, printCount) : null;
+
+                      const priceLabel = isPrinter
+                        ? (isSelected ? `${printPricing?.totalPrice.toLocaleString()}đ (${printCount} tấm)` : '40k/tấm (từ 33k)')
+                        : (formData.is6Hours 
+                          ? `${(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ/6h` 
+                          : (calculatedDays > 0 
+                            ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày (${calculatedDays}n)` 
+                            : `${(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ/ngày`
+                          )
                         );
                       return (
                         <div
@@ -1556,41 +1583,105 @@ export default function BookingCalendar({
                             } else {
                               setFormData({
                                 ...formData,
-                                selectedCameraIds: [...formData.selectedCameraIds, cam.id]
+                                selectedCameraIds: [...formData.selectedCameraIds, cam.id],
+                                printCounts: {
+                                  ...formData.printCounts,
+                                  [cam.id]: formData.printCounts?.[cam.id] || 5
+                                }
                               });
                             }
                           }}
-                          className={`p-2 rounded-xl flex items-center justify-between gap-2 cursor-pointer select-none transition-all ${
+                          className={`p-2 sm:p-2.5 rounded-xl cursor-pointer select-none transition-all ${
                             isSelected
                               ? 'bg-orange-50 border-2 border-orange-500 shadow-xs ring-1 ring-orange-400/40'
                               : 'bg-white hover:bg-orange-50/40 border border-gray-200 hover:border-orange-200 shadow-3xs'
                           }`}
                         >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <div className={`w-4.5 h-4.5 rounded-md flex items-center justify-center transition-all shrink-0 ${
-                              isSelected ? 'bg-orange-600 text-white shadow-3xs' : 'border-2 border-gray-300 bg-white'
-                            }`}>
-                              {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                            </div>
-                            <div className="min-w-0 flex-1 flex items-center gap-1.5 flex-wrap">
-                              <span className={`text-xs sm:text-sm font-extrabold truncate ${isSelected ? 'text-orange-950 font-black' : 'text-gray-900'}`}>
-                                {cam.name}
-                              </span>
-                              {cam.serialNumber && (
-                                <span className="bg-gray-150 text-gray-600 text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0">
-                                  {cam.serialNumber}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <div className={`w-4.5 h-4.5 rounded-md flex items-center justify-center transition-all shrink-0 ${
+                                isSelected ? 'bg-orange-600 text-white shadow-3xs' : 'border-2 border-gray-300 bg-white'
+                              }`}>
+                                {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                              </div>
+                              <div className="min-w-0 flex-1 flex items-center gap-1.5 flex-wrap">
+                                <span className={`text-xs sm:text-sm font-extrabold truncate ${isSelected ? 'text-orange-950 font-black' : 'text-gray-900'}`}>
+                                  {cam.name}
                                 </span>
-                              )}
+                                {cam.serialNumber && (
+                                  <span className="bg-gray-150 text-gray-600 text-[9px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0">
+                                    {cam.serialNumber}
+                                  </span>
+                                )}
+                              </div>
                             </div>
+
+                            <span className={`font-mono text-xs font-black shrink-0 px-2 py-0.5 rounded-lg ${
+                              isSelected 
+                                ? 'bg-orange-600 text-white shadow-3xs' 
+                                : 'bg-orange-50 text-orange-700 border border-orange-200/60'
+                            }`}>
+                              {priceLabel}
+                            </span>
                           </div>
 
-                          <span className={`font-mono text-xs font-black shrink-0 px-2 py-0.5 rounded-lg ${
-                            isSelected 
-                              ? 'bg-orange-600 text-white shadow-3xs' 
-                              : 'bg-orange-50 text-orange-700 border border-orange-200/60'
-                          }`}>
-                            {priceLabel}
-                          </span>
+                          {/* Print count controller when printer is selected */}
+                          {isSelected && isPrinter && (
+                            <div
+                              onClick={e => e.stopPropagation()}
+                              className="mt-2 pt-2 border-t border-orange-200/80 flex items-center justify-between flex-wrap gap-2 text-xs"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-bold text-gray-700">Số lượng in:</span>
+                                <div className="inline-flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden shadow-3xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = Math.max(1, printCount - 1);
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        printCounts: { ...prev.printCounts, [cam.id]: next }
+                                      }));
+                                    }}
+                                    className="px-2 py-0.5 text-xs font-bold text-gray-600 hover:bg-gray-100 active:bg-gray-200"
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={printCount}
+                                    onChange={e => {
+                                      const val = Math.max(1, parseInt(e.target.value) || 1);
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        printCounts: { ...prev.printCounts, [cam.id]: val }
+                                      }));
+                                    }}
+                                    className="w-12 text-center text-xs font-bold font-mono py-0.5 focus:outline-none border-x border-gray-200"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = printCount + 1;
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        printCounts: { ...prev.printCounts, [cam.id]: next }
+                                      }));
+                                    }}
+                                    className="px-2 py-0.5 text-xs font-bold text-gray-600 hover:bg-gray-100 active:bg-gray-200"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                <span className="text-[11px] text-gray-500 font-medium">tấm</span>
+                              </div>
+
+                              <div className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+                                {printPricing?.unitPrice.toLocaleString()}đ/tấm ({printPricing?.tierLabel}) = <strong>{printPricing?.totalPrice.toLocaleString()}đ</strong>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })

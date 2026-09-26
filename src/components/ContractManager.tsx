@@ -8,7 +8,7 @@ import {
   Image as ImageIcon, ChevronLeft, ChevronRight, FileSpreadsheet, Copy, Edit2, 
   Save, Clock, DollarSign, User, AlertTriangle, CheckCircle2, Zap 
 } from 'lucide-react';
-import { getCameraRateForDuration, checkBookingConflict, add6Hours } from '../utils/pricing';
+import { getCameraRateForDuration, checkBookingConflict, add6Hours, getPrintPrice } from '../utils/pricing';
 import { loadStoredData, saveStoredData, cleanSystemNote } from '../utils/mockData';
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from '../utils/supabase';
 import { formatDMY } from '../utils/dateUtils';
@@ -428,6 +428,7 @@ export default function ContractManager({
     customerDocType: 'CCCD_And_1M' as const,
     customerDocNote: 'Giữ CCCD gốc + 1.000.000đ',
     selectedCameraIds: [] as string[],
+    printCounts: {} as Record<string, number>,
     startDate: systemDate,
     endDate: systemDate,
     is6Hours: false,
@@ -666,12 +667,24 @@ export default function ContractManager({
   }, [newContractForm.startDate, newContractForm.endDate, newContractForm.is6Hours]);
 
   const totalBeforeDiscount = useMemo(() => {
-    const dailyTotal = newContractForm.selectedCameraIds.reduce((sum, id) => {
+    let regularDailyTotal = 0;
+    let printerTotal = 0;
+
+    newContractForm.selectedCameraIds.forEach(id => {
       const cam = cameras.find(c => c.id === id);
-      return sum + (cam ? getCameraRateForDuration(cam, calculatedDays, newContractForm.is6Hours) : 0);
-    }, 0);
-    return newContractForm.is6Hours ? dailyTotal : dailyTotal * calculatedDays;
-  }, [newContractForm.selectedCameraIds, calculatedDays, newContractForm.is6Hours, cameras]);
+      if (!cam) return;
+      if (cam.category === 'Printer' || cam.isPrinter) {
+        const prints = newContractForm.printCounts?.[id] || 5;
+        const { totalPrice } = getPrintPrice(cam, prints);
+        printerTotal += totalPrice;
+      } else {
+        regularDailyTotal += getCameraRateForDuration(cam, calculatedDays, newContractForm.is6Hours);
+      }
+    });
+
+    const camerasCost = newContractForm.is6Hours ? regularDailyTotal : regularDailyTotal * calculatedDays;
+    return camerasCost + printerTotal;
+  }, [newContractForm.selectedCameraIds, newContractForm.printCounts, calculatedDays, newContractForm.is6Hours, cameras]);
 
   const calculatedTotal = useMemo(() => {
     if (newContractForm.customFinalPrice !== null && newContractForm.customFinalPrice !== undefined) {
@@ -751,11 +764,18 @@ export default function ContractManager({
 
     const items = newContractForm.selectedCameraIds.map(id => {
       const cam = cameras.find(c => c.id === id);
+      const isPrinter = cam?.category === 'Printer' || Boolean(cam?.isPrinter);
+      const prints = isPrinter ? (newContractForm.printCounts?.[id] || 5) : undefined;
+      const rate = isPrinter && cam
+        ? getPrintPrice(cam, prints!).totalPrice
+        : (cam ? getCameraRateForDuration(cam, calculatedDays, newContractForm.is6Hours) : 0);
+
       return {
         cameraId: id,
-        cameraName: cam?.name || 'Thiết bị',
-        dailyRate: cam ? getCameraRateForDuration(cam, calculatedDays, newContractForm.is6Hours) : 0,
-        quantity: 1
+        cameraName: isPrinter ? `${cam?.name || 'Máy in ảnh'} (${prints} tấm)` : (cam?.name || 'Thiết bị'),
+        dailyRate: rate,
+        quantity: 1,
+        printCount: prints
       };
     });
 
@@ -2190,6 +2210,10 @@ export default function ContractManager({
                   ) : (
                     cameras.filter(cam => cam.status !== 'Maintenance').map(cam => {
                       const isSelected = newContractForm.selectedCameraIds.includes(cam.id);
+                      const isPrinter = cam.category === 'Printer' || Boolean(cam.isPrinter);
+                      const printCount = newContractForm.printCounts?.[cam.id] || 5;
+                      const printPricing = isPrinter ? getPrintPrice(cam, printCount) : null;
+
                       return (
                         <div
                           key={cam.id}
@@ -2202,44 +2226,114 @@ export default function ContractManager({
                             } else {
                               setNewContractForm({
                                 ...newContractForm,
-                                selectedCameraIds: [...newContractForm.selectedCameraIds, cam.id]
+                                selectedCameraIds: [...newContractForm.selectedCameraIds, cam.id],
+                                printCounts: {
+                                  ...newContractForm.printCounts,
+                                  [cam.id]: newContractForm.printCounts?.[cam.id] || 5
+                                }
                               });
                             }
                           }}
-                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer select-none transition-all duration-150 border ${
+                          className={`p-2.5 rounded-xl cursor-pointer select-none transition-all duration-150 border ${
                             isSelected
                               ? 'bg-orange-50 border-orange-300 shadow-sm'
                               : 'bg-gray-50/60 border-transparent hover:bg-orange-50/40 hover:border-orange-100'
                           }`}
                         >
-                          {/* Custom checkbox */}
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-150 ${
-                            isSelected ? 'bg-orange-500 border-orange-500 shadow-sm' : 'border-gray-300 bg-white'
-                          }`}>
-                            {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-                          </div>
-                          {/* Camera info */}
-                          <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className={`text-xs sm:text-sm font-bold truncate ${isSelected ? 'text-orange-700' : 'text-gray-800'}`}>
-                                {cam.name}
-                              </span>
-                              <span className="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0">
-                                {cam.serialNumber}
+                          <div className="flex items-center gap-2.5">
+                            {/* Custom checkbox */}
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-150 ${
+                              isSelected ? 'bg-orange-500 border-orange-500 shadow-sm' : 'border-gray-300 bg-white'
+                            }`}>
+                              {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                            </div>
+                            {/* Camera info */}
+                            <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className={`text-xs sm:text-sm font-bold truncate ${isSelected ? 'text-orange-700' : 'text-gray-800'}`}>
+                                  {cam.name}
+                                </span>
+                                <span className="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0">
+                                  {cam.serialNumber}
+                                </span>
+                              </div>
+                              <span className={`text-[11px] font-extrabold shrink-0 px-2 py-0.5 rounded-full transition-all ${
+                                isSelected ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-700'
+                              }`}>
+                                {isPrinter
+                                  ? (isSelected
+                                      ? `${printPricing?.totalPrice.toLocaleString()}đ (${printCount} tấm)`
+                                      : '40k/tấm (từ 33k)'
+                                    )
+                                  : (newContractForm.is6Hours
+                                      ? `${(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ /6h`
+                                      : (calculatedDays > 0
+                                        ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày`
+                                        : `${(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ/ngày`
+                                      )
+                                    )
+                                }
                               </span>
                             </div>
-                            <span className={`text-[11px] font-extrabold shrink-0 px-2 py-0.5 rounded-full transition-all ${
-                              isSelected ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-700'
-                            }`}>
-                              {newContractForm.is6Hours
-                                ? `${(cam.price6Hours ?? Math.round((cam.price1Day ?? cam.dailyRate) * 0.6)).toLocaleString()}đ /6h`
-                                : (calculatedDays > 0
-                                  ? `${Math.round(getCameraRateForDuration(cam, calculatedDays, false)).toLocaleString()}đ/ngày`
-                                  : `${(cam.price1Day ?? cam.dailyRate).toLocaleString()}đ/ngày`
-                                )
-                              }
-                            </span>
                           </div>
+
+                          {/* Print count controller when printer is selected */}
+                          {isSelected && isPrinter && (
+                            <div
+                              onClick={e => e.stopPropagation()}
+                              className="mt-2 pt-2 border-t border-orange-200/80 flex items-center justify-between flex-wrap gap-2 text-xs"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-bold text-gray-700">Số lượng in:</span>
+                                <div className="inline-flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden shadow-3xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = Math.max(1, printCount - 1);
+                                      setNewContractForm(prev => ({
+                                        ...prev,
+                                        printCounts: { ...prev.printCounts, [cam.id]: next }
+                                      }));
+                                    }}
+                                    className="px-2 py-0.5 text-xs font-bold text-gray-600 hover:bg-gray-100 active:bg-gray-200"
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={printCount}
+                                    onChange={e => {
+                                      const val = Math.max(1, parseInt(e.target.value) || 1);
+                                      setNewContractForm(prev => ({
+                                        ...prev,
+                                        printCounts: { ...prev.printCounts, [cam.id]: val }
+                                      }));
+                                    }}
+                                    className="w-12 text-center text-xs font-bold font-mono py-0.5 focus:outline-none border-x border-gray-200"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = printCount + 1;
+                                      setNewContractForm(prev => ({
+                                        ...prev,
+                                        printCounts: { ...prev.printCounts, [cam.id]: next }
+                                      }));
+                                    }}
+                                    className="px-2 py-0.5 text-xs font-bold text-gray-600 hover:bg-gray-100 active:bg-gray-200"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                <span className="text-[11px] text-gray-500 font-medium">tấm</span>
+                              </div>
+
+                              <div className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+                                {printPricing?.unitPrice.toLocaleString()}đ/tấm ({printPricing?.tierLabel}) = <strong>{printPricing?.totalPrice.toLocaleString()}đ</strong>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })

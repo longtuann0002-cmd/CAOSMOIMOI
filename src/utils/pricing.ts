@@ -7,6 +7,11 @@ import { Camera } from '../types';
  * @param is6Hours Có phải hình thức thuê 6 tiếng hay không
  */
 export function getCameraRateForDuration(camera: Camera, days: number, is6Hours?: boolean): number {
+  if (camera.category === 'Printer' || camera.isPrinter) {
+    // Với máy in ảnh, giá cơ bản lấy theo giá ngày hoặc đơn giá 1 tấm
+    return camera.price1Day ?? camera.dailyRate ?? (camera.printPrice1To2 ?? 40000);
+  }
+
   const p1 = camera.price1Day ?? camera.dailyRate;
   if (is6Hours) {
     return camera.price6Hours ?? (Math.round((p1 * 0.7) / 10000) * 10000); // 70% giá ngày đầu làm tròn chẵn chục nghìn
@@ -177,4 +182,28 @@ export function checkBookingConflict(
   }
 
   return { hasConflict: false, message: '' };
+}
+
+/**
+ * Tính đơn giá và thành tiền in ảnh theo số lượng tấm:
+ * - 1-2 tấm: 40.000đ/tấm (hoặc theo cấu hình riêng của máy)
+ * - 3-9 tấm: 35.000đ/tấm
+ * - Từ 10 tấm trở lên: 33.000đ/tấm
+ */
+export function getPrintPrice(
+  printer: Camera,
+  count: number
+): { unitPrice: number; totalPrice: number; tierLabel: string } {
+  const c = Math.max(1, count || 1);
+  const p1 = printer.printPrice1To2 ?? 40000;
+  const p2 = printer.printPrice3To9 ?? 35000;
+  const p3 = printer.printPrice10Plus ?? 33000;
+
+  if (c >= 10) {
+    return { unitPrice: p3, totalPrice: p3 * c, tierLabel: 'Từ 10 tấm trở lên' };
+  }
+  if (c >= 3) {
+    return { unitPrice: p2, totalPrice: p2 * c, tierLabel: '3-9 tấm' };
+  }
+  return { unitPrice: p1, totalPrice: p1 * c, tierLabel: '1-2 tấm' };
 }

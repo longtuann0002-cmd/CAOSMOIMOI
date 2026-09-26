@@ -2,7 +2,7 @@ export interface Camera {
   id: string;
   name: string; // e.g. "Canon EOS R50"
   shortName: string; // e.g. "R50"
-  category: 'Body' | 'Lens' | 'Combo' | 'Accessory';
+  category: 'Body' | 'Lens' | 'Combo' | 'Accessory' | 'Printer';
   dailyRate: number; // Daily price in VND, e.g. 150000
   price6Hours?: number; // Giá thuê 6 tiếng
   price1Day?: number; // Giá thuê 1 ngày
@@ -14,6 +14,11 @@ export interface Camera {
   serialNumber: string;
   image?: string;
   description?: string;
+  // Cấu hình bảng giá in ảnh theo số lượng tấm (Dành cho Máy in ảnh)
+  isPrinter?: boolean;
+  printPrice1To2?: number; // Mốc 1-2 tấm: 40.000đ/tấm
+  printPrice3To9?: number; // Mốc 3-9 tấm: 35.000đ/tấm
+  printPrice10Plus?: number; // Mốc từ 10 tấm trở lên: 33.000đ/tấm
 }
 
 export type ContractStatus = 'Pending' | 'Active' | 'Completed' | 'Overdue' | 'Cancelled';
@@ -31,6 +36,7 @@ export interface RentalContract {
     cameraName: string;
     dailyRate: number;
     quantity: number;
+    printCount?: number; // Số tấm in nếu là máy in ảnh
   }[];
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
