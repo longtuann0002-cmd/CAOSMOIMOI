@@ -2157,29 +2157,32 @@ export default function ContractManager({
                 </div>
               </div>
 
-              {/* Equipment Multi Check selectors — hero card */}
+              {/* Equipment Multi Check selectors */}
               <div>
-                {/* Hero header */}
-                <div className="relative bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-2xl px-4 pt-3 pb-10 mb-[-28px] shadow-md">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-white/20 rounded-full p-1.5">
-                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      <span className="text-white font-black text-sm tracking-wide">Chọn thiết bị thuê *</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
                     </div>
-                    {newContractForm.selectedCameraIds.length > 0 && (
-                      <span className="bg-white text-orange-600 text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-sm animate-pulse-slow">
-                        Đã chọn: {newContractForm.selectedCameraIds.length} máy
-                      </span>
-                    )}
+                    <span className="text-xs sm:text-sm font-bold text-gray-800">
+                      Chọn thiết bị thuê *
+                    </span>
                   </div>
+                  {newContractForm.selectedCameraIds.length > 0 ? (
+                    <span className="bg-orange-50 text-orange-700 border border-orange-200 text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-2xs">
+                      Đã chọn: {newContractForm.selectedCameraIds.length} máy
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-gray-400 font-medium">
+                      Chưa chọn máy nào
+                    </span>
+                  )}
                 </div>
                 {/* Card list */}
-                <div className="border-2 border-orange-200 rounded-2xl pt-9 pb-2 px-2 bg-white shadow-sm max-h-[220px] overflow-y-auto space-y-1.5">
+                <div className="border border-gray-250 rounded-xl p-2 bg-white shadow-2xs max-h-[220px] overflow-y-auto space-y-1.5">
                   {cameras.filter(cam => cam.status !== 'Maintenance').length === 0 ? (
                     <p className="text-xs text-gray-400 italic text-center py-4">
                       Hiện không có thiết bị khả dụng (toàn bộ thiết bị đang bảo trì).
