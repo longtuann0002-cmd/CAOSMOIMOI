@@ -439,7 +439,38 @@ export default function BookingCalendar({
         contract.items.forEach(item => {
           const cam = cameras.find(c => c.id === item.cameraId);
           const shortName = cam?.shortName || item.cameraName.substring(0, 5);
-          const isPrinter = cam?.category === 'Printer' || Boolean(cam?.isPrinter) || Boolean(item.printCount);
+          
+          // Check if this is a printer device
+          const isPrinter = cam?.category === 'Printer' || 
+                            Boolean(cam?.isPrinter) || 
+                            Boolean(item.printCount) ||
+                            shortName.toUpperCase().includes('IN') ||
+                            (item.cameraName || '').toUpperCase().includes('IN') ||
+                            (cam?.name || '').toUpperCase().includes('IN');
+
+          // Extract print count with comprehensive fallbacks
+          let printCount = item.printCount;
+          if (!printCount || printCount <= 0) {
+            const nameMatch = (item.cameraName || '').match(/(\d+)\s*tấm/i);
+            const noteMatch = (contract.note || '').match(/(\d+)\s*tấm/i);
+            if (nameMatch) {
+              printCount = parseInt(nameMatch[1], 10);
+            } else if (noteMatch) {
+              printCount = parseInt(noteMatch[1], 10);
+            } else if (item.quantity && item.quantity > 1) {
+              printCount = item.quantity;
+            } else if (item.dailyRate > 0) {
+              const rate = item.dailyRate;
+              if (rate >= 330000 && rate % 33000 === 0) printCount = rate / 33000;
+              else if (rate >= 105000 && rate % 35000 === 0) printCount = rate / 35000;
+              else if (rate === 80000) printCount = 2;
+              else if (rate === 40000) printCount = 1;
+              else if (rate >= 33000) printCount = Math.max(1, Math.round(rate / 35000));
+            }
+            if (isPrinter && (!printCount || printCount <= 0)) {
+              printCount = 1;
+            }
+          }
 
           // Build a dummy time range based on actual items to mimic the exact details from screenshot
           // For May 1: 00:00-00:00 XS10, 00:00-00:00 R50
@@ -479,7 +510,7 @@ export default function BookingCalendar({
             cameraShort: shortName,
             cameraName: item.cameraName,
             timeString,
-            printCount: item.printCount,
+            printCount,
             isPrinter,
           });
         });
@@ -512,17 +543,22 @@ export default function BookingCalendar({
 
     return displayCams.map(cam => {
       const activeBookingsToday = (dayBookingsMap[selectedDate] || []).filter(b => b.cameraShort === cam.shortName);
-      const isPrinterCam = cam.category === 'Printer' || Boolean(cam.isPrinter);
+      const isPrinterCam = cam.category === 'Printer' || 
+                           Boolean(cam.isPrinter) || 
+                           (cam.shortName || '').toUpperCase().includes('IN') || 
+                           (cam.name || '').toUpperCase().includes('IN') ||
+                           activeBookingsToday.some(b => b.isPrinter);
       
       let statusText = 'Còn trống cả ngày';
       let statusColor = 'bg-emerald-50 text-emerald-800 border-emerald-300';
       let hoursLabel = '';
       let is6h = false;
+      let totalPrints = 0;
       
       if (activeBookingsToday.length > 0) {
         if (isPrinterCam) {
           // For printers: show total prints count
-          const totalPrints = activeBookingsToday.reduce((sum, b) => sum + (b.printCount || 0), 0);
+          totalPrints = activeBookingsToday.reduce((sum, b) => sum + (b.printCount || 1), 0);
           statusText = `In ảnh: ${totalPrints} tấm`;
           statusColor = 'bg-rose-50 text-rose-900 border-rose-300';
         } else {
@@ -549,7 +585,9 @@ export default function BookingCalendar({
         statusText,
         statusColor,
         hoursLabel,
-        is6h
+        is6h,
+        isPrinterCam,
+        totalPrints
       };
     });
   }, [cameras, dayBookingsMap, selectedDate]);
@@ -793,13 +831,20 @@ export default function BookingCalendar({
               const isFilterActive = selectedCameraFilter === cam.shortName;
               const isAvailable = cam.statusText === 'Còn trống cả ngày';
               const isFull = cam.statusText === 'Kín lịch cả ngày';
+              const isPrinter = Boolean((cam as any).isPrinterCam) || 
+                                (cam.shortName || '').toUpperCase().includes('IN') ||
+                                (cam.name || '').toUpperCase().includes('IN');
 
               // Modern soft surface style: clean neutral for available, soft color accent for busy/6h
               let chipClass = 'bg-white hover:bg-slate-50/80 border border-slate-200/70 text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
               let dotColor = 'bg-emerald-500 ring-2 ring-emerald-100';
               let badgeStyle = 'text-emerald-700 bg-emerald-50';
 
-              if (isFull) {
+              if (isPrinter && !isAvailable) {
+                chipClass = 'bg-rose-50/60 hover:bg-rose-100/60 border border-rose-200/70 text-rose-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
+                dotColor = 'bg-rose-500 ring-2 ring-rose-200';
+                badgeStyle = 'text-rose-700 bg-rose-100/80 font-extrabold';
+              } else if (isFull) {
                 chipClass = 'bg-rose-50/60 hover:bg-rose-100/60 border border-rose-200/70 text-rose-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
                 dotColor = 'bg-rose-500 ring-2 ring-rose-200';
                 badgeStyle = 'text-rose-700 bg-rose-100/70 font-extrabold';
@@ -812,6 +857,8 @@ export default function BookingCalendar({
               if (isFilterActive) {
                 chipClass += ' ring-2 ring-orange-500 border-orange-400 bg-orange-50/70 font-black';
               }
+
+              const totalPrints = (cam as any).totalPrints || 1;
 
               return (
                 <button
@@ -830,12 +877,18 @@ export default function BookingCalendar({
                       Trống
                     </span>
                   )}
-                  {isFull && (
+                  {!isAvailable && isPrinter && (
+                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md text-rose-700 bg-rose-100/80 shrink-0 leading-tight flex items-center gap-0.5">
+                      <span>🖨️</span>
+                      <span>{totalPrints} tấm</span>
+                    </span>
+                  )}
+                  {!isAvailable && !isPrinter && isFull && (
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${badgeStyle} shrink-0 leading-tight`}>
                       Kín
                     </span>
                   )}
-                  {!isAvailable && !isFull && (
+                  {!isAvailable && !isPrinter && !isFull && (
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${badgeStyle} shrink-0 leading-tight flex items-center gap-1`}>
                       <span>6h</span>
                       {cam.hoursLabel && (
