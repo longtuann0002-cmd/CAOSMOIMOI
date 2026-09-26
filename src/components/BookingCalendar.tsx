@@ -264,6 +264,7 @@ export default function BookingCalendar({
     depositAmount: 1000000,
     paidAmount: 0,
     discountPercent: 0, // Tỷ lệ tự giảm giá (%)
+    customFinalPrice: null as number | null,
     note: '',
   });
 
@@ -288,9 +289,12 @@ export default function BookingCalendar({
   }, [formData.selectedCameraIds, calculatedDays, formData.is6Hours, cameras]);
 
   const calculatedTotal = useMemo(() => {
+    if (formData.customFinalPrice !== null && formData.customFinalPrice !== undefined) {
+      return Math.min(totalBeforeDiscount, Math.max(0, formData.customFinalPrice));
+    }
     const discountAmount = Math.round(totalBeforeDiscount * ((formData.discountPercent || 0) / 100));
     return Math.max(0, totalBeforeDiscount - discountAmount);
-  }, [totalBeforeDiscount, formData.discountPercent]);
+  }, [totalBeforeDiscount, formData.customFinalPrice, formData.discountPercent]);
 
   const getCameraRecommendedDeposit = (id: string): number => {
     const cam = cameras.find(c => c.id === id);
@@ -711,6 +715,7 @@ export default function BookingCalendar({
       depositAmount: 1000000,
       paidAmount: 0,
       discountPercent: 0,
+      customFinalPrice: null,
       note: '',
     });
   };
@@ -1992,7 +1997,12 @@ export default function BookingCalendar({
                           value={formData.discountPercent || ''}
                           onChange={e => {
                             const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
-                            setFormData({ ...formData, discountPercent: val });
+                            const newFinal = Math.round(totalBeforeDiscount * (1 - val / 100));
+                            setFormData(prev => ({
+                              ...prev,
+                              discountPercent: val,
+                              customFinalPrice: newFinal
+                            }));
                           }}
                           className="w-full bg-white border border-gray-250 rounded-xl py-2 pl-2.5 pr-6 text-sm font-bold font-mono focus:ring-2 focus:ring-orange-500 focus:outline-none"
                           placeholder="0"
@@ -2002,18 +2012,24 @@ export default function BookingCalendar({
                       </div>
                       <div className="col-span-3">
                         <MoneyInput
-                          value={calculatedTotal}
+                          value={formData.customFinalPrice !== null && formData.customFinalPrice !== undefined ? formData.customFinalPrice : calculatedTotal}
                           onChange={finalPrice => {
                             if (!totalBeforeDiscount || totalBeforeDiscount <= 0) {
-                              setFormData({ ...formData, discountPercent: 0 });
+                              setFormData(prev => ({ ...prev, discountPercent: 0, customFinalPrice: 0 }));
                               return;
                             }
-                            const validFinal = Math.min(totalBeforeDiscount, Math.max(0, finalPrice ?? totalBeforeDiscount));
-                            const discountAmount = Math.max(0, totalBeforeDiscount - validFinal);
+                            const val = finalPrice ?? 0;
+                            const clampedFinal = Math.min(totalBeforeDiscount, Math.max(0, val));
+                            const discountAmount = Math.max(0, totalBeforeDiscount - clampedFinal);
                             const rawPct = (discountAmount / totalBeforeDiscount) * 100;
                             const calculatedPct = Number((Math.round(rawPct * 10) / 10).toFixed(1));
-                            setFormData({ ...formData, discountPercent: calculatedPct });
+                            setFormData(prev => ({
+                              ...prev,
+                              customFinalPrice: val,
+                              discountPercent: calculatedPct
+                            }));
                           }}
+                          allowZero={true}
                           placeholder="Giá chốt sau giảm (đ)"
                           className="w-full bg-white border border-gray-250 rounded-xl p-2 text-sm font-semibold focus:ring-2 focus:ring-orange-500 focus:outline-none"
                           suffixColor="gray"
@@ -2032,7 +2048,14 @@ export default function BookingCalendar({
                       <button
                         key={pct}
                         type="button"
-                        onClick={() => setFormData({ ...formData, discountPercent: pct })}
+                        onClick={() => {
+                          const newFinal = Math.round(totalBeforeDiscount * (1 - pct / 100));
+                          setFormData(prev => ({
+                            ...prev,
+                            discountPercent: pct,
+                            customFinalPrice: newFinal
+                          }));
+                        }}
                         className={`py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer text-center ${
                           formData.discountPercent === pct
                             ? 'bg-orange-500 border-orange-500 text-white shadow-xs font-black'
