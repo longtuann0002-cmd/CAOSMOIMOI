@@ -2512,112 +2512,120 @@ export default function ContractManager({
                 )}
               </div>
 
-              {/* Money section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Giá trị cọc quy đổi (VND)</label>
-                  <MoneyInput
-                    value={newContractForm.depositAmount ?? 0}
-                    onChange={v => setNewContractForm({ ...newContractForm, depositAmount: v })}
-                    placeholder="0"
-                    allowZero={true}
-                    className="border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    suffixColor="gray"
-                  />
-                  {calculatedRecommendedDeposit > 0 && (
-                    <div className="mt-1">
+              {/* Money & Deposit section */}
+              <div className="bg-amber-50/30 border border-amber-200/60 rounded-2xl p-3 sm:p-3.5 space-y-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  {/* Cột 1: Cọc thế chấp */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-gray-750">Tiền cọc thế chấp (VND)</label>
+                    </div>
+                    <MoneyInput
+                      value={newContractForm.depositAmount ?? 0}
+                      onChange={v => setNewContractForm({ ...newContractForm, depositAmount: v })}
+                      placeholder="0"
+                      allowZero={true}
+                      className="border border-gray-250 bg-white rounded-xl p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                      suffixColor="gray"
+                    />
+                    {calculatedRecommendedDeposit > 0 && (
+                      <div className="pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setNewContractForm({ ...newContractForm, depositAmount: calculatedRecommendedDeposit })}
+                          className="text-[11px] text-amber-850 bg-amber-100/70 hover:bg-amber-100 border border-amber-300/80 px-2 py-0.5 rounded-lg font-semibold transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                        >
+                          💡 Cọc máy quy định: {calculatedRecommendedDeposit.toLocaleString()}đ
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cột 2: Cọc giữ máy trước */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-gray-750">Cọc giữ máy trước (VND)</label>
+                      {newContractForm.paidAmount > 0 && calculatedTotal > 0 && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          newContractForm.paidAmount === Math.round(calculatedTotal * 0.5)
+                            ? 'bg-amber-200/80 text-amber-900 border border-amber-300'
+                            : 'bg-blue-100 text-blue-900 border border-blue-200'
+                        }`}>
+                          {newContractForm.paidAmount === Math.round(calculatedTotal * 0.5)
+                            ? 'Đúng 50%'
+                            : `Cọc ${Math.round((newContractForm.paidAmount / calculatedTotal) * 100)}%`}
+                        </span>
+                      )}
+                    </div>
+                    <MoneyInput
+                      value={newContractForm.paidAmount || 0}
+                      onChange={v => setNewContractForm({ ...newContractForm, paidAmount: v })}
+                      placeholder="VD: 500.000"
+                      className="border border-gray-250 bg-white rounded-xl p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                      suffixColor="gray"
+                    />
+                    <div className="grid grid-cols-2 gap-1.5 pt-0.5">
                       <button
                         type="button"
-                        onClick={() => setNewContractForm({ ...newContractForm, depositAmount: calculatedRecommendedDeposit })}
-                        className="text-[10px] text-amber-700 hover:text-amber-800 bg-amber-50/55 hover:bg-amber-100 border border-amber-200/50 px-1.5 py-0.5 rounded-md font-bold transition-all cursor-pointer inline-block text-left"
+                        onClick={() => setNewContractForm({ ...newContractForm, paidAmount: Math.round(calculatedTotal * 0.5) })}
+                        className={`w-full min-w-0 text-[11px] font-bold py-1 px-1.5 rounded-lg border transition-all cursor-pointer text-center truncate ${
+                          newContractForm.paidAmount === Math.round(calculatedTotal * 0.5) && calculatedTotal > 0
+                            ? 'bg-amber-500 border-amber-600 text-white shadow-xs font-black'
+                            : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-250'
+                        }`}
+                        title={`Cọc 50% (${(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)`}
                       >
-                        💡 Cọc máy quy định: {calculatedRecommendedDeposit.toLocaleString()}đ
+                        Cọc 50% ({(Math.round(calculatedTotal * 0.5)).toLocaleString()}đ)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewContractForm({ ...newContractForm, paidAmount: 0 })}
+                        className={`w-full min-w-0 text-[11px] font-bold py-1 px-1.5 rounded-lg border transition-all cursor-pointer text-center truncate ${
+                          newContractForm.paidAmount === 0
+                            ? 'bg-gray-700 border-gray-800 text-white shadow-xs font-black'
+                            : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-250'
+                        }`}
+                        title="Không thu cọc giữ máy (0 đ)"
+                      >
+                        Không cọc (0đ)
                       </button>
                     </div>
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-gray-700">Cọc giữ máy trước (VND)</label>
-                    {newContractForm.paidAmount > 0 && calculatedTotal > 0 && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                        newContractForm.paidAmount === Math.round(calculatedTotal * 0.5)
-                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                          : 'bg-blue-50 text-blue-800 border border-blue-200'
-                      }`}>
-                        {newContractForm.paidAmount === Math.round(calculatedTotal * 0.5)
-                          ? 'Đúng 50%'
-                          : `${Math.round((newContractForm.paidAmount / calculatedTotal) * 100)}%`}
-                      </span>
-                    )}
-                  </div>
-                  <MoneyInput
-                    value={newContractForm.paidAmount || 0}
-                    onChange={v => setNewContractForm({ ...newContractForm, paidAmount: v })}
-                    placeholder="VD: 500.000"
-                    className="border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    suffixColor="gray"
-                  />
-                  <div className="grid grid-cols-2 gap-1.5 mt-1.5 w-full">
-                    <button
-                      type="button"
-                      onClick={() => setNewContractForm({ ...newContractForm, paidAmount: Math.round(calculatedTotal * 0.5) })}
-                      className={`w-full min-w-0 text-[10.5px] sm:text-[11px] font-bold py-1.5 px-1 rounded-lg border transition-all cursor-pointer text-center truncate ${
-                        newContractForm.paidAmount === Math.round(calculatedTotal * 0.5) && calculatedTotal > 0
-                          ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-xs font-extrabold'
-                          : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300'
-                      }`}
-                      title={`Điền cọc 50% (${(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)`}
-                    >
-                      Cọc 50% ({(Math.round(calculatedTotal * 0.5)).toLocaleString()} đ)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNewContractForm({ ...newContractForm, paidAmount: 0 })}
-                      className={`w-full min-w-0 text-[10.5px] sm:text-[11px] font-bold py-1.5 px-1 rounded-lg border transition-all cursor-pointer text-center truncate ${
-                        newContractForm.paidAmount === 0
-                          ? 'bg-gray-200 border-gray-400 text-gray-800 shadow-xs font-extrabold'
-                          : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300'
-                      }`}
-                      title="Không thu cọc giữ máy (0 đ)"
-                    >
-                      Không cọc (0 đ)
-                    </button>
-                  </div>
-                  <div className="mt-1 text-[11px] text-gray-500 font-medium">
-                    {newContractForm.paidAmount > 0 ? (
-                      <span className="text-gray-700">
-                        {newContractForm.paidAmount === Math.round(calculatedTotal * 0.5) ? (
-                          <span className="text-amber-800 font-semibold">✓ Đã cọc 50% ({(newContractForm.paidAmount).toLocaleString()} đ)</span>
-                        ) : (
-                          <span className="text-blue-700 font-semibold">✓ Cọc {calculatedTotal > 0 ? Math.round((newContractForm.paidAmount / calculatedTotal) * 100) : 0}% ({(newContractForm.paidAmount).toLocaleString()} đ)</span>
-                        )}
-                        {calculatedTotal > newContractForm.paidAmount && (
-                          <span className="text-gray-500"> · Còn thu: <strong className="text-gray-800">{(calculatedTotal - newContractForm.paidAmount).toLocaleString()} đ</strong></span>
-                        )}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500">Chưa thu cọc · Còn thu: <strong className="text-gray-800">{(calculatedTotal).toLocaleString()} đ</strong></span>
-                    )}
+                    <div className="text-[11px] text-gray-600 pt-0.5">
+                      {newContractForm.paidAmount > 0 ? (
+                        <span>
+                          {newContractForm.paidAmount === Math.round(calculatedTotal * 0.5) ? (
+                            <span className="text-amber-900 font-semibold">✓ Đã cọc 50% ({(newContractForm.paidAmount).toLocaleString()}đ)</span>
+                          ) : (
+                            <span className="text-blue-800 font-semibold">✓ Cọc {calculatedTotal > 0 ? Math.round((newContractForm.paidAmount / calculatedTotal) * 100) : 0}% ({(newContractForm.paidAmount).toLocaleString()}đ)</span>
+                          )}
+                          {calculatedTotal > newContractForm.paidAmount && (
+                            <span> · Còn thu: <strong className="text-orange-700 font-bold">{(calculatedTotal - newContractForm.paidAmount).toLocaleString()}đ</strong></span>
+                          )}
+                        </span>
+                      ) : (
+                        <span>Chưa thu cọc · Còn thu: <strong className="text-orange-700 font-bold">{(calculatedTotal).toLocaleString()}đ</strong></span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Special Discount & Note Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-gray-700">Tự giảm giá cho khách</label>
-                    {newContractForm.discountPercent > 0 && totalBeforeDiscount > 0 && (
-                      <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded">
-                        Giảm: {Math.round(totalBeforeDiscount * (newContractForm.discountPercent / 100)).toLocaleString()} đ (-{newContractForm.discountPercent}%)
-                      </span>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="block text-[10px] font-semibold text-gray-500 mb-0.5">Giảm theo %</span>
-                      <div className="relative">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {/* Cột 1: Tự giảm giá cho khách */}
+                <div className="bg-gray-50/70 border border-gray-200/80 rounded-2xl p-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-gray-800">Tự giảm giá cho khách</label>
+                      {newContractForm.discountPercent > 0 && totalBeforeDiscount > 0 && (
+                        <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full shrink-0">
+                          -{(Math.round(totalBeforeDiscount * (newContractForm.discountPercent / 100))).toLocaleString()}đ (-{newContractForm.discountPercent}%)
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-5 gap-2 items-center">
+                      <div className="col-span-2 relative">
                         <input
                           type="number"
                           min={0}
@@ -2628,43 +2636,43 @@ export default function ContractManager({
                             const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
                             setNewContractForm({ ...newContractForm, discountPercent: val });
                           }}
-                          className="w-full border border-gray-200 rounded-lg p-2 pr-7 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono"
+                          className="w-full bg-white border border-gray-250 rounded-xl py-2 pl-2.5 pr-6 text-sm font-bold font-mono focus:ring-2 focus:ring-orange-500 focus:outline-none"
                           placeholder="0"
                         />
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 select-none">%</span>
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 select-none">%</span>
+                      </div>
+                      <div className="col-span-3">
+                        <MoneyInput
+                          value={Math.round(totalBeforeDiscount * ((newContractForm.discountPercent || 0) / 100))}
+                          onChange={amount => {
+                            if (!totalBeforeDiscount || totalBeforeDiscount <= 0) {
+                              setNewContractForm({ ...newContractForm, discountPercent: 0 });
+                              return;
+                            }
+                            const validAmount = Math.min(totalBeforeDiscount, Math.max(0, amount || 0));
+                            const rawPct = (validAmount / totalBeforeDiscount) * 100;
+                            const calculatedPct = Number((Math.round(rawPct * 10) / 10).toFixed(1));
+                            setNewContractForm({ ...newContractForm, discountPercent: calculatedPct });
+                          }}
+                          placeholder="Hoặc số tiền (đ)"
+                          className="w-full bg-white border border-gray-250 rounded-xl p-2 text-sm font-semibold focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                          suffixColor="gray"
+                        />
                       </div>
                     </div>
-                    <div>
-                      <span className="block text-[10px] font-semibold text-gray-500 mb-0.5">Giảm theo số tiền (VND)</span>
-                      <MoneyInput
-                        value={Math.round(totalBeforeDiscount * ((newContractForm.discountPercent || 0) / 100))}
-                        onChange={amount => {
-                          if (!totalBeforeDiscount || totalBeforeDiscount <= 0) {
-                            setNewContractForm({ ...newContractForm, discountPercent: 0 });
-                            return;
-                          }
-                          const validAmount = Math.min(totalBeforeDiscount, Math.max(0, amount || 0));
-                          const rawPct = (validAmount / totalBeforeDiscount) * 100;
-                          const calculatedPct = Number((Math.round(rawPct * 10) / 10).toFixed(1));
-                          setNewContractForm({ ...newContractForm, discountPercent: calculatedPct });
-                        }}
-                        placeholder="VD: 50.000"
-                        className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                        suffixColor="gray"
-                      />
-                    </div>
                   </div>
-                  <div className="flex gap-1 overflow-x-auto py-1 mt-1 no-scrollbar items-center">
-                    <span className="text-[10px] font-semibold text-gray-400 shrink-0">Chọn nhanh:</span>
+
+                  {/* 6 nút chọn nhanh trải đều 100% bằng grid grid-cols-6, không bị tràn hay scrollbar */}
+                  <div className="grid grid-cols-6 gap-1 mt-2">
                     {[0, 5, 10, 15, 20, 50].map((pct) => (
                       <button
                         key={pct}
                         type="button"
                         onClick={() => setNewContractForm({ ...newContractForm, discountPercent: pct })}
-                        className={`px-2 py-0.5 text-xs font-bold rounded-md border transition-all cursor-pointer shrink-0 ${
+                        className={`py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer text-center ${
                           newContractForm.discountPercent === pct
-                            ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
-                            : 'bg-white hover:bg-gray-50 text-gray-650 border-gray-200'
+                            ? 'bg-orange-500 border-orange-500 text-white shadow-xs font-black'
+                            : 'bg-white hover:bg-gray-100 text-gray-650 border-gray-250'
                         }`}
                       >
                         {pct}%
@@ -2673,14 +2681,18 @@ export default function ContractManager({
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Ghi chú phụ kiện đi kèm / yêu cầu của khách</label>
-                  <input
-                    type="text"
+                {/* Cột 2: Ghi chú đơn hàng */}
+                <div className="bg-gray-50/70 border border-gray-200/80 rounded-2xl p-3 flex flex-col justify-between">
+                  <label className="text-xs font-bold text-gray-800 mb-1.5 flex items-center justify-between">
+                    <span>Ghi chú đơn hàng</span>
+                    <span className="text-[10px] font-normal text-gray-400">Không bắt buộc</span>
+                  </label>
+                  <textarea
+                    rows={2}
                     value={newContractForm.note}
                     onChange={e => setNewContractForm({ ...newContractForm, note: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                    placeholder="Cho mượn thêm pin, thẻ nhớ, tủ hút ẩm..."
+                    className="w-full bg-white border border-gray-250 rounded-xl p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none resize-none flex-1 min-h-[68px]"
+                    placeholder="Nhu cầu lấy máy sớm, lens lọc, phụ kiện kèm theo..."
                   />
                 </div>
               </div>
