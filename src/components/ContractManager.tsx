@@ -2617,9 +2617,13 @@ export default function ContractManager({
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-bold text-gray-800">Tự giảm giá cho khách</label>
-                      {newContractForm.discountPercent > 0 && totalBeforeDiscount > 0 && (
+                      {newContractForm.discountPercent > 0 && totalBeforeDiscount > 0 ? (
                         <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full shrink-0">
-                          -{(Math.round(totalBeforeDiscount * (newContractForm.discountPercent / 100))).toLocaleString()}đ (-{newContractForm.discountPercent}%)
+                          -{(totalBeforeDiscount - calculatedTotal).toLocaleString()}đ (-{newContractForm.discountPercent}%)
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-gray-500 font-medium">
+                          Gốc: {(totalBeforeDiscount || 0).toLocaleString()}đ
                         </span>
                       )}
                     </div>
@@ -2638,27 +2642,33 @@ export default function ContractManager({
                           }}
                           className="w-full bg-white border border-gray-250 rounded-xl py-2 pl-2.5 pr-6 text-sm font-bold font-mono focus:ring-2 focus:ring-orange-500 focus:outline-none"
                           placeholder="0"
+                          title="Nhập % giảm"
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 select-none">%</span>
                       </div>
                       <div className="col-span-3">
                         <MoneyInput
-                          value={Math.round(totalBeforeDiscount * ((newContractForm.discountPercent || 0) / 100))}
-                          onChange={amount => {
+                          value={calculatedTotal}
+                          onChange={finalPrice => {
                             if (!totalBeforeDiscount || totalBeforeDiscount <= 0) {
                               setNewContractForm({ ...newContractForm, discountPercent: 0 });
                               return;
                             }
-                            const validAmount = Math.min(totalBeforeDiscount, Math.max(0, amount || 0));
-                            const rawPct = (validAmount / totalBeforeDiscount) * 100;
+                            const validFinal = Math.min(totalBeforeDiscount, Math.max(0, finalPrice ?? totalBeforeDiscount));
+                            const discountAmount = Math.max(0, totalBeforeDiscount - validFinal);
+                            const rawPct = (discountAmount / totalBeforeDiscount) * 100;
                             const calculatedPct = Number((Math.round(rawPct * 10) / 10).toFixed(1));
                             setNewContractForm({ ...newContractForm, discountPercent: calculatedPct });
                           }}
-                          placeholder="Hoặc số tiền (đ)"
+                          placeholder="Giá chốt sau giảm (đ)"
                           className="w-full bg-white border border-gray-250 rounded-xl p-2 text-sm font-semibold focus:ring-2 focus:ring-orange-500 focus:outline-none"
                           suffixColor="gray"
                         />
                       </div>
+                    </div>
+                    <div className="flex items-center justify-between text-[10.5px] text-gray-500 mt-1 px-0.5">
+                      <span>Nhập % giảm</span>
+                      <span>Hoặc nhập giá chốt cuối (đ)</span>
                     </div>
                   </div>
 
