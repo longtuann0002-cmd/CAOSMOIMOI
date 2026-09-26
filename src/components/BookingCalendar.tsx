@@ -440,35 +440,37 @@ export default function BookingCalendar({
           const cam = cameras.find(c => c.id === item.cameraId);
           const shortName = cam?.shortName || item.cameraName.substring(0, 5);
           
-          // Check if this is a printer device
+          // Check if this is a printer device (strict: avoid false positives like "Mini Evo")
           const isPrinter = cam?.category === 'Printer' || 
                             Boolean(cam?.isPrinter) || 
-                            Boolean(item.printCount) ||
-                            shortName.toUpperCase().includes('IN') ||
-                            (item.cameraName || '').toUpperCase().includes('IN') ||
-                            (cam?.name || '').toUpperCase().includes('IN');
+                            (item.printCount !== undefined && item.printCount > 0) ||
+                            /^(in\s*film|in\s*ảnh|máy\s*in(\s*ảnh)?)$/i.test(shortName.trim()) ||
+                            /máy\s*in(\s*ảnh)?/i.test(item.cameraName || '');
 
-          // Extract print count with comprehensive fallbacks
-          let printCount = item.printCount;
-          if (!printCount || printCount <= 0) {
-            const nameMatch = (item.cameraName || '').match(/(\d+)\s*tấm/i);
-            const noteMatch = (contract.note || '').match(/(\d+)\s*tấm/i);
-            if (nameMatch) {
-              printCount = parseInt(nameMatch[1], 10);
-            } else if (noteMatch) {
-              printCount = parseInt(noteMatch[1], 10);
-            } else if (item.quantity && item.quantity > 1) {
-              printCount = item.quantity;
-            } else if (item.dailyRate > 0) {
-              const rate = item.dailyRate;
-              if (rate >= 330000 && rate % 33000 === 0) printCount = rate / 33000;
-              else if (rate >= 105000 && rate % 35000 === 0) printCount = rate / 35000;
-              else if (rate === 80000) printCount = 2;
-              else if (rate === 40000) printCount = 1;
-              else if (rate >= 33000) printCount = Math.max(1, Math.round(rate / 35000));
-            }
-            if (isPrinter && (!printCount || printCount <= 0)) {
-              printCount = 1;
+          // Extract print count only if this is legitimately a printer
+          let printCount: number | undefined = undefined;
+          if (isPrinter) {
+            printCount = item.printCount;
+            if (!printCount || printCount <= 0) {
+              const nameMatch = (item.cameraName || '').match(/(\d+)\s*tấm/i);
+              const noteMatch = (contract.note || '').match(/(\d+)\s*tấm/i);
+              if (nameMatch) {
+                printCount = parseInt(nameMatch[1], 10);
+              } else if (noteMatch) {
+                printCount = parseInt(noteMatch[1], 10);
+              } else if (item.quantity && item.quantity > 1) {
+                printCount = item.quantity;
+              } else if (item.dailyRate > 0) {
+                const rate = item.dailyRate;
+                if (rate >= 330000 && rate % 33000 === 0) printCount = rate / 33000;
+                else if (rate >= 105000 && rate % 35000 === 0) printCount = rate / 35000;
+                else if (rate === 80000) printCount = 2;
+                else if (rate === 40000) printCount = 1;
+                else if (rate >= 33000) printCount = Math.max(1, Math.round(rate / 35000));
+              }
+              if (!printCount || printCount <= 0) {
+                printCount = 1;
+              }
             }
           }
 
@@ -545,8 +547,8 @@ export default function BookingCalendar({
       const activeBookingsToday = (dayBookingsMap[selectedDate] || []).filter(b => b.cameraShort === cam.shortName);
       const isPrinterCam = cam.category === 'Printer' || 
                            Boolean(cam.isPrinter) || 
-                           (cam.shortName || '').toUpperCase().includes('IN') || 
-                           (cam.name || '').toUpperCase().includes('IN') ||
+                           /^(in\s*film|in\s*ảnh|máy\s*in(\s*ảnh)?)$/i.test((cam.shortName || '').trim()) || 
+                           /máy\s*in(\s*ảnh)?/i.test(cam.name || '') ||
                            activeBookingsToday.some(b => b.isPrinter);
       
       let statusText = 'Còn trống cả ngày';
@@ -831,9 +833,7 @@ export default function BookingCalendar({
               const isFilterActive = selectedCameraFilter === cam.shortName;
               const isAvailable = cam.statusText === 'Còn trống cả ngày';
               const isFull = cam.statusText === 'Kín lịch cả ngày';
-              const isPrinter = Boolean((cam as any).isPrinterCam) || 
-                                (cam.shortName || '').toUpperCase().includes('IN') ||
-                                (cam.name || '').toUpperCase().includes('IN');
+              const isPrinter = Boolean((cam as any).isPrinterCam);
 
               // Modern soft surface style: clean neutral for available, soft color accent for busy/6h
               let chipClass = 'bg-white hover:bg-slate-50/80 border border-slate-200/70 text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
