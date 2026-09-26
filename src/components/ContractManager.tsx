@@ -2302,15 +2302,15 @@ export default function ContractManager({
                       <label className="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">
                         Ngày thuê máy *
                       </label>
-                      <div className="relative w-full">
-                        <div className="w-full h-10 bg-white border border-gray-300 hover:border-orange-400 rounded-xl px-3 flex items-center justify-between shadow-2xs transition-colors">
+                      <div className="relative w-full cursor-pointer group">
+                        <div className="w-full h-10 bg-white border border-gray-300 group-hover:border-orange-500 rounded-xl px-3 flex items-center justify-between shadow-2xs transition-colors">
                           <div className="flex items-center gap-2 min-w-0">
                             <Calendar className="w-4 h-4 text-orange-600 shrink-0" />
                             <span className="text-xs sm:text-sm font-bold text-gray-850 tracking-wide truncate">
                               {newContractForm.startDate ? formatDMY(newContractForm.startDate) : 'Chọn ngày'}
                             </span>
                           </div>
-                          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                          <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 group-hover:bg-orange-100 border border-orange-200/80 px-1.5 py-0.5 rounded shrink-0 transition-colors">
                             Đổi
                           </span>
                         </div>
@@ -2326,7 +2326,19 @@ export default function ContractManager({
                               endDate: d
                             }));
                           }}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onClick={e => {
+                            try {
+                              (e.target as HTMLInputElement).showPicker?.();
+                            } catch {}
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              try {
+                                (e.target as HTMLInputElement).showPicker?.();
+                              } catch {}
+                            }
+                          }}
+                          className="date-picker-overlay absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
                       </div>
                     </div>
@@ -2405,15 +2417,15 @@ export default function ContractManager({
                       <label className="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">
                         Ngày bắt đầu bàn giao *
                       </label>
-                      <div className="relative w-full">
-                        <div className="w-full h-10 bg-white border border-gray-300 hover:border-orange-400 rounded-xl px-3 flex items-center justify-between shadow-2xs transition-colors">
+                      <div className="relative w-full cursor-pointer group">
+                        <div className="w-full h-10 bg-white border border-gray-300 group-hover:border-orange-500 rounded-xl px-3 flex items-center justify-between shadow-2xs transition-colors">
                           <div className="flex items-center gap-2 min-w-0">
                             <Calendar className="w-4 h-4 text-orange-600 shrink-0" />
                             <span className="text-xs sm:text-sm font-bold text-gray-850 tracking-wide truncate">
                               {newContractForm.startDate ? formatDMY(newContractForm.startDate) : 'Chọn ngày'}
                             </span>
                           </div>
-                          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                          <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 group-hover:bg-orange-100 border border-orange-200/80 px-1.5 py-0.5 rounded shrink-0 transition-colors">
                             Đổi
                           </span>
                         </div>
@@ -2429,7 +2441,19 @@ export default function ContractManager({
                               endDate: prev.is6Hours ? d : prev.endDate
                             }));
                           }}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onClick={e => {
+                            try {
+                              (e.target as HTMLInputElement).showPicker?.();
+                            } catch {}
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              try {
+                                (e.target as HTMLInputElement).showPicker?.();
+                              } catch {}
+                            }
+                          }}
+                          className="date-picker-overlay absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
                       </div>
                     </div>
@@ -2437,15 +2461,15 @@ export default function ContractManager({
                       <label className="block text-[11px] sm:text-xs font-bold text-gray-700 mb-1">
                         Ngày trả dự kiến *
                       </label>
-                      <div className="relative w-full">
-                        <div className="w-full h-10 bg-white border border-gray-300 hover:border-orange-400 rounded-xl px-3 flex items-center justify-between shadow-2xs transition-colors">
+                      <div className="relative w-full cursor-pointer group">
+                        <div className="w-full h-10 bg-white border border-gray-300 group-hover:border-orange-500 rounded-xl px-3 flex items-center justify-between shadow-2xs transition-colors">
                           <div className="flex items-center gap-2 min-w-0">
                             <Calendar className="w-4 h-4 text-orange-600 shrink-0" />
                             <span className="text-xs sm:text-sm font-bold text-gray-850 tracking-wide truncate">
                               {newContractForm.endDate ? formatDMY(newContractForm.endDate) : 'Chọn ngày'}
                             </span>
                           </div>
-                          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                          <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 group-hover:bg-orange-100 border border-orange-200/80 px-1.5 py-0.5 rounded shrink-0 transition-colors">
                             Đổi
                           </span>
                         </div>
@@ -2455,7 +2479,19 @@ export default function ContractManager({
                           min={newContractForm.startDate}
                           value={newContractForm.endDate}
                           onChange={e => setNewContractForm({ ...newContractForm, endDate: e.target.value })}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onClick={e => {
+                            try {
+                              (e.target as HTMLInputElement).showPicker?.();
+                            } catch {}
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              try {
+                                (e.target as HTMLInputElement).showPicker?.();
+                              } catch {}
+                            }
+                          }}
+                          className="date-picker-overlay absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
                       </div>
                     </div>
@@ -2525,52 +2561,7 @@ export default function ContractManager({
                 </div>
               </div>
 
-              {/* TÍCH CHỌN: KHÁCH CHƯA THANH TOÁN 50% GIỮ MÁY */}
-              <div className="bg-gradient-to-r from-amber-50 to-amber-100/70 border-2 border-amber-300 rounded-xl p-2.5 sm:p-3.5 shadow-3xs">
-                <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={newContractForm.paidAmount === 0}
-                    onChange={e => {
-                      if (e.target.checked) {
-                        setNewContractForm({ ...newContractForm, paidAmount: 0 });
-                      } else {
-                        setNewContractForm({ ...newContractForm, paidAmount: Math.round(calculatedTotal * 0.5) });
-                      }
-                    }}
-                    className="w-5 h-5 text-amber-600 rounded border-amber-400 focus:ring-amber-500 mt-0.5 shrink-0 cursor-pointer accent-amber-600"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1.5">
-                      <span className="font-extrabold text-amber-950 text-xs sm:text-sm leading-snug whitespace-nowrap">
-                        ⏳ Khách chưa cọc 50% giữ máy
-                      </span>
-                      {newContractForm.paidAmount === 0 && (
-                        <span className="bg-amber-600 text-white text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-bold whitespace-nowrap shrink-0">
-                          ✓ Đang chọn
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-amber-900 mt-1 leading-snug">
-                      {newContractForm.paidAmount === 0 ? (
-                        <span>
-                          ⚠️ Đơn chưa cọc — Cần thu:{' '}
-                          <strong className="whitespace-nowrap font-bold text-amber-950">
-                            {(Math.round(calculatedTotal * 0.5)).toLocaleString()}&nbsp;đ
-                          </strong>
-                        </span>
-                      ) : (
-                        <span>
-                          ✓ Đã thanh toán trước 50% ({' '}
-                          <strong className="whitespace-nowrap font-bold">
-                            {newContractForm.paidAmount.toLocaleString()}&nbsp;đ
-                          </strong>).
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </label>
-              </div>
+
  
               {/* Special Discount & Note Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
