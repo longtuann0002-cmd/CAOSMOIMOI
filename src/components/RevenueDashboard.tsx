@@ -302,6 +302,11 @@ export default function RevenueDashboard({
       totalRevenue: number;
       totalDays: number;
       rentalCount: number;
+      isPrinter?: boolean;
+      totalPrints?: number;
+      printPrice1To2?: number;
+      printPrice3To9?: number;
+      printPrice10Plus?: number;
       bookings: {
         contractId: string;
         contractCode: string;
@@ -320,11 +325,18 @@ export default function RevenueDashboard({
         contractTotalPrice: number;
         status: RentalContract['status'];
         note?: string;
+        isPrinter?: boolean;
+        printCount?: number;
       }[];
     }>();
 
     // Initialize all existing cameras in catalog
     cameras.forEach(cam => {
+      const isPrinter = cam.category === 'Printer' || 
+                        Boolean(cam.isPrinter) || 
+                        /^(in\s*film|in\s*ảnh|máy\s*in(\s*ảnh)?)$/i.test((cam.shortName || '').trim()) || 
+                        /máy\s*in(\s*ảnh)?/i.test(cam.name || '');
+
       map.set(cam.id, {
         cameraId: cam.id,
         cameraName: cam.name,
@@ -336,6 +348,11 @@ export default function RevenueDashboard({
         totalRevenue: 0,
         totalDays: 0,
         rentalCount: 0,
+        isPrinter,
+        totalPrints: 0,
+        printPrice1To2: cam.printPrice1To2,
+        printPrice3To9: cam.printPrice3To9,
+        printPrice10Plus: cam.printPrice10Plus,
         bookings: []
       });
     });
@@ -356,20 +373,53 @@ export default function RevenueDashboard({
             entry = map.get(matched.id);
           }
           if (!entry) {
+            const isPrinterGuess = Boolean(item.printCount) || 
+                                   /^(in\s*film|in\s*ảnh|máy\s*in(\s*ảnh)?)$/i.test((item.cameraName || '').trim()) || 
+                                   /máy\s*in(\s*ảnh)?/i.test(item.cameraName || '');
             entry = {
               cameraId: item.cameraId,
               cameraName: item.cameraName,
               shortName: item.cameraName,
-              category: 'Body',
+              category: isPrinterGuess ? 'Printer' : 'Body',
               serialNumber: 'N/A',
               dailyRate: item.dailyRate,
               image: undefined,
               totalRevenue: 0,
               totalDays: 0,
               rentalCount: 0,
+              isPrinter: isPrinterGuess,
+              totalPrints: 0,
               bookings: []
             };
             map.set(item.cameraId, entry);
+          }
+        }
+
+        const isPrinterItem = Boolean(entry.isPrinter) || 
+                              Boolean(item.printCount) || 
+                              /^(in\s*film|in\s*ảnh|máy\s*in(\s*ảnh)?)$/i.test((item.cameraName || '').trim()) || 
+                              /máy\s*in(\s*ảnh)?/i.test(item.cameraName || '');
+
+        let printCount = item.printCount;
+        if (isPrinterItem && (!printCount || printCount <= 0)) {
+          const nameMatch = (item.cameraName || '').match(/(\d+)\s*tấm/i);
+          const noteMatch = (c.note || '').match(/(\d+)\s*tấm/i);
+          if (nameMatch) {
+            printCount = parseInt(nameMatch[1], 10);
+          } else if (noteMatch) {
+            printCount = parseInt(noteMatch[1], 10);
+          } else if (item.quantity && item.quantity > 1) {
+            printCount = item.quantity;
+          } else if (item.dailyRate > 0) {
+            const rate = item.dailyRate;
+            if (rate >= 330000 && rate % 33000 === 0) printCount = rate / 33000;
+            else if (rate >= 105000 && rate % 35000 === 0) printCount = rate / 35000;
+            else if (rate === 80000) printCount = 2;
+            else if (rate === 40000) printCount = 1;
+            else if (rate >= 33000) printCount = Math.max(1, Math.round(rate / 35000));
+          }
+          if (!printCount || printCount <= 0) {
+            printCount = 1;
           }
         }
 
@@ -383,6 +433,10 @@ export default function RevenueDashboard({
 
         entry.rentalCount += 1;
         entry.totalDays += durationDays * (item.quantity || 1);
+        if (isPrinterItem && printCount) {
+          entry.totalPrints = (entry.totalPrints || 0) + printCount;
+          entry.isPrinter = true;
+        }
         entry.totalRevenue += itemRevenue;
 
         entry.bookings.push({
@@ -402,7 +456,9 @@ export default function RevenueDashboard({
           contractPaidAmount: c.paidAmount,
           contractTotalPrice: c.totalPrice,
           status: c.status,
-          note: c.note
+          note: c.note,
+          isPrinter: isPrinterItem,
+          printCount: printCount
         });
       });
     });
@@ -451,17 +507,22 @@ export default function RevenueDashboard({
 
     if (analytics) return analytics;
 
+    const isPrinterFallback = selectedCameraForModal.category === 'Printer' || 
+                              /^(in\s*film|in\s*ảnh|máy\s*in(\s*ảnh)?)$/i.test((selectedCameraForModal.shortName || '').trim()) || 
+                              /máy\s*in(\s*ảnh)?/i.test(selectedCameraForModal.name || '');
     return {
       cameraId: selectedCameraForModal.id,
       cameraName: selectedCameraForModal.name,
       shortName: selectedCameraForModal.shortName || selectedCameraForModal.name,
-      category: selectedCameraForModal.category || 'Body',
+      category: selectedCameraForModal.category || (isPrinterFallback ? 'Printer' : 'Body'),
       serialNumber: selectedCameraForModal.serialNumber || 'N/A',
       dailyRate: selectedCameraForModal.dailyRate || 0,
       image: selectedCameraForModal.image,
       totalRevenue: 0,
       totalDays: 0,
       rentalCount: 0,
+      isPrinter: isPrinterFallback,
+      totalPrints: 0,
       bookings: []
     };
   }, [selectedCameraForModal, equipmentRentalAnalytics]);
@@ -1587,8 +1648,12 @@ export default function RevenueDashboard({
                     <h3 className="font-black text-gray-900 text-xs sm:text-base leading-tight truncate">
                       {modalCameraDetail.cameraName}
                     </h3>
-                    <span className="text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded bg-orange-100 text-orange-900 border border-orange-200 shrink-0">
-                      {modalCameraDetail.category}
+                    <span className={`text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded border shrink-0 ${
+                      modalCameraDetail.isPrinter
+                        ? 'bg-rose-100 text-rose-900 border-rose-200'
+                        : 'bg-orange-100 text-orange-900 border-orange-200'
+                    }`}>
+                      {modalCameraDetail.isPrinter ? 'Máy in ảnh' : modalCameraDetail.category}
                     </span>
                   </div>
                   <span className="text-[10px] sm:text-xs text-gray-500 font-mono block mt-0.5 truncate">
@@ -1609,7 +1674,9 @@ export default function RevenueDashboard({
             {/* Modal Summary KPI Cards */}
             <div className="p-3 sm:p-6 bg-slate-50 border-b border-gray-200 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 shrink-0">
               <div className="bg-white p-2.5 sm:p-3 rounded-xl border border-gray-200 shadow-xs space-y-0.5">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-gray-500 block">Doanh thu tạo ra</span>
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
+                  {modalCameraDetail.isPrinter ? 'Doanh thu in ảnh' : 'Doanh thu tạo ra'}
+                </span>
                 <span className="font-mono text-xs sm:text-base font-black text-orange-600 block truncate">
                   {modalCameraDetail.totalRevenue.toLocaleString()}đ
                 </span>
@@ -1617,27 +1684,39 @@ export default function RevenueDashboard({
               </div>
 
               <div className="bg-white p-2.5 sm:p-3 rounded-xl border border-gray-200 shadow-xs space-y-0.5">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-gray-500 block">Tổng lượt thuê</span>
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
+                  {modalCameraDetail.isPrinter ? 'Tổng lượt in' : 'Tổng lượt thuê'}
+                </span>
                 <span className="font-mono text-xs sm:text-base font-black text-gray-900 block">
-                  {modalCameraDetail.rentalCount} lượt
+                  {modalCameraDetail.rentalCount} {modalCameraDetail.isPrinter ? 'lần' : 'lượt'}
                 </span>
                 <span className="text-[9px] text-gray-500 font-bold block">{modalCameraDetail.bookings.length} hợp đồng</span>
               </div>
 
               <div className="bg-white p-2.5 sm:p-3 rounded-xl border border-gray-200 shadow-xs space-y-0.5">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-gray-500 block">Tổng ngày thuê</span>
-                <span className="font-mono text-xs sm:text-base font-black text-emerald-700 block">
-                  {modalCameraDetail.totalDays} ngày
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
+                  {modalCameraDetail.isPrinter ? 'Tổng số tấm in' : 'Tổng ngày thuê'}
                 </span>
-                <span className="text-[9px] text-gray-500 font-bold block">Thời gian thuê</span>
+                <span className={`font-mono text-xs sm:text-base font-black block ${modalCameraDetail.isPrinter ? 'text-rose-700' : 'text-emerald-700'}`}>
+                  {modalCameraDetail.isPrinter 
+                    ? `${modalCameraDetail.totalPrints || 0} tấm` 
+                    : `${modalCameraDetail.totalDays} ngày`}
+                </span>
+                <span className="text-[9px] text-gray-500 font-bold block">
+                  {modalCameraDetail.isPrinter ? 'Tổng ảnh đã in' : 'Thời gian thuê'}
+                </span>
               </div>
 
               <div className="bg-white p-2.5 sm:p-3 rounded-xl border border-gray-200 shadow-xs space-y-0.5">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-gray-500 block">Đơn giá niêm yết</span>
-                <span className="font-mono text-xs sm:text-base font-black text-gray-900 block truncate">
-                  {modalCameraDetail.dailyRate.toLocaleString()}đ
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-gray-500 block truncate">
+                  {modalCameraDetail.isPrinter ? 'Đơn giá in ảnh' : 'Đơn giá niêm yết'}
                 </span>
-                <span className="text-[9px] text-gray-500 font-bold block">Giá thuê 1 ngày</span>
+                <span className="font-mono text-xs sm:text-base font-black text-gray-900 block truncate">
+                  {modalCameraDetail.isPrinter ? '33k - 40k' : `${modalCameraDetail.dailyRate.toLocaleString()}đ`}
+                </span>
+                <span className="text-[9px] text-gray-500 font-bold block truncate">
+                  {modalCameraDetail.isPrinter ? '1-2: 40k · 3-9: 35k · ≥10: 33k' : 'Giá thuê 1 ngày'}
+                </span>
               </div>
             </div>
 
@@ -1646,14 +1725,20 @@ export default function RevenueDashboard({
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600" />
-                  <span>Chi tiết các ngày thuê ({modalCameraDetail.bookings.length})</span>
+                  <span>
+                    {modalCameraDetail.isPrinter 
+                      ? `Chi tiết các lần in ảnh (${modalCameraDetail.bookings.length})` 
+                      : `Chi tiết các ngày thuê (${modalCameraDetail.bookings.length})`}
+                  </span>
                 </h4>
                 <span className="text-[9.5px] sm:text-[10px] text-gray-500 italic font-medium">Mới nhất</span>
               </div>
 
               {modalCameraDetail.bookings.length === 0 ? (
                 <div className="p-6 sm:p-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-300 text-gray-500 text-xs italic font-medium">
-                  Chưa có lịch sử cho thuê máy nào trong khoảng thời gian ({dateRange.label}).
+                  {modalCameraDetail.isPrinter 
+                    ? `Chưa có lịch sử in ảnh nào trong khoảng thời gian (${dateRange.label}).`
+                    : `Chưa có lịch sử cho thuê máy nào trong khoảng thời gian (${dateRange.label}).`}
                 </div>
               ) : (
                 <div className="space-y-2.5">
@@ -1681,9 +1766,16 @@ export default function RevenueDashboard({
                               <span className="bg-gray-900 text-white font-mono text-[9.5px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md">
                                 {booking.contractCode}
                               </span>
-                              <span className="text-[9.5px] sm:text-[10px] font-black text-orange-900 bg-orange-100 border border-orange-300 px-1.5 py-0.5 rounded-md">
-                                {booking.is6Hours ? '⚡ 6 tiếng' : `⏱️ ${booking.durationDays} ngày`}
-                              </span>
+                              {booking.isPrinter ? (
+                                <span className="text-[9.5px] sm:text-[10px] font-black text-rose-900 bg-rose-100 border border-rose-300 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                  <span>🖨️</span>
+                                  <span>{booking.printCount ?? 1} tấm</span>
+                                </span>
+                              ) : (
+                                <span className="text-[9.5px] sm:text-[10px] font-black text-orange-900 bg-orange-100 border border-orange-300 px-1.5 py-0.5 rounded-md">
+                                  {booking.is6Hours ? '⚡ 6 tiếng' : `⏱️ ${booking.durationDays} ngày`}
+                                </span>
+                              )}
                               {booking.quantity > 1 && (
                                 <span className="text-[9.5px] sm:text-[10px] font-black text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded">
                                   x{booking.quantity}c
@@ -1722,7 +1814,9 @@ export default function RevenueDashboard({
                           </div>
 
                           <div className="text-right shrink-0 flex items-center sm:block">
-                            <span className="text-[10px] text-gray-500 mr-1 font-bold">Thu từ máy:</span>
+                            <span className="text-[10px] text-gray-500 mr-1 font-bold">
+                              {booking.isPrinter ? 'Thu từ in ảnh:' : 'Thu từ máy:'}
+                            </span>
                             {booking.discountPercent && booking.discountPercent > 0 && booking.originalItemPrice > booking.itemRevenue ? (
                               <span className="inline-flex sm:inline-flex items-baseline gap-1">
                                 <span className="font-mono text-gray-400 line-through text-[10px] sm:text-[11px] font-semibold">
