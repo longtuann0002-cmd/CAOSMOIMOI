@@ -422,7 +422,7 @@ export default function BookingCalendar({
 
   // Map each calendar day to contracts
   const dayBookingsMap = useMemo(() => {
-    const map: Record<string, { contract: RentalContract; cameraShort: string; cameraName: string; timeString: string }[]> = {};
+    const map: Record<string, { contract: RentalContract; cameraShort: string; cameraName: string; timeString: string; printCount?: number; isPrinter?: boolean }[]> = {};
 
     contracts.forEach(contract => {
       if (contract.status === 'Cancelled') return;
@@ -439,6 +439,7 @@ export default function BookingCalendar({
         contract.items.forEach(item => {
           const cam = cameras.find(c => c.id === item.cameraId);
           const shortName = cam?.shortName || item.cameraName.substring(0, 5);
+          const isPrinter = cam?.category === 'Printer' || Boolean(cam?.isPrinter) || Boolean(item.printCount);
 
           // Build a dummy time range based on actual items to mimic the exact details from screenshot
           // For May 1: 00:00-00:00 XS10, 00:00-00:00 R50
@@ -477,7 +478,9 @@ export default function BookingCalendar({
             contract,
             cameraShort: shortName,
             cameraName: item.cameraName,
-            timeString
+            timeString,
+            printCount: item.printCount,
+            isPrinter,
           });
         });
 
@@ -509,6 +512,7 @@ export default function BookingCalendar({
 
     return displayCams.map(cam => {
       const activeBookingsToday = (dayBookingsMap[selectedDate] || []).filter(b => b.cameraShort === cam.shortName);
+      const isPrinterCam = cam.category === 'Printer' || Boolean(cam.isPrinter);
       
       let statusText = 'Còn trống cả ngày';
       let statusColor = 'bg-emerald-50 text-emerald-800 border-emerald-300';
@@ -516,20 +520,27 @@ export default function BookingCalendar({
       let is6h = false;
       
       if (activeBookingsToday.length > 0) {
-        const hasFullDay = activeBookingsToday.some(b => (b.timeString === '00:00-00:00' && !b.contract.is6Hours));
-        if (hasFullDay) {
-          statusText = 'Kín lịch cả ngày';
+        if (isPrinterCam) {
+          // For printers: show total prints count
+          const totalPrints = activeBookingsToday.reduce((sum, b) => sum + (b.printCount || 0), 0);
+          statusText = `In ảnh: ${totalPrints} tấm`;
           statusColor = 'bg-rose-50 text-rose-900 border-rose-300';
         } else {
-          is6h = activeBookingsToday.some(b => b.contract.is6Hours);
-          const hoursList = activeBookingsToday
-            .map(b => formatHourRange(b.timeString))
-            .filter(Boolean)
-            .join(', ');
-          hoursLabel = hoursList;
-          const times = activeBookingsToday.map(b => `${b.timeString}${b.contract.is6Hours ? ' (6h)' : ''}`).join(', ');
-          statusText = `Bận giờ: ${times}`;
-          statusColor = 'bg-amber-50 text-amber-900 border-amber-300';
+          const hasFullDay = activeBookingsToday.some(b => (b.timeString === '00:00-00:00' && !b.contract.is6Hours));
+          if (hasFullDay) {
+            statusText = 'Kín lịch cả ngày';
+            statusColor = 'bg-rose-50 text-rose-900 border-rose-300';
+          } else {
+            is6h = activeBookingsToday.some(b => b.contract.is6Hours);
+            const hoursList = activeBookingsToday
+              .map(b => formatHourRange(b.timeString))
+              .filter(Boolean)
+              .join(', ');
+            hoursLabel = hoursList;
+            const times = activeBookingsToday.map(b => `${b.timeString}${b.contract.is6Hours ? ' (6h)' : ''}`).join(', ');
+            statusText = `Bận giờ: ${times}`;
+            statusColor = 'bg-amber-50 text-amber-900 border-amber-300';
+          }
         }
       }
 
@@ -1031,9 +1042,11 @@ export default function BookingCalendar({
                           title={`${b.cameraName}`}
                         >
                           <span className="truncate">{b.cameraShort}</span>
-                          {b.contract.is6Hours && (
+                          {b.isPrinter ? (
+                            <span className="text-[7px] font-bold text-rose-800 shrink-0">{b.printCount ?? '?'}t</span>
+                          ) : b.contract.is6Hours ? (
                             <span className="text-[7px] font-bold text-amber-800 shrink-0">6h</span>
-                          )}
+                          ) : null}
                         </div>
                       );
                     })}
@@ -1043,14 +1056,19 @@ export default function BookingCalendar({
                   <div className="hidden md:block space-y-1 mt-0.5 flex-grow select-none">
                     {bookings.map((b, idx) => {
                       const colors = getCameraColorProps(b.cameraShort);
+                      const subLabel = b.isPrinter
+                        ? `🖨️ ${b.printCount ?? '?'} tấm`
+                        : b.contract.is6Hours
+                          ? '6h'
+                          : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString;
                       return (
                         <div
                           key={idx}
                           className={`shadow-3xs group flex items-center justify-between px-1.5 py-0.5 border-0 border-l-[3.5px] ${colors.border} ${colors.bgClass} rounded-[5px] text-[10px] font-extrabold tracking-tight leading-normal truncate max-w-full transition-all`}
-                          title={`${b.cameraName} (${b.contract.is6Hours ? `Lịch thuê 6 tiếng (Trả: ${b.contract.returnTime || '18:00'})` : b.timeString}) - ${b.contract.customerName}`}
+                          title={`${b.cameraName} (${b.isPrinter ? `${b.printCount ?? '?'} tấm in ảnh` : b.contract.is6Hours ? `Lịch thuê 6 tiếng (Trả: ${b.contract.returnTime || '18:00'})` : b.timeString}) - ${b.contract.customerName}`}
                         >
                           <span className="truncate w-full text-[10px]">
-                            {b.cameraShort} <span className="opacity-85 font-semibold text-[9px]">({b.contract.is6Hours ? `6h` : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString})</span>
+                            {b.cameraShort} <span className="opacity-85 font-semibold text-[9px]">({subLabel})</span>
                           </span>
                         </div>
                       );
@@ -1150,7 +1168,9 @@ export default function BookingCalendar({
                               >
                                 <span>{b.cameraShort}</span>
                                 <span className="opacity-75 font-normal text-[8.5px]">
-                                  ({b.contract.is6Hours ? '6h' : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString})
+                                  ({b.isPrinter
+                                    ? `🖨️ ${b.printCount ?? '?'} tấm`
+                                    : b.contract.is6Hours ? '6h' : b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString})
                                 </span>
                               </div>
                             );
@@ -1230,9 +1250,14 @@ export default function BookingCalendar({
 
                     <div className="bg-white p-2.5 rounded-xl border border-gray-150 space-y-1.5 text-xs">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-500">Thời gian thuê:</span>
-                        <span className="font-bold text-gray-800 font-mono">
-                          {b.contract.is6Hours ? `Gói 6 tiếng (Trả: ${b.contract.returnTime || '18:00'})` : (b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString)}
+                        <span className="text-gray-500">{b.isPrinter ? 'Số lượng in:' : 'Thời gian thuê:'}</span>
+                        <span className={`font-bold font-mono ${b.isPrinter ? 'text-rose-700' : 'text-gray-800'}`}>
+                          {b.isPrinter
+                            ? `🖨️ ${b.printCount ?? '?'} tấm ảnh`
+                            : b.contract.is6Hours
+                              ? `Gói 6 tiếng (Trả: ${b.contract.returnTime || '18:00'})`
+                              : (b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString)
+                          }
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
