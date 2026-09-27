@@ -156,9 +156,6 @@ export default function ContractManager({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [customAlertMessage, setCustomAlertMessage] = useState<string | null>(null);
 
-  // Lock body scroll whenever any modal is open to prevent background scrolling on mobile
-  useScrollLock(Boolean(selectedContract || showAddModal || deleteConfirmId || customAlertMessage || showBankSettings));
-
   // States for inline quick notes
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState<string>('');
@@ -209,6 +206,9 @@ export default function ContractManager({
   const [showBankSettings, setShowBankSettings] = useState(false);
   const [qrAmountOption, setQrAmountOption] = useState<'remaining' | 'deposit50' | 'full' | 'custom'>('remaining');
   const [customQrAmount, setCustomQrAmount] = useState<number | null>(null);
+
+  // Lock body scroll whenever any modal is open (placed after all related state declarations)
+  useScrollLock(Boolean(selectedContract || showAddModal || deleteConfirmId || customAlertMessage || showBankSettings));
 
   const [customQrImage, setCustomQrImage] = useState<string>(getStoredCustomQr);
   const [vietQrBase64, setVietQrBase64] = useState<string>('');
