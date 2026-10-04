@@ -2316,12 +2316,12 @@ export default function BookingCalendar({
       {/* Quick Invoice Receipt Modal for BookingCalendar */}
       {quickReceiptContract && typeof document !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2.5 pb-7 sm:p-4 z-[9999] animate-fade-in"
           onTouchMove={(e) => {
             if (e.target === e.currentTarget) e.preventDefault();
           }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-[480px] w-full overflow-hidden self-center animate-scale-up border border-gray-100 flex flex-col max-h-[92vh] sm:max-h-[90vh]">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-[480px] w-full overflow-hidden self-center animate-scale-up border border-gray-100 flex flex-col max-h-[88vh] sm:max-h-[90vh]">
             {/* Modal Header */}
             <div className="bg-orange-600 text-white px-4 sm:px-5 py-3 sm:py-3.5 flex justify-between items-center shrink-0">
               <div className="min-w-0 flex-1 pr-2">
@@ -2378,7 +2378,7 @@ export default function BookingCalendar({
 
                     {/* QR Code Block on the Right (Always side-by-side on both mobile and desktop) */}
                     <div 
-                      className="shrink-0 flex flex-col items-center bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/90 w-[104px] sm:w-[124px]" 
+                      className="shrink-0 flex flex-col items-center bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/90 w-[110px] sm:w-[126px]" 
                       style={{ borderRadius: '12px', boxShadow: 'none' }}
                     >
                       {/* Header row */}
@@ -2413,6 +2413,28 @@ export default function BookingCalendar({
                           className="w-full h-full object-contain rounded"
                         />
                       </div>
+
+                      {/* Hiển thị số tài khoản và tên tài khoản dưới mã QR */}
+                      {(bankConfig.accountNo || bankConfig.accountName) && (
+                        <div className="w-full mt-1.5 pt-1 border-t border-dashed border-gray-200 flex flex-col items-center justify-center text-center">
+                          {bankConfig.accountNo && (
+                            <span 
+                              className="text-[10px] sm:text-[11px] font-extrabold font-mono text-gray-900 tracking-tight leading-tight select-all break-all"
+                              title="Số tài khoản"
+                            >
+                              {bankConfig.accountNo}
+                            </span>
+                          )}
+                          {bankConfig.accountName && (
+                            <span 
+                              className="text-[8px] sm:text-[9px] font-bold uppercase text-gray-600 tracking-tight leading-tight line-clamp-2 mt-0.5 max-w-full"
+                              title={bankConfig.accountName}
+                            >
+                              {bankConfig.accountName}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
