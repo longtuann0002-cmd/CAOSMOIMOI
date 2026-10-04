@@ -2378,7 +2378,7 @@ export default function BookingCalendar({
 
                     {/* QR Code Block on the Right (Always side-by-side on both mobile and desktop) */}
                     <div 
-                      className="shrink-0 flex flex-col items-center bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/90 w-[110px] sm:w-[126px]" 
+                      className="shrink-0 flex flex-col items-center bg-white p-2 sm:p-2.5 rounded-xl border border-slate-200/90 w-[114px] sm:w-[130px]" 
                       style={{ borderRadius: '12px', boxShadow: 'none' }}
                     >
                       {/* Header row */}
@@ -2415,26 +2415,34 @@ export default function BookingCalendar({
                       </div>
 
                       {/* Hiển thị số tài khoản và tên tài khoản dưới mã QR */}
-                      {(bankConfig.accountNo || bankConfig.accountName) && (
-                        <div className="w-full mt-1.5 pt-1 border-t border-dashed border-gray-200 flex flex-col items-center justify-center text-center">
-                          {bankConfig.accountNo && (
-                            <span 
-                              className="text-[10px] sm:text-[11px] font-extrabold font-mono text-gray-900 tracking-tight leading-tight select-all break-all"
-                              title="Số tài khoản"
-                            >
-                              {bankConfig.accountNo}
-                            </span>
-                          )}
-                          {bankConfig.accountName && (
-                            <span 
-                              className="text-[8px] sm:text-[9px] font-bold uppercase text-gray-600 tracking-tight leading-tight line-clamp-2 mt-0.5 max-w-full"
-                              title={bankConfig.accountName}
-                            >
-                              {bankConfig.accountName}
-                            </span>
-                          )}
+                      <div 
+                        onClick={() => {
+                          if (!isExportingReceipt) {
+                            setBankDraft(bankConfig);
+                            setShowBankSettings(true);
+                          }
+                        }}
+                        className={`w-full mt-1.5 pt-1 border-t border-dashed border-gray-200 flex flex-col items-center justify-center text-center ${!isExportingReceipt ? 'cursor-pointer hover:bg-orange-50/70 p-0.5 rounded-lg transition' : ''}`}
+                        title="Bấm để cài đặt Số tài khoản & Tên tài khoản"
+                      >
+                        <div className="w-full flex items-center justify-center gap-0.5 flex-wrap leading-tight">
+                          <span className="text-[8px] sm:text-[9px] font-bold text-gray-400 uppercase tracking-tight">STK:</span>
+                          <span 
+                            className="text-[10px] sm:text-[11px] font-black font-mono text-gray-900 tracking-tight select-all break-all"
+                            title="Số tài khoản"
+                          >
+                            {bankConfig.accountNo?.trim() || 'Chưa nhập'}
+                          </span>
                         </div>
-                      )}
+                        <div className="w-full mt-0.5">
+                          <span 
+                            className="text-[8px] sm:text-[9px] font-extrabold uppercase text-gray-700 tracking-tight leading-tight line-clamp-1 truncate max-w-full block" 
+                            title={bankConfig.accountName || 'Tên chủ tài khoản'}
+                          >
+                            {bankConfig.accountName?.trim() || '(Bấm thêm tên)'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
