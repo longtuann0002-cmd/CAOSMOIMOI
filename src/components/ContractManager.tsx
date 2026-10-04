@@ -430,7 +430,7 @@ export default function ContractManager({
     customerName: '',
     customerPhone: '',
     customerDocType: 'CCCD_And_1M' as const,
-    customerDocNote: 'Giữ CCCD gốc + 1.000.000đ',
+    customerDocNote: '',
     selectedCameraIds: [] as string[],
     printCounts: {} as Record<string, number>,
     startDate: systemDate,
@@ -821,7 +821,7 @@ export default function ContractManager({
       customerName: '',
       customerPhone: '',
       customerDocType: 'CCCD_And_1M',
-      customerDocNote: 'Giữ CCCD gốc + 1.000.000đ',
+      customerDocNote: '',
       selectedCameraIds: [],
       startDate: systemDate,
       endDate: systemDate,
@@ -1016,7 +1016,9 @@ export default function ContractManager({
                           <Phone className="w-3 h-3 text-orange-500 fill-orange-500/10" /> {c.customerPhone}
                         </a>
                         <span className="text-[10px] text-gray-500 bg-gray-50 border border-gray-200/50 px-1.5 py-0.5 rounded font-bold">
-                          {renderDocTypeLabel(c.customerDocType)}: {c.customerDocNote || 'Chưa có thông tin'}
+                          {c.customerDocType === 'Other'
+                            ? (c.customerDocNote?.trim() || 'Tài sản khác')
+                            : `${renderDocTypeLabel(c.customerDocType)}${c.customerDocNote?.trim() && !['Giữ CCCD gốc + 1.000.000đ', 'Giữ CCCD gốc', 'Giữ GPLX gốc', 'Giữ Hộ chiếu gốc', 'Đặt cọc tiền mặt'].includes(c.customerDocNote.trim()) ? ` (${c.customerDocNote.trim()})` : ''}`}
                         </span>
                       </div>
                     </div>
@@ -1636,7 +1638,12 @@ export default function ContractManager({
                               <span className="text-[10.5px] font-bold font-mono text-gray-800 truncate">
                                 {selectedContract.customerDocType === 'Other'
                                   ? (selectedContract.customerDocNote?.trim() || 'Tài sản khác')
-                                  : `${renderDocTypeLabel(selectedContract.customerDocType)}${selectedContract.customerDocNote?.trim() ? ` (${selectedContract.customerDocNote.trim()})` : ''}`}
+                                  : `${renderDocTypeLabel(selectedContract.customerDocType)}${
+                                      selectedContract.customerDocNote?.trim() && 
+                                      !['Giữ CCCD gốc + 1.000.000đ', 'Giữ CCCD gốc', 'Giữ GPLX gốc', 'Giữ Hộ chiếu gốc', 'Đặt cọc tiền mặt'].includes(selectedContract.customerDocNote.trim())
+                                        ? ` (${selectedContract.customerDocNote.trim()})`
+                                        : ''
+                                    }`}
                               </span>
                             </div>
                           </div>
@@ -2166,37 +2173,23 @@ export default function ContractManager({
                       const nextData = { ...newContractForm, customerDocType: val };
                       if (val === 'CCCD_And_1M') {
                         nextData.depositAmount = 1000000;
-                        if (!newContractForm.customerDocNote || newContractForm.customerDocNote === 'Giữ CCCD gốc' || newContractForm.customerDocNote === 'Giữ GPLX gốc' || newContractForm.customerDocNote === 'Giữ Hộ chiếu gốc' || newContractForm.customerDocNote === 'Đặt cọc tiền mặt') {
-                          nextData.customerDocNote = 'Giữ CCCD gốc + 1.000.000đ';
-                        }
                       } else if (val === 'Other') {
                         nextData.depositAmount = 0;
-                        if (newContractForm.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || newContractForm.customerDocNote === 'Giữ CCCD gốc' || newContractForm.customerDocNote === 'Giữ GPLX gốc' || newContractForm.customerDocNote === 'Giữ Hộ chiếu gốc' || newContractForm.customerDocNote === 'Đặt cọc tiền mặt') {
-                          nextData.customerDocNote = '';
-                        }
                         setTimeout(() => {
                           contractDocNoteInputRef.current?.focus();
                         }, 60);
-                      } else if (val === 'CCCD') {
-                        nextData.depositAmount = 0;
-                        if (newContractForm.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ') {
-                          nextData.customerDocNote = 'Giữ CCCD gốc';
-                        }
-                      } else if (val === 'GPLX') {
-                        nextData.depositAmount = 0;
-                        if (newContractForm.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || newContractForm.customerDocNote === 'Giữ CCCD gốc') {
-                          nextData.customerDocNote = 'Giữ GPLX gốc';
-                        }
-                      } else if (val === 'Passport') {
-                        nextData.depositAmount = 0;
-                        if (newContractForm.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || newContractForm.customerDocNote === 'Giữ CCCD gốc') {
-                          nextData.customerDocNote = 'Giữ Hộ chiếu gốc';
-                        }
                       } else if (val === 'CashDeposit') {
                         nextData.depositAmount = calculatedRecommendedDeposit > 0 ? calculatedRecommendedDeposit : 1000000;
-                        if (newContractForm.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || newContractForm.customerDocNote === 'Giữ CCCD gốc') {
-                          nextData.customerDocNote = 'Đặt cọc tiền mặt';
-                        }
+                      } else {
+                        nextData.depositAmount = 0;
+                      }
+                      // Nếu ô ghi chú trước đó đang mang các câu tự động lặp lại cũ thì xóa sạch
+                      if (nextData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || 
+                          nextData.customerDocNote === 'Giữ CCCD gốc' || 
+                          nextData.customerDocNote === 'Giữ GPLX gốc' || 
+                          nextData.customerDocNote === 'Giữ Hộ chiếu gốc' || 
+                          nextData.customerDocNote === 'Đặt cọc tiền mặt') {
+                        nextData.customerDocNote = '';
                       }
                       setNewContractForm(nextData);
                     }}

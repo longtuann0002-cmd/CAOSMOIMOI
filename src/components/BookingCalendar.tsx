@@ -255,7 +255,7 @@ export default function BookingCalendar({
     customerName: '',
     customerPhone: '',
     customerDocType: 'CCCD_And_1M' as const,
-    customerDocNote: 'Giữ CCCD gốc + 1.000.000đ',
+    customerDocNote: '',
     selectedCameraIds: [] as string[],
     printCounts: {} as Record<string, number>,
     startDate: '',
@@ -781,7 +781,7 @@ export default function BookingCalendar({
       customerName: '',
       customerPhone: '',
       customerDocType: 'CCCD_And_1M',
-      customerDocNote: 'Giữ CCCD gốc + 1.000.000đ',
+      customerDocNote: '',
       selectedCameraIds: [],
       startDate: '',
       endDate: '',
@@ -1557,37 +1557,23 @@ export default function BookingCalendar({
                       const nextData = { ...formData, customerDocType: val };
                       if (val === 'CCCD_And_1M') {
                         nextData.depositAmount = 1000000;
-                        if (!formData.customerDocNote || formData.customerDocNote === 'Giữ CCCD gốc' || formData.customerDocNote === 'Giữ GPLX gốc' || formData.customerDocNote === 'Giữ Hộ chiếu gốc' || formData.customerDocNote === 'Đặt cọc tiền mặt') {
-                          nextData.customerDocNote = 'Giữ CCCD gốc + 1.000.000đ';
-                        }
                       } else if (val === 'Other') {
                         nextData.depositAmount = 0;
-                        if (formData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || formData.customerDocNote === 'Giữ CCCD gốc' || formData.customerDocNote === 'Giữ GPLX gốc' || formData.customerDocNote === 'Giữ Hộ chiếu gốc' || formData.customerDocNote === 'Đặt cọc tiền mặt') {
-                          nextData.customerDocNote = '';
-                        }
                         setTimeout(() => {
                           quickDocNoteInputRef.current?.focus();
                         }, 60);
-                      } else if (val === 'CCCD') {
-                        nextData.depositAmount = 0;
-                        if (formData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ') {
-                          nextData.customerDocNote = 'Giữ CCCD gốc';
-                        }
-                      } else if (val === 'GPLX') {
-                        nextData.depositAmount = 0;
-                        if (formData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || formData.customerDocNote === 'Giữ CCCD gốc') {
-                          nextData.customerDocNote = 'Giữ GPLX gốc';
-                        }
-                      } else if (val === 'Passport') {
-                        nextData.depositAmount = 0;
-                        if (formData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || formData.customerDocNote === 'Giữ CCCD gốc') {
-                          nextData.customerDocNote = 'Giữ Hộ chiếu gốc';
-                        }
                       } else if (val === 'CashDeposit') {
                         nextData.depositAmount = calculatedRecommendedDeposit > 0 ? calculatedRecommendedDeposit : 1000000;
-                        if (formData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || formData.customerDocNote === 'Giữ CCCD gốc') {
-                          nextData.customerDocNote = 'Đặt cọc tiền mặt';
-                        }
+                      } else {
+                        nextData.depositAmount = 0;
+                      }
+                      // Nếu ô ghi chú trước đó đang mang các câu tự động lặp lại cũ thì xóa sạch
+                      if (nextData.customerDocNote === 'Giữ CCCD gốc + 1.000.000đ' || 
+                          nextData.customerDocNote === 'Giữ CCCD gốc' || 
+                          nextData.customerDocNote === 'Giữ GPLX gốc' || 
+                          nextData.customerDocNote === 'Giữ Hộ chiếu gốc' || 
+                          nextData.customerDocNote === 'Đặt cọc tiền mặt') {
+                        nextData.customerDocNote = '';
                       }
                       setFormData(nextData);
                     }}
@@ -2370,7 +2356,12 @@ export default function BookingCalendar({
                           <span className="text-[10.5px] font-bold font-mono text-gray-800 truncate">
                             {quickReceiptContract.customerDocType === 'Other'
                               ? (quickReceiptContract.customerDocNote?.trim() || 'Tài sản khác')
-                              : `${renderDocTypeLabel(quickReceiptContract.customerDocType)}${quickReceiptContract.customerDocNote?.trim() ? ` (${quickReceiptContract.customerDocNote.trim()})` : ''}`}
+                              : `${renderDocTypeLabel(quickReceiptContract.customerDocType)}${
+                                  quickReceiptContract.customerDocNote?.trim() && 
+                                  !['Giữ CCCD gốc + 1.000.000đ', 'Giữ CCCD gốc', 'Giữ GPLX gốc', 'Giữ Hộ chiếu gốc', 'Đặt cọc tiền mặt'].includes(quickReceiptContract.customerDocNote.trim())
+                                    ? ` (${quickReceiptContract.customerDocNote.trim()})`
+                                    : ''
+                                }`}
                           </span>
                         </div>
                       </div>
