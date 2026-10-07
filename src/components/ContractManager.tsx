@@ -16,6 +16,7 @@ import { generateVietQrString, generateQrSvg } from '../utils/vietqr';
 import { toPng } from 'html-to-image';
 import { matchContract } from '../utils/searchUtils';
 import { useScrollLock } from '../utils/useScrollLock';
+import { generateNextContractCode } from '../utils/contractUtils';
 
 interface ContractManagerProps {
   contracts: RentalContract[];
@@ -29,6 +30,7 @@ interface ContractManagerProps {
   initialSearchQuery?: string;
   systemDate: string;
   isAdmin?: boolean;
+  onFixDuplicateContracts?: () => void;
 }
 
 export const VIET_BANKS = [
@@ -140,7 +142,8 @@ export default function ContractManager({
   onUpdateContractCustomer,
   initialSearchQuery,
   systemDate,
-  isAdmin = false
+  isAdmin = false,
+  onFixDuplicateContracts
 }: ContractManagerProps) {
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery || '');
 
@@ -783,7 +786,7 @@ export default function ContractManager({
       };
     });
 
-    const newCode = `HD-2026-${String(contracts.length + 1).padStart(3, '0')}`;
+    const newCode = generateNextContractCode(contracts, newContractForm.startDate);
 
     const contract: RentalContract = {
       id: `con-${Date.now()}`,
@@ -860,6 +863,26 @@ export default function ContractManager({
     }
   };
 
+  // Tính danh sách các mã hợp đồng bị trùng lặp
+  const { duplicateCodeSet, duplicateCount } = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of contracts) {
+      const code = (c.contractCode || '').trim();
+      if (code) {
+        counts.set(code, (counts.get(code) || 0) + 1);
+      }
+    }
+    const dups = new Set<string>();
+    let dupTotal = 0;
+    for (const [code, count] of counts.entries()) {
+      if (count > 1) {
+        dups.add(code);
+        dupTotal += (count - 1);
+      }
+    }
+    return { duplicateCodeSet: dups, duplicateCount: dupTotal };
+  }, [contracts]);
+
   return (
     <div className="space-y-6">
       {/* Search and Filters Header */}
@@ -889,6 +912,32 @@ export default function ContractManager({
             </button>
           </div>
         </div>
+
+        {/* Banner cảnh báo phát hiện mã hợp đồng trùng lặp */}
+        {duplicateCount > 0 && (
+          <div className="bg-amber-50/90 border border-amber-300 rounded-xl p-3 sm:p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-2.5 text-amber-900">
+              <div className="p-2 bg-amber-200/80 text-amber-800 rounded-lg shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="text-xs">
+                <span className="font-black text-amber-950 text-xs sm:text-sm">Phát hiện {duplicateCount} hợp đồng đang bị trùng mã!</span>
+                <p className="text-amber-800/90 mt-0.5">
+                  Các mã trùng: <strong className="font-mono">{Array.from(duplicateCodeSet).slice(0, 3).join(', ')}{duplicateCodeSet.size > 3 ? '...' : ''}</strong>. Bạn có thể bấm chuẩn hóa để tự động đánh lại số thứ tự duy nhất.
+                </p>
+              </div>
+            </div>
+            {onFixDuplicateContracts && (
+              <button
+                type="button"
+                onClick={onFixDuplicateContracts}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shrink-0 cursor-pointer shadow-xs flex items-center gap-1.5 whitespace-nowrap self-end sm:self-center"
+              >
+                <CheckCircle2 className="w-4 h-4" /> Chuẩn hóa mã trùng ngay
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Aggregate Financial Metrics Banner: Dư Nợ & Chưa Thanh Toán Cọc */}
         {(unpaidContractsCount > 0 || pendingContractsCount > 0) && (
@@ -994,8 +1043,10 @@ export default function ContractManager({
                 <div key={c.id} className="p-4 sm:p-5 space-y-3 hover:bg-slate-50/30 transition bg-white first:rounded-t-2xl last:rounded-b-2xl">
                   {/* Top section: Code & Status */}
                   <div className="flex items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
-                    <span className="font-mono font-bold text-xs text-gray-900 bg-gray-100 px-2.5 py-1 rounded-lg border border-gray-200">
+                    <span className={`font-mono font-bold text-xs px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${duplicateCodeSet.has(c.contractCode) ? 'bg-rose-50 text-rose-800 border-rose-300' : 'bg-gray-100 text-gray-900 border-gray-200'}`}>
+                      {duplicateCodeSet.has(c.contractCode) && <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" />}
                       {c.contractCode}
+                      {duplicateCodeSet.has(c.contractCode) && <span className="text-[9px] font-bold text-rose-600 uppercase ml-0.5">Trùng</span>}
                     </span>
                     <span className={`inline-block border text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full shadow-3xs ${getStatusBadgeClass(c.status)}`}>
                       {getStatusLabel(c.status)}

@@ -16,6 +16,7 @@ import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushN
 import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken } from './utils/firebasePush';
 import { matchContract, matchCamera, matchCustomer } from './utils/searchUtils';
 import { compressImageFile } from './utils/imageUtils';
+import { deduplicateContracts, generateNextContractCode } from './utils/contractUtils';
 
 
 // Component imports
@@ -247,16 +248,18 @@ export default function App() {
   const [contracts, setContracts] = useState<RentalContract[]>(() => {
     const loaded = loadStoredData('contracts', INITIAL_CONTRACTS);
     const migrationKey = 'camlease_historical_contracts_migrated_v1';
+    let baseContracts = loaded;
     if (!localStorage.getItem(migrationKey)) {
       localStorage.setItem(migrationKey, 'true');
       const missingMockContracts = INITIAL_CONTRACTS.filter(
         item => item.id.startsWith('mock-con-') && !loaded.some(loadedItem => loadedItem.id === item.id)
       );
       if (missingMockContracts.length > 0) {
-        return [...loaded, ...missingMockContracts];
+        baseContracts = [...loaded, ...missingMockContracts];
       }
     }
-    return loaded;
+    const { deduplicated } = deduplicateContracts(baseContracts);
+    return deduplicated;
   });
   const [customers, setCustomers] = useState<Customer[]>(() =>
     loadStoredData('customers', INITIAL_CUSTOMERS)
@@ -739,9 +742,20 @@ export default function App() {
         }
 
         if (cloudContracts !== null) {
-          setContracts((cloudContracts as RentalContract[]).map(c => ({ ...c, note: cleanSystemNote(c.note) })));
+          const rawContracts = (cloudContracts as RentalContract[]).map(c => ({ ...c, note: cleanSystemNote(c.note) }));
+          const { deduplicated, fixedCount } = deduplicateContracts(rawContracts);
+          setContracts(deduplicated);
+          if (fixedCount > 0) {
+            console.warn(`[Auto-Repair] Đã phát hiện và tự động sửa ${fixedCount} mã hợp đồng bị trùng lặp.`);
+            saveStoredData('contracts', deduplicated);
+            if (isSupabaseConfigured) {
+              syncToSupabase('contracts', deduplicated);
+            }
+          }
         } else {
-          setContracts(loadStoredData('contracts', INITIAL_CONTRACTS));
+          const localContracts = loadStoredData('contracts', INITIAL_CONTRACTS);
+          const { deduplicated } = deduplicateContracts(localContracts);
+          setContracts(deduplicated);
         }
 
         if (cloudCustomers !== null) {
@@ -1044,7 +1058,14 @@ export default function App() {
 
   // Operations: CONTRACTS
   const handleAddContract = (newContract: RentalContract) => {
-    setContracts(prev => [newContract, ...prev]);
+    let contractToAdd = newContract;
+    if (contracts.some(c => c.contractCode === newContract.contractCode)) {
+      const safeCode = generateNextContractCode(contracts, newContract.startDate);
+      console.warn(`[Conflict-Guard] Mã ${newContract.contractCode} đã tồn tại! Tự động cấp mã mới: ${safeCode}`);
+      contractToAdd = { ...newContract, contractCode: safeCode };
+    }
+
+    setContracts(prev => [contractToAdd, ...prev]);
 
     // Automatically update camera statuses depending on starting date of contract
     // (If contract starts today, mark cameras as Rented, but actually we maintain dynamically inside lists)
@@ -1121,6 +1142,20 @@ export default function App() {
     broadcastToAllDevices(title, body, { contractId: newContract.id }).catch(err => {
       console.warn('Broadcast to all devices error:', err);
     });
+  };
+
+  const handleFixDuplicateContracts = () => {
+    const { deduplicated, fixedCount } = deduplicateContracts(contracts);
+    if (fixedCount > 0) {
+      setContracts(deduplicated);
+      saveStoredData('contracts', deduplicated);
+      if (isSupabaseConfigured) {
+        syncToSupabase('contracts', deduplicated);
+      }
+      addToast('Đã chuẩn hóa mã hợp đồng', 'success', `Đã tự động sửa lại ${fixedCount} mã hợp đồng bị trùng lặp.`);
+    } else {
+      addToast('Mã hợp đồng chuẩn xác', 'info', 'Tất cả các mã hợp đồng hiện tại đều là duy nhất!');
+    }
   };
 
   const handleUpdateContractStatus = (id: string, status: ContractStatus, note?: string, paidAmount?: number) => {
@@ -3094,6 +3129,7 @@ export default function App() {
                   initialSearchQuery={contractManagerSearch}
                   systemDate={systemDate}
                   isAdmin={currentUser?.role === 'admin'}
+                  onFixDuplicateContracts={currentUser?.role === 'admin' ? handleFixDuplicateContracts : undefined}
                 />
               </TabErrorBoundary>
             )}

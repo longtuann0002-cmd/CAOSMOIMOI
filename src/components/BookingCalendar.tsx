@@ -10,6 +10,7 @@ import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from '../util
 import { formatDMY } from '../utils/dateUtils';
 import { VIET_BANKS, getBankBin, QrDisplay } from './ContractManager';
 import { useScrollLock } from '../utils/useScrollLock';
+import { generateNextContractCode } from '../utils/contractUtils';
 
 // 20 fully distinct vivid palettes — ordered so adjacent entries look maximally different
 const CAMERA_COLOR_PALETTES = [
@@ -743,7 +744,7 @@ export default function BookingCalendar({
 
     const totalPrice = calculatedTotal;
 
-    const contractCode = `HD-2026-${String(contracts.length + 1).padStart(3, '0')}`;
+    const contractCode = generateNextContractCode(contracts, formData.startDate);
 
     const newContract: RentalContract = {
       id: `con-${Date.now()}`,
