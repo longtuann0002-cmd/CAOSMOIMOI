@@ -1631,12 +1631,12 @@ export default function RevenueDashboard({
       {/* POPUP MODAL: SPECIFIC RENTAL DATES & REVENUE DETAILS FOR SELECTED EQUIPMENT */}
       {modalCameraDetail && typeof document !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4 pt-[max(16px,env(safe-area-inset-top,16px))] pb-[max(28px,calc(env(safe-area-inset-bottom,0px)+16px))] z-[9999] animate-fade-in"
           onTouchMove={(e) => {
             if (e.target === e.currentTarget) e.preventDefault();
           }}
         >
-          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh] animate-scale-up">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[85vh] sm:max-h-[88vh] animate-scale-up my-auto">
             
             {/* Modal Header */}
             <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/90 shrink-0">
@@ -1859,14 +1859,14 @@ export default function RevenueDashboard({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-4 sm:px-6 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
+            <div className="px-4 sm:px-6 py-3 pb-3.5 sm:py-3.5 border-t border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
               <span className="text-[10.5px] sm:text-xs text-gray-600 font-medium truncate mr-2">
                 Kỳ áp dụng: <b className="text-gray-900">{dateRange.label}</b>
               </span>
               <button
                 type="button"
                 onClick={() => setSelectedCameraForModal(null)}
-                className="px-4 py-1.5 bg-gray-900 hover:bg-gray-800 text-white font-black text-xs rounded-xl transition cursor-pointer shadow-xs shrink-0"
+                className="px-5 py-2 bg-gray-900 hover:bg-gray-800 text-white font-black text-xs rounded-xl transition cursor-pointer shadow-xs shrink-0"
               >
                 Đóng
               </button>
@@ -1882,12 +1882,12 @@ export default function RevenueDashboard({
       {/* ========================================================================= */}
       {showReceivablesModal && typeof document !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-[9999] animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4 pt-[max(16px,env(safe-area-inset-top,16px))] pb-[max(28px,calc(env(safe-area-inset-bottom,0px)+16px))] z-[9999] animate-fade-in"
           onTouchMove={(e) => {
             if (e.target === e.currentTarget) e.preventDefault();
           }}
         >
-          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden self-center animate-scale-up border border-gray-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden self-center animate-scale-up border border-gray-200 flex flex-col max-h-[85vh] sm:max-h-[88vh] my-auto">
             
             {/* Modal Header */}
             <div className={`text-white px-4 sm:px-6 py-3.5 sm:py-4 flex justify-between items-center shrink-0 transition-colors ${
@@ -2180,7 +2180,7 @@ export default function RevenueDashboard({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-4 sm:px-6 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
+            <div className="px-4 sm:px-6 py-3 pb-3.5 sm:py-3.5 border-t border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
               <span className="text-[10.5px] sm:text-xs text-gray-600 font-medium truncate mr-2">
                 {receivablesModalTab === 'debt' ? (
                   <>Tổng cộng: <b className="text-rose-700">{receivableContracts.length}</b> hợp đồng có dư nợ</>
