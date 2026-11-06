@@ -1785,11 +1785,11 @@ export default function ContractManager({
                       ) : (
                         <div className="space-y-1">
                           <p className="font-black text-gray-900 text-sm sm:text-base">{selectedContract.customerName}</p>
-                          <p className="text-xs text-gray-600 font-mono font-bold">SĐT: {selectedContract.customerPhone}</p>
-                          <div className="pt-0.5">
-                            <div className="inline-flex items-center gap-1.5 bg-amber-50/90 border border-amber-200/90 px-2 py-0.5 rounded-lg text-amber-950 max-w-full">
-                              <span className="text-[10px] font-extrabold text-amber-800 uppercase shrink-0">Thế chấp:</span>
-                              <span className="text-[10.5px] font-bold font-mono text-gray-800 truncate">
+                          <div className="text-xs space-y-0.5">
+                            <p className="text-gray-600 font-mono font-bold">SĐT: {selectedContract.customerPhone}</p>
+                            <p className="text-gray-600 text-xs truncate flex items-center gap-1">
+                              <span className="text-gray-500 font-medium shrink-0">Thế chấp:</span>
+                              <span className="font-bold font-mono text-gray-850 truncate">
                                 {selectedContract.customerDocType === 'Other'
                                   ? (selectedContract.customerDocNote?.trim() || 'Tài sản khác')
                                   : `${renderDocTypeLabel(selectedContract.customerDocType)}${
@@ -1799,7 +1799,7 @@ export default function ContractManager({
                                         : ''
                                     }`}
                               </span>
-                            </div>
+                            </p>
                           </div>
                         </div>
                       )}
@@ -2471,12 +2471,12 @@ export default function ContractManager({
               </div>
 
               {/* Status Update Quick Controls - Centered */}
-              <div className="border-t border-gray-150 pt-3.5 space-y-2.5 shrink-0 text-center">
-                <h4 className="text-[10px] sm:text-xs uppercase font-extrabold text-gray-400 tracking-wider text-center">
-                  VẬN HÀNH TRẠNG THÁI HỢP ĐỒNG & CỌC GIỮ MÁY
+              <div className="border-t border-gray-150 pt-2 space-y-1.5 shrink-0 text-center">
+                <h4 className="text-[9.5px] uppercase font-bold text-gray-400 tracking-wider text-center">
+                  XÁC NHẬN CỌC & BÀN GIAO MÁY
                 </h4>
                 
-                <div className="flex flex-wrap gap-2 justify-center items-center">
+                <div className="flex flex-wrap gap-1.5 justify-center items-center">
                   {selectedContract.status === 'Pending' && (() => {
                     const totalPrice = selectedContract.totalPrice || 0;
                     const deposit50 = Math.round(totalPrice * 0.5);
@@ -2486,9 +2486,9 @@ export default function ContractManager({
                     const isDeposit50 = paid > 0 && !isPaidFull;
 
                     return (
-                      <div className="w-full space-y-2.5">
-                        {/* Thanh 3 nấc cọc: Chưa cọc | Cọc 50% | Đủ 100% */}
-                        <div className="w-full bg-slate-100/90 border border-slate-200/90 rounded-2xl p-1 flex items-center gap-1 shadow-inner">
+                      <div className="w-full space-y-1.5">
+                        {/* Thanh 3 nấc cọc nhỏ gọn, thanh thoát */}
+                        <div className="w-full bg-slate-100/90 border border-slate-200/90 rounded-xl p-0.5 flex items-center gap-0.5">
                           {/* 1. Chưa cọc */}
                           <button
                             type="button"
@@ -2499,9 +2499,9 @@ export default function ContractManager({
                                 paidAmount: 0
                               });
                             }}
-                            className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer select-none ${
+                            className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer select-none ${
                               isUnpaid
-                                ? 'bg-[#5046e4] text-white shadow-sm'
+                                ? 'bg-[#5046e4] text-white shadow-xs font-bold'
                                 : 'text-gray-600 hover:text-gray-900 hover:bg-white/70'
                             }`}
                           >
@@ -2518,9 +2518,9 @@ export default function ContractManager({
                                 paidAmount: deposit50
                               });
                             }}
-                            className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer select-none ${
+                            className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer select-none ${
                               isDeposit50
-                                ? 'bg-[#5046e4] text-white shadow-sm'
+                                ? 'bg-[#5046e4] text-white shadow-xs font-bold'
                                 : 'text-amber-800 hover:text-amber-950 hover:bg-white/70'
                             }`}
                           >
@@ -2537,9 +2537,9 @@ export default function ContractManager({
                                 paidAmount: totalPrice
                               });
                             }}
-                            className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer select-none ${
+                            className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer select-none ${
                               isPaidFull
-                                ? 'bg-[#5046e4] text-white shadow-sm'
+                                ? 'bg-[#5046e4] text-white shadow-xs font-bold'
                                 : 'text-gray-600 hover:text-gray-900 hover:bg-white/70'
                             }`}
                           >
@@ -2547,16 +2547,16 @@ export default function ContractManager({
                           </button>
                         </div>
 
-                        {/* Nút Bàn giao máy (Bắt đầu thuê) full-width */}
+                        {/* Nút Bàn giao máy vừa vặn, thanh lịch */}
                         <button
                           type="button"
                           onClick={() => {
                             onUpdateContractStatus(selectedContract.id, 'Active', 'Bàn giao thiết bị và chụp ảnh lưu hồ sơ cọc.');
                             setSelectedContract(prev => prev ? ({ ...prev, status: 'Active' }) : null);
                           }}
-                          className="w-full bg-[#1e60ff] hover:bg-blue-700 text-white font-black py-3 px-4 rounded-2xl shadow-md hover:shadow-lg text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer transition active:scale-[0.99]"
+                          className="w-full bg-[#1e60ff] hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-xl shadow-xs text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition active:scale-[0.99]"
                         >
-                          <Check className="w-5 h-5 text-white stroke-[2.5]" />
+                          <Check className="w-4 h-4 text-white stroke-[2.5]" />
                           <span>Bàn giao máy (Bắt đầu thuê)</span>
                         </button>
                       </div>
@@ -2564,26 +2564,26 @@ export default function ContractManager({
                   })()}
 
                   {selectedContract.status === 'Active' && (
-                    <div className="w-full space-y-2">
+                    <div className="w-full space-y-1.5">
                       <button
                         onClick={() => {
                           const finalTotal = selectedContract.totalPrice + (selectedContract.extraFee || 0);
                           onUpdateContractStatus(selectedContract.id, 'Completed', 'Mọi thiết bị được thu hồi đầy đủ và thanh toán tất toán toàn bộ.', finalTotal);
                           setSelectedContract(prev => prev ? ({ ...prev, status: 'Completed', paidAmount: finalTotal }) : null);
                         }}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-4 rounded-2xl shadow-md hover:shadow-lg text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer transition active:scale-[0.99]"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-xl shadow-xs text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition active:scale-[0.99]"
                       >
-                        <Check className="w-5 h-5 text-white stroke-[2.5]" />
-                        <span>Nhận máy & Tất toán xong</span>
+                        <Check className="w-4 h-4 text-white stroke-[2.5]" />
+                        <span>✓ Hoàn tất đơn & Trả máy</span>
                       </button>
                       <button
                         onClick={() => {
                           onUpdateContractStatus(selectedContract.id, 'Overdue', 'Hợp đồng trễ hạn chưa trả, liên hệ chưa phản hồi.');
                           setSelectedContract(prev => prev ? ({ ...prev, status: 'Overdue' }) : null);
                         }}
-                        className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-2 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-1.5 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        <AlertCircle className="w-4 h-4 text-rose-500" />
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
                         <span>Báo quá hạn (Overdue)</span>
                       </button>
                     </div>
