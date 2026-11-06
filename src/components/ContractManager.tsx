@@ -2288,14 +2288,13 @@ export default function ContractManager({
                         <h4 className="text-xs font-black text-amber-950 uppercase">Thu phí phát sinh khi kết thúc / trả máy</h4>
                         <div>
                           <label className="text-[10px] font-bold text-gray-600 uppercase block mb-1">Số tiền phụ phí (VNĐ)</label>
-                          <input
-                            type="number"
-                            min={0}
-                            step={10000}
-                            value={extraFeeDraft || ''}
-                            onChange={e => setExtraFeeDraft(Math.max(0, parseInt(e.target.value) || 0))}
-                            placeholder="VD: 50000"
-                            className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold bg-white text-gray-900"
+                          <MoneyInput
+                            value={extraFeeDraft}
+                            onChange={v => setExtraFeeDraft(v)}
+                            placeholder="VD: 50.000"
+                            allowZero={true}
+                            className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            suffixColor="amber"
                           />
                         </div>
                         <div>
@@ -2318,6 +2317,7 @@ export default function ContractManager({
                                 setExtraFeeReasonDraft(r);
                                 if (r.includes('50k')) setExtraFeeDraft(50000);
                                 if (r.includes('100k')) setExtraFeeDraft(100000);
+                                if (r.includes('5 tấm')) setExtraFeeDraft(25000);
                               }}
                               className="text-[10px] bg-white hover:bg-amber-100 border border-amber-200 text-amber-900 px-2 py-0.5 rounded cursor-pointer transition font-medium"
                             >
@@ -2325,14 +2325,21 @@ export default function ContractManager({
                             </button>
                           ))}
                         </div>
+                        <p className="text-[10px] text-amber-700 font-medium">💡 Phụ phí phát sinh được cộng trực tiếp vào tổng tiền & doanh thu khi kết thúc / hoàn tất đơn.</p>
                         <div className="flex gap-2 pt-1">
                           <button
                             type="button"
                             onClick={() => {
+                              const isCompleted = selectedContract.status === 'Completed';
+                              const newPaidAmount = isCompleted
+                                ? (selectedContract.totalPrice || 0) + extraFeeDraft
+                                : selectedContract.paidAmount;
+
                               const updated: RentalContract = {
                                 ...selectedContract,
                                 extraFee: extraFeeDraft,
-                                extraFeeReason: extraFeeReasonDraft.trim()
+                                extraFeeReason: extraFeeReasonDraft.trim(),
+                                paidAmount: newPaidAmount
                               };
                               setSelectedContract(updated);
                               onUpdateContract(updated);

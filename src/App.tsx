@@ -1297,9 +1297,21 @@ export default function App() {
 
   // Cập nhật toàn diện hợp đồng (Sửa lịch, thêm/bớt thiết bị, phụ phí phát sinh)
   const handleUpdateContract = (updatedContract: RentalContract) => {
+    // Nếu đơn đã hoàn tất, đảm bảo phụ phí phát sinh được cộng trực tiếp vào đã thu (doanh thu)
+    let contractToSave = updatedContract;
+    if (contractToSave.status === 'Completed') {
+      const fullTotal = (contractToSave.totalPrice || 0) + (contractToSave.extraFee || 0);
+      if ((contractToSave.paidAmount || 0) < fullTotal) {
+        contractToSave = {
+          ...contractToSave,
+          paidAmount: fullTotal
+        };
+      }
+    }
+
     let nextContracts: RentalContract[] = [];
     setContracts(prev => {
-      const next = prev.map(c => c.id === updatedContract.id ? updatedContract : c);
+      const next = prev.map(c => c.id === contractToSave.id ? contractToSave : c);
       nextContracts = next;
       saveStoredData('contracts', next);
       return next;
@@ -1308,16 +1320,16 @@ export default function App() {
     // Cập nhật trạng thái máy tương ứng
     setCameras(prevCams =>
       prevCams.map(cam => {
-        const isRented = updatedContract.items.some(i => i.cameraId === cam.id);
-        if (updatedContract.status === 'Completed' || updatedContract.status === 'Cancelled') {
+        const isRented = contractToSave.items.some(i => i.cameraId === cam.id);
+        if (contractToSave.status === 'Completed' || contractToSave.status === 'Cancelled') {
           // Kiểm tra xem máy này có đang được thuê bởi đơn khác không
           const stillRented = nextContracts.some(
-            c => c.id !== updatedContract.id && (c.status === 'Active' || c.status === 'Overdue') && c.items.some(i => i.cameraId === cam.id)
+            c => c.id !== contractToSave.id && (c.status === 'Active' || c.status === 'Overdue') && c.items.some(i => i.cameraId === cam.id)
           );
           if (!stillRented && cam.status === 'Rented') {
             return { ...cam, status: 'Available' as const };
           }
-        } else if (updatedContract.status === 'Active' && isRented) {
+        } else if (contractToSave.status === 'Active' && isRented) {
           return { ...cam, status: 'Rented' as const };
         }
         return cam;
@@ -1336,18 +1348,18 @@ export default function App() {
 
     // Broadcast tới tất cả thiết bị khác
     broadcastToAllDevices(
-      `📋 Cập nhật đơn ${updatedContract.contractCode}`,
-      `Đơn ${updatedContract.contractCode} vừa được cập nhật lịch / thiết bị / phụ phí`,
+      `📋 Cập nhật đơn ${contractToSave.contractCode}`,
+      `Đơn ${contractToSave.contractCode} vừa được cập nhật lịch / thiết bị / phụ phí`,
       {
         type: 'CONTRACT_CREATED',
-        contract: updatedContract
+        contract: contractToSave
       }
     ).catch(() => {});
 
     addToast(
       'Cập nhật đơn hàng thành công!',
       'success',
-      `Mã hợp đồng: ${updatedContract.contractCode} | Khách: ${updatedContract.customerName}`
+      `Mã hợp đồng: ${contractToSave.contractCode} | Khách: ${contractToSave.customerName}`
     );
   };
 
@@ -1412,6 +1424,8 @@ export default function App() {
             finalPaidAmount = c.totalPrice;
           } else if (paidAmount !== undefined) {
             finalPaidAmount = paidAmount;
+          } else if (status === 'Completed') {
+            finalPaidAmount = (c.totalPrice || 0) + (c.extraFee || 0);
           }
 
           const updatedContract = {

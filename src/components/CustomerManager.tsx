@@ -78,10 +78,15 @@ export default function CustomerManager({
       };
     }
     const custContracts = (contracts || []).filter(c => c && isContractOfCustomer(c, cust) && c.status !== 'Cancelled');
-    const totalDebt = custContracts.reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) - (c.paidAmount || 0)), 0);
-    const totalSpent = custContracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
-    const totalExpected = custContracts.reduce((sum, c) => sum + (c.totalPrice || 0), 0);
-    const debtContractsCount = custContracts.filter(c => (c.totalPrice || 0) > (c.paidAmount || 0)).length;
+    const totalDebt = custContracts.reduce((sum, c) => sum + Math.max(0, ((c.totalPrice || 0) + (c.extraFee || 0)) - (c.paidAmount || 0)), 0);
+    const totalSpent = custContracts.reduce((sum, c) => {
+      const actualPaid = c.status === 'Completed'
+        ? Math.max(c.paidAmount || 0, (c.totalPrice || 0) + (c.extraFee || 0))
+        : (c.paidAmount || 0);
+      return sum + actualPaid;
+    }, 0);
+    const totalExpected = custContracts.reduce((sum, c) => sum + ((c.totalPrice || 0) + (c.extraFee || 0)), 0);
+    const debtContractsCount = custContracts.filter(c => ((c.totalPrice || 0) + (c.extraFee || 0)) > (c.paidAmount || 0)).length;
     
     // Pending reservation deposits (Đơn chờ cọc 50% giữ máy - Chỉ tính đơn chưa cọc đủ 50%)
     const pendingContracts = custContracts.filter(c => c.status === 'Pending' && (c.paidAmount || 0) < Math.round((c.totalPrice || 0) * 0.5));
@@ -106,7 +111,7 @@ export default function CustomerManager({
   const overallCustomerDebt = useMemo(() => {
     return (contracts || [])
       .filter(c => c && c.status !== 'Cancelled')
-      .reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) - (c.paidAmount || 0)), 0);
+      .reduce((sum, c) => sum + Math.max(0, ((c.totalPrice || 0) + (c.extraFee || 0)) - (c.paidAmount || 0)), 0);
   }, [contracts]);
 
   const overallPendingDeposit = useMemo(() => {

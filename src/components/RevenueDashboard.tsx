@@ -237,14 +237,17 @@ export default function RevenueDashboard({
     });
   }, [expenses, dateRange]);
 
-  // Contracts that currently have uncollected debt (totalPrice > paidAmount)
+  // Contracts that currently have uncollected debt (totalPrice + extraFee > paidAmount)
   const receivableContracts = useMemo(() => {
     return filteredContracts
-      .filter(c => c.status !== 'Cancelled' && ((c.totalPrice || 0) - (c.paidAmount || 0) > 0))
-      .map(c => ({
-        ...c,
-        remainingDebt: (c.totalPrice || 0) - (c.paidAmount || 0)
-      }))
+      .filter(c => c.status !== 'Cancelled' && ((((c.totalPrice || 0) + (c.extraFee || 0)) - (c.paidAmount || 0)) > 0))
+      .map(c => {
+        const fullTotal = (c.totalPrice || 0) + (c.extraFee || 0);
+        return {
+          ...c,
+          remainingDebt: Math.max(0, fullTotal - (c.paidAmount || 0))
+        };
+      })
       .sort((a, b) => b.remainingDebt - a.remainingDebt);
   }, [filteredContracts]);
 
@@ -274,11 +277,23 @@ export default function RevenueDashboard({
   const financials = useMemo(() => {
     const totalRevenue = filteredContracts
       .filter(c => c.status !== 'Cancelled')
-      .reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+      .reduce((sum, c) => {
+        const actualPaid = c.status === 'Completed'
+          ? Math.max(c.paidAmount || 0, (c.totalPrice || 0) + (c.extraFee || 0))
+          : (c.paidAmount || 0);
+        return sum + actualPaid;
+      }, 0);
+
+    const totalExtraFee = filteredContracts
+      .filter(c => c.status !== 'Cancelled')
+      .reduce((sum, c) => sum + (c.extraFee || 0), 0);
 
     const totalReceivables = filteredContracts
       .filter(c => c.status !== 'Cancelled')
-      .reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) - (c.paidAmount || 0)), 0);
+      .reduce((sum, c) => {
+        const fullTotal = (c.totalPrice || 0) + (c.extraFee || 0);
+        return sum + Math.max(0, fullTotal - (c.paidAmount || 0));
+      }, 0);
 
     const activeRentalsCount = filteredContracts.filter(c => c.status === 'Active' || c.status === 'Overdue').length;
     const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -286,6 +301,7 @@ export default function RevenueDashboard({
 
     return {
       totalRevenue,
+      totalExtraFee,
       totalReceivables,
       activeRentalsCount,
       totalExpenses,
@@ -432,7 +448,10 @@ export default function RevenueDashboard({
 
         let itemRevenue = itemDiscountedEstPrice;
         if (c.totalPrice > 0 && c.paidAmount !== undefined) {
-          itemRevenue = Math.round((itemDiscountedEstPrice / c.totalPrice) * c.paidAmount);
+          const effectivePaid = c.status === 'Completed'
+            ? Math.max(c.paidAmount || 0, (c.totalPrice || 0) + (c.extraFee || 0))
+            : c.paidAmount;
+          itemRevenue = Math.round((itemDiscountedEstPrice / c.totalPrice) * effectivePaid);
         }
 
         entry.rentalCount += 1;
@@ -545,8 +564,11 @@ export default function RevenueDashboard({
       contracts.forEach(c => {
         if (c.status === 'Cancelled') return;
         if (c.startDate && c.startDate.startsWith(prefix)) {
-          revenue += c.paidAmount;
-          expectedRevenue += c.totalPrice;
+          const effectivePaid = c.status === 'Completed'
+            ? Math.max(c.paidAmount || 0, (c.totalPrice || 0) + (c.extraFee || 0))
+            : (c.paidAmount || 0);
+          revenue += effectivePaid;
+          expectedRevenue += ((c.totalPrice || 0) + (c.extraFee || 0));
           monthContracts.push(c);
         }
       });
@@ -827,7 +849,9 @@ export default function RevenueDashboard({
           <div className="min-w-0 flex-1">
             <span className="text-gray-500 text-[9px] sm:text-xs font-bold block uppercase tracking-wider truncate">Tổng Doanh Thu</span>
             <span className="font-mono text-xs sm:text-xl font-black text-gray-900 block truncate mt-0.5">{financials.totalRevenue.toLocaleString()} đ</span>
-            <span className="text-[9px] sm:text-[10px] text-green-600 font-bold block mt-0.5 truncate">Thực thu</span>
+            <span className="text-[9px] sm:text-[10px] text-green-600 font-bold block mt-0.5 truncate">
+              {financials.totalExtraFee > 0 ? `Thực thu (gồm +${financials.totalExtraFee.toLocaleString()}đ phụ phí)` : 'Thực thu'}
+            </span>
           </div>
         </div>
 
@@ -2049,7 +2073,12 @@ export default function RevenueDashboard({
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-50 p-2 rounded-lg border border-gray-150">
                           <div>
                             <span className="text-[9.5px] text-gray-400 font-bold uppercase block">Tổng tiền</span>
-                            <span className="font-mono font-bold text-gray-800">{c.totalPrice.toLocaleString()}đ</span>
+                            <span className="font-mono font-bold text-gray-800">
+                              {((c.totalPrice || 0) + (c.extraFee || 0)).toLocaleString()}đ
+                              {c.extraFee && c.extraFee > 0 ? (
+                                <span className="text-[10px] text-amber-700 font-semibold block sm:inline sm:ml-1">(+{c.extraFee.toLocaleString()}đ phụ phí)</span>
+                              ) : null}
+                            </span>
                           </div>
                           <div>
                             <span className="text-[9.5px] text-emerald-700 font-bold uppercase block">Đã thanh toán</span>
