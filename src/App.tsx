@@ -1295,6 +1295,62 @@ export default function App() {
     }
   };
 
+  // Cập nhật toàn diện hợp đồng (Sửa lịch, thêm/bớt thiết bị, phụ phí phát sinh)
+  const handleUpdateContract = (updatedContract: RentalContract) => {
+    let nextContracts: RentalContract[] = [];
+    setContracts(prev => {
+      const next = prev.map(c => c.id === updatedContract.id ? updatedContract : c);
+      nextContracts = next;
+      saveStoredData('contracts', next);
+      return next;
+    });
+
+    // Cập nhật trạng thái máy tương ứng
+    setCameras(prevCams =>
+      prevCams.map(cam => {
+        const isRented = updatedContract.items.some(i => i.cameraId === cam.id);
+        if (updatedContract.status === 'Completed' || updatedContract.status === 'Cancelled') {
+          // Kiểm tra xem máy này có đang được thuê bởi đơn khác không
+          const stillRented = nextContracts.some(
+            c => c.id !== updatedContract.id && (c.status === 'Active' || c.status === 'Overdue') && c.items.some(i => i.cameraId === cam.id)
+          );
+          if (!stillRented && cam.status === 'Rented') {
+            return { ...cam, status: 'Available' as const };
+          }
+        } else if (updatedContract.status === 'Active' && isRented) {
+          return { ...cam, status: 'Rented' as const };
+        }
+        return cam;
+      })
+    );
+
+    // Đồng bộ an toàn lên Cloud
+    if (isSupabaseConfigured) {
+      safeSyncContractsToSupabase(nextContracts).catch(err => {
+        console.warn('[Supabase Sync Error]', err);
+      });
+    }
+    safeSyncContractsToFirestore(nextContracts).catch(err => {
+      console.warn('[Firestore Sync Error]', err);
+    });
+
+    // Broadcast tới tất cả thiết bị khác
+    broadcastToAllDevices(
+      `📋 Cập nhật đơn ${updatedContract.contractCode}`,
+      `Đơn ${updatedContract.contractCode} vừa được cập nhật lịch / thiết bị / phụ phí`,
+      {
+        type: 'CONTRACT_CREATED',
+        contract: updatedContract
+      }
+    ).catch(() => {});
+
+    addToast(
+      'Cập nhật đơn hàng thành công!',
+      'success',
+      `Mã hợp đồng: ${updatedContract.contractCode} | Khách: ${updatedContract.customerName}`
+    );
+  };
+
   const handleUpdateContractStatus = (id: string, status: ContractStatus, note?: string, paidAmount?: number) => {
     const targetContract = contracts.find(c => c.id === id);
     if (targetContract) {
@@ -3244,6 +3300,7 @@ export default function App() {
                   contracts={contracts}
                   customers={customers}
                   onAddContract={handleAddContract}
+                  onUpdateContract={handleUpdateContract}
                   onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
                   selectedDate={selectedDate}
                   setSelectedDate={setSelectedDate}
@@ -3259,6 +3316,7 @@ export default function App() {
                   cameras={cameras}
                   customers={customers}
                   onAddContract={handleAddContract}
+                  onUpdateContract={handleUpdateContract}
                   onUpdateContractStatus={handleUpdateContractStatus}
                   onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
                   onUpdateContractNote={handleUpdateContractNote}

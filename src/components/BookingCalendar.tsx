@@ -67,10 +67,62 @@ interface BookingCalendarProps {
   contracts: RentalContract[];
   customers?: Customer[];
   onAddContract: (contract: RentalContract) => void;
+  onUpdateContract?: (contract: RentalContract) => void;
   onDeleteContract?: (id: string) => void;
   selectedDate: string;
   setSelectedDate: (date: string) => void;
   systemDate: string;
+}
+
+// Hàm tính toán lại giá và tiền cọc khi sửa lịch hoặc thêm/bớt thiết bị
+function recalculateContractFinancials(
+  items: RentalContract['items'],
+  startDate: string,
+  endDate: string,
+  is6Hours: boolean,
+  discountPercent: number = 0,
+  camerasList: Camera[]
+) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const days = is6Hours ? 1 : Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+
+  let rawTotal = 0;
+  let totalDeposit = 0;
+
+  const updatedItems = items.map(item => {
+    const cam = camerasList.find(c => c.id === item.cameraId);
+    if (!cam) return item;
+
+    totalDeposit += (cam.depositAmount || 1000000) * (item.quantity || 1);
+    const isPrinter = cam.category === 'Printer' || Boolean(cam.isPrinter);
+    if (isPrinter) {
+      const prints = item.printCount || 5;
+      const printPricing = getPrintPrice(cam, prints);
+      rawTotal += printPricing.totalPrice;
+      return {
+        ...item,
+        dailyRate: printPricing.totalPrice,
+        cameraName: `${cam.name} (${prints} tấm)`
+      };
+    } else {
+      const rate = getCameraRateForDuration(cam, days, is6Hours);
+      rawTotal += rate * days * (item.quantity || 1);
+      return {
+        ...item,
+        dailyRate: rate
+      };
+    }
+  });
+
+  const finalTotal = Math.round(rawTotal * (1 - (discountPercent || 0) / 100));
+
+  return {
+    items: updatedItems,
+    totalPrice: finalTotal,
+    depositAmount: totalDeposit,
+    days
+  };
 }
 
 export default function BookingCalendar({
@@ -78,6 +130,7 @@ export default function BookingCalendar({
   contracts,
   customers = [],
   onAddContract,
+  onUpdateContract,
   onDeleteContract,
   selectedDate,
   setSelectedDate,
@@ -639,6 +692,43 @@ export default function BookingCalendar({
   const [quickReceiptContract, setQuickReceiptContract] = useState<RentalContract | null>(null);
   const [isExportingReceipt, setIsExportingReceipt] = useState<boolean>(false);
 
+  // Trạng thái chỉnh sửa trực tiếp trên Hóa đơn (quickReceiptContract)
+  const [editingDates, setEditingDates] = useState(false);
+  const [dateDraft, setDateDraft] = useState({
+    startDate: '',
+    endDate: '',
+    is6Hours: false,
+    startTime: '08:00',
+    returnTime: '14:00'
+  });
+
+  const [editingItems, setEditingItems] = useState(false);
+  const [itemsDraft, setItemsDraft] = useState<RentalContract['items']>([]);
+  const [selectedAddCameraId, setSelectedAddCameraId] = useState('');
+
+  const [editingExtraFee, setEditingExtraFee] = useState(false);
+  const [extraFeeDraft, setExtraFeeDraft] = useState<number>(0);
+  const [extraFeeReasonDraft, setExtraFeeReasonDraft] = useState<string>('');
+
+  // Hàm mở hóa đơn và khởi tạo toàn bộ draft state
+  const openReceiptModal = (c: RentalContract) => {
+    setQuickReceiptContract(c);
+    setEditingDates(false);
+    setDateDraft({
+      startDate: c.startDate,
+      endDate: c.endDate,
+      is6Hours: Boolean(c.is6Hours),
+      startTime: c.startTime || '08:00',
+      returnTime: c.returnTime || '14:00'
+    });
+    setEditingItems(false);
+    setItemsDraft([...c.items]);
+    setSelectedAddCameraId('');
+    setEditingExtraFee(false);
+    setExtraFeeDraft(c.extraFee || 0);
+    setExtraFeeReasonDraft(c.extraFeeReason || '');
+  };
+
   // Lock body scroll whenever any modal is open to prevent background scrolling on mobile
   useScrollLock(Boolean(showAddQuickModal || quickReceiptContract || deleteConfirmId || customAlertMessage || showBankSettings));
 
@@ -1096,8 +1186,12 @@ export default function BookingCalendar({
                       return (
                         <div
                           key={idx}
-                          className={`px-1 py-0.5 rounded-[4px] text-[8px] font-black tracking-tight leading-tight border-0 border-l-[2.5px] ${colors.border} ${colors.bgClass} flex items-center justify-between truncate w-full shadow-3xs`}
-                          title={`${b.cameraName}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openReceiptModal(b.contract);
+                          }}
+                          className={`px-1 py-0.5 rounded-[4px] text-[8px] font-black tracking-tight leading-tight border-0 border-l-[2.5px] ${colors.border} ${colors.bgClass} flex items-center justify-between truncate w-full shadow-3xs cursor-pointer active:scale-95 transition`}
+                          title={`Bấm xem hóa đơn: ${b.cameraName} (${b.contract.customerName})`}
                         >
                           <span className="truncate">{b.cameraShort}</span>
                           {b.isPrinter ? (
@@ -1122,8 +1216,12 @@ export default function BookingCalendar({
                       return (
                         <div
                           key={idx}
-                          className={`shadow-3xs group flex items-center justify-between px-1.5 py-0.5 border-0 border-l-[3.5px] ${colors.border} ${colors.bgClass} rounded-[5px] text-[10px] font-extrabold tracking-tight leading-normal truncate max-w-full transition-all`}
-                          title={`${b.cameraName} (${b.isPrinter ? `${b.printCount ?? '?'} tấm in ảnh` : b.contract.is6Hours ? `Lịch thuê 6 tiếng (Trả: ${b.contract.returnTime || '18:00'})` : b.timeString}) - ${b.contract.customerName}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openReceiptModal(b.contract);
+                          }}
+                          className={`shadow-3xs group flex items-center justify-between px-1.5 py-0.5 border-0 border-l-[3.5px] ${colors.border} ${colors.bgClass} rounded-[5px] text-[10px] font-extrabold tracking-tight leading-normal truncate max-w-full transition-all cursor-pointer hover:brightness-95 active:scale-98`}
+                          title={`Bấm xem hóa đơn: ${b.cameraName} (${b.isPrinter ? `${b.printCount ?? '?'} tấm in ảnh` : b.contract.is6Hours ? `Lịch thuê 6 tiếng (Trả: ${b.contract.returnTime || '18:00'})` : b.timeString}) - ${b.contract.customerName}`}
                         >
                           <span className="truncate w-full text-[10px]">
                             {b.cameraShort} <span className="opacity-85 font-semibold text-[9px]">({subLabel})</span>
@@ -1340,7 +1438,16 @@ export default function BookingCalendar({
                       <span>{b.contract.customerPhone}</span>
                     </a>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openReceiptModal(b.contract)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
+                        title="Xem hóa đơn, sửa lịch, thêm bớt thiết bị hoặc thu phí phát sinh"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Hóa đơn</span>
+                      </button>
                       <span className="font-mono text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded border">
                         {b.contract.contractCode}
                       </span>
@@ -2439,38 +2546,368 @@ export default function BookingCalendar({
                   </div>
 
                   <div className="space-y-1 pt-2.5 border-t border-gray-200">
-                    <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">THÔNG TIN THỜI HẠN</h4>
-                    <div className="space-y-1.5 text-xs sm:text-[13px]">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-gray-500 font-medium whitespace-nowrap">Bắt đầu:</span>
-                        <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">{formatDMY(quickReceiptContract.startDate)}</strong>
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-gray-500 font-medium whitespace-nowrap">Hạn trả máy:</span>
-                        <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">
-                          {quickReceiptContract.is6Hours ? `Gói 6h (${quickReceiptContract.startTime || '08:00'} - ${quickReceiptContract.returnTime || '14:00'})` : formatDMY(quickReceiptContract.endDate)}
-                        </strong>
-                      </div>
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN THỜI HẠN</h4>
+                      {!isExportingReceipt && onUpdateContract && !editingDates && (
+                        <button
+                          type="button"
+                          data-no-export="true"
+                          onClick={() => {
+                            setDateDraft({
+                              startDate: quickReceiptContract.startDate,
+                              endDate: quickReceiptContract.endDate,
+                              is6Hours: Boolean(quickReceiptContract.is6Hours),
+                              startTime: quickReceiptContract.startTime || '08:00',
+                              returnTime: quickReceiptContract.returnTime || '14:00'
+                            });
+                            setEditingDates(true);
+                          }}
+                          className="no-export-item flex items-center gap-1 text-[10px] font-bold text-orange-600 hover:bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-lg transition cursor-pointer"
+                          title="Sửa lịch thuê máy"
+                        >
+                          <Edit2 className="w-3 h-3" /> Sửa lịch
+                        </button>
+                      )}
                     </div>
+
+                    {editingDates ? (
+                      <div className="space-y-2 bg-orange-50/70 border border-orange-200 p-2.5 rounded-xl">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-extrabold text-gray-600 uppercase block mb-1">Bắt đầu *</label>
+                            <input
+                              type="date"
+                              value={dateDraft.startDate}
+                              onChange={e => {
+                                const newStart = e.target.value;
+                                setDateDraft(d => ({
+                                  ...d,
+                                  startDate: newStart,
+                                  endDate: (!d.is6Hours && d.endDate < newStart) ? newStart : d.endDate
+                                }));
+                              }}
+                              className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-mono font-bold bg-white text-gray-900"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-extrabold text-gray-600 uppercase block mb-1">
+                              {dateDraft.is6Hours ? 'Ngày thuê' : 'Hạn trả máy *'}
+                            </label>
+                            <input
+                              type="date"
+                              disabled={dateDraft.is6Hours}
+                              value={dateDraft.is6Hours ? dateDraft.startDate : dateDraft.endDate}
+                              min={dateDraft.startDate}
+                              onChange={e => setDateDraft(d => ({ ...d, endDate: e.target.value }))}
+                              className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-mono font-bold bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-gray-800">
+                            <input
+                              type="checkbox"
+                              checked={dateDraft.is6Hours}
+                              onChange={e => {
+                                const checked = e.target.checked;
+                                setDateDraft(d => ({
+                                  ...d,
+                                  is6Hours: checked,
+                                  endDate: checked ? d.startDate : d.endDate
+                                }));
+                              }}
+                              className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                            />
+                            <span>Gói thuê 6 tiếng (nửa ngày)</span>
+                          </label>
+                        </div>
+
+                        {dateDraft.is6Hours && (
+                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-orange-200/60">
+                            <div>
+                              <label className="text-[10px] font-bold text-gray-500 block mb-0.5">Giờ nhận</label>
+                              <input
+                                type="time"
+                                value={dateDraft.startTime}
+                                onChange={e => {
+                                  const newStart = e.target.value;
+                                  setDateDraft(d => ({ ...d, startTime: newStart, returnTime: add6Hours(newStart) }));
+                                }}
+                                className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-mono bg-white text-gray-900 font-bold"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-gray-500 block mb-0.5">Giờ trả (+6h)</label>
+                              <input
+                                type="time"
+                                value={dateDraft.returnTime}
+                                onChange={e => setDateDraft(d => ({ ...d, returnTime: e.target.value }))}
+                                className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-mono bg-white text-gray-900 font-bold"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!dateDraft.startDate || (!dateDraft.is6Hours && !dateDraft.endDate)) {
+                                setCustomAlertMessage('Vui lòng chọn ngày hợp lệ!');
+                                return;
+                              }
+                              if (!dateDraft.is6Hours && dateDraft.endDate < dateDraft.startDate) {
+                                setCustomAlertMessage('Ngày trả không thể nhỏ hơn ngày bắt đầu!');
+                                return;
+                              }
+
+                              const targetEnd = dateDraft.is6Hours ? dateDraft.startDate : dateDraft.endDate;
+                              const conflict = checkBookingConflict(
+                                quickReceiptContract.items.map(i => i.cameraId),
+                                dateDraft.startDate,
+                                targetEnd,
+                                dateDraft.is6Hours,
+                                contracts,
+                                quickReceiptContract.id,
+                                dateDraft.is6Hours ? dateDraft.startTime : undefined,
+                                dateDraft.is6Hours ? dateDraft.returnTime : undefined
+                              );
+
+                              if (conflict.hasConflict) {
+                                setCustomAlertMessage(conflict.message);
+                                return;
+                              }
+
+                              const financial = recalculateContractFinancials(
+                                quickReceiptContract.items,
+                                dateDraft.startDate,
+                                targetEnd,
+                                dateDraft.is6Hours,
+                                quickReceiptContract.discountPercent || 0,
+                                cameras
+                              );
+
+                              const updated: RentalContract = {
+                                ...quickReceiptContract,
+                                startDate: dateDraft.startDate,
+                                endDate: targetEnd,
+                                is6Hours: dateDraft.is6Hours,
+                                startTime: dateDraft.is6Hours ? dateDraft.startTime : undefined,
+                                returnTime: dateDraft.is6Hours ? dateDraft.returnTime : undefined,
+                                items: financial.items,
+                                totalPrice: financial.totalPrice
+                              };
+
+                              setQuickReceiptContract(updated);
+                              if (onUpdateContract) onUpdateContract(updated);
+                              setEditingDates(false);
+                            }}
+                            className="flex-1 flex items-center justify-center gap-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-1.5 rounded-lg transition cursor-pointer"
+                          >
+                            <Check className="w-3.5 h-3.5" /> Lưu lịch mới
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingDates(false)}
+                            className="px-3 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+                          >
+                            Hủy
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 text-xs sm:text-[13px]">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-gray-500 font-medium whitespace-nowrap">Bắt đầu:</span>
+                          <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">{formatDMY(quickReceiptContract.startDate)}</strong>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-gray-500 font-medium whitespace-nowrap">Hạn trả máy:</span>
+                          <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">
+                            {quickReceiptContract.is6Hours ? `Gói 6h (${quickReceiptContract.startTime || '08:00'} - ${quickReceiptContract.returnTime || '14:00'})` : formatDMY(quickReceiptContract.endDate)}
+                          </strong>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Rental Items Detail - ONLY item name, no price */}
+                {/* Rental Items Detail */}
                 <div className="space-y-1.5">
-                  <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">DANH SÁCH THIẾT BỊ THUÊ</h4>
-                  <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
-                    {quickReceiptContract.items.map((i, idx) => (
-                      <div key={idx} className="p-2.5 px-3.5 flex items-center text-xs sm:text-sm bg-white">
-                        <div className="font-bold text-gray-900 truncate flex-1 min-w-0 flex items-center gap-2">
-                          <span className="text-orange-500 text-xs">📷</span>
-                          <span className="truncate">{i.cameraName}</span>
-                          {i.quantity > 1 && (
-                            <span className="text-gray-500 font-mono text-[11px] font-medium">({i.quantity} chiếc)</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between mb-0.5">
+                    <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">DANH SÁCH THIẾT BỊ THUÊ</h4>
+                    {!isExportingReceipt && onUpdateContract && !editingItems && (
+                      <button
+                        type="button"
+                        data-no-export="true"
+                        onClick={() => {
+                          setItemsDraft([...quickReceiptContract.items]);
+                          setSelectedAddCameraId('');
+                          setEditingItems(true);
+                        }}
+                        className="no-export-item flex items-center gap-1 text-[10px] font-bold text-orange-600 hover:bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-lg transition cursor-pointer"
+                        title="Thêm bớt thiết bị thuê"
+                      >
+                        <Edit2 className="w-3 h-3" /> Sửa thiết bị
+                      </button>
+                    )}
                   </div>
+
+                  {editingItems ? (
+                    <div className="space-y-2 bg-orange-50/70 border border-orange-200 p-2.5 rounded-xl">
+                      <div className="space-y-1.5 divide-y divide-orange-200/60">
+                        {itemsDraft.map((item, idx) => {
+                          const cam = cameras.find(c => c.id === item.cameraId);
+                          const isPrinter = cam?.category === 'Printer' || Boolean(cam?.isPrinter);
+                          return (
+                            <div key={idx} className="pt-1.5 first:pt-0 flex items-center justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold text-xs text-gray-900 truncate">📷 {cam?.name || item.cameraName}</p>
+                                {isPrinter && (
+                                  <div className="flex items-center gap-1.5 mt-1">
+                                    <span className="text-[10px] text-gray-500 font-bold">Số tấm in:</span>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      max={100}
+                                      value={item.printCount || 5}
+                                      onChange={e => {
+                                        const val = Math.max(1, parseInt(e.target.value) || 1);
+                                        setItemsDraft(prev => prev.map((it, i) => i === idx ? { ...it, printCount: val } : it));
+                                      }}
+                                      className="w-16 px-1.5 py-0.5 border border-gray-300 rounded text-xs font-mono font-bold bg-white"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              {itemsDraft.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setItemsDraft(prev => prev.filter((_, i) => i !== idx))}
+                                  className="p-1 text-rose-600 hover:bg-rose-100 rounded transition cursor-pointer"
+                                  title="Xóa thiết bị này"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Dropdown thêm thiết bị mới */}
+                      <div className="pt-2 border-t border-orange-200 flex gap-1.5">
+                        <select
+                          value={selectedAddCameraId}
+                          onChange={e => setSelectedAddCameraId(e.target.value)}
+                          className="flex-1 border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold bg-white text-gray-800"
+                        >
+                          <option value="">+ Chọn máy/lens thêm vào đơn...</option>
+                          {cameras
+                            .filter(c => !itemsDraft.some(it => it.cameraId === c.id) && c.status !== 'Maintenance')
+                            .map(c => (
+                              <option key={c.id} value={c.id}>
+                                {c.name} ({c.dailyRate.toLocaleString()}đ/ngày)
+                              </option>
+                            ))}
+                        </select>
+                        <button
+                          type="button"
+                          disabled={!selectedAddCameraId}
+                          onClick={() => {
+                            const cam = cameras.find(c => c.id === selectedAddCameraId);
+                            if (!cam) return;
+                            const isPrinter = cam.category === 'Printer' || Boolean(cam.isPrinter);
+                            const newItem = {
+                              cameraId: cam.id,
+                              cameraName: isPrinter ? `${cam.name} (5 tấm)` : cam.name,
+                              dailyRate: cam.dailyRate || 100000,
+                              quantity: 1,
+                              printCount: isPrinter ? 5 : undefined
+                            };
+                            setItemsDraft(prev => [...prev, newItem]);
+                            setSelectedAddCameraId('');
+                          }}
+                          className="bg-orange-600 disabled:bg-gray-300 text-white font-bold text-xs px-2.5 py-1 rounded-lg transition cursor-pointer"
+                        >
+                          Thêm
+                        </button>
+                      </div>
+
+                      <div className="flex gap-2 pt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (itemsDraft.length === 0) {
+                              setCustomAlertMessage('Đơn hàng phải có ít nhất 1 thiết bị!');
+                              return;
+                            }
+
+                            const conflict = checkBookingConflict(
+                              itemsDraft.map(i => i.cameraId),
+                              quickReceiptContract.startDate,
+                              quickReceiptContract.endDate,
+                              Boolean(quickReceiptContract.is6Hours),
+                              contracts,
+                              quickReceiptContract.id,
+                              quickReceiptContract.startTime,
+                              quickReceiptContract.returnTime
+                            );
+
+                            if (conflict.hasConflict) {
+                              setCustomAlertMessage(conflict.message);
+                              return;
+                            }
+
+                            const financial = recalculateContractFinancials(
+                              itemsDraft,
+                              quickReceiptContract.startDate,
+                              quickReceiptContract.endDate,
+                              Boolean(quickReceiptContract.is6Hours),
+                              quickReceiptContract.discountPercent || 0,
+                              cameras
+                            );
+
+                            const updated: RentalContract = {
+                              ...quickReceiptContract,
+                              items: financial.items,
+                              totalPrice: financial.totalPrice,
+                              depositAmount: financial.depositAmount
+                            };
+
+                            setQuickReceiptContract(updated);
+                            if (onUpdateContract) onUpdateContract(updated);
+                            setEditingItems(false);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-1.5 rounded-lg transition cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5" /> Lưu thiết bị
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingItems(false)}
+                          className="px-3 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 bg-white">
+                      {quickReceiptContract.items.map((i, idx) => (
+                        <div key={idx} className="p-2.5 px-3.5 flex items-center text-xs sm:text-sm bg-white">
+                          <div className="font-bold text-gray-900 truncate flex-1 min-w-0 flex items-center gap-2">
+                            <span className="text-orange-500 text-xs">📷</span>
+                            <span className="truncate">{i.cameraName}</span>
+                            {i.quantity > 1 && (
+                              <span className="text-gray-500 font-mono text-[11px] font-medium">({i.quantity} chiếc)</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Financial Summary Block */}
@@ -2483,8 +2920,27 @@ export default function BookingCalendar({
                   ) : null}
 
                   <div className="flex justify-between items-center text-xs sm:text-sm gap-2">
-                    <span className="text-gray-700 font-semibold">Tổng tiền thuê dự kiến:</span>
-                    <span className="font-black text-gray-900 text-sm sm:text-base font-mono shrink-0">{quickReceiptContract.totalPrice.toLocaleString()}đ</span>
+                    <span className="text-gray-700 font-semibold">Tiền thuê thiết bị:</span>
+                    <span className="font-bold text-gray-900 text-sm sm:text-base font-mono shrink-0">{quickReceiptContract.totalPrice.toLocaleString()}đ</span>
+                  </div>
+
+                  {/* DÒNG PHÍ PHÁT SINH NẾU CÓ */}
+                  {(quickReceiptContract.extraFee && quickReceiptContract.extraFee > 0) ? (
+                    <div className="flex justify-between items-center text-xs sm:text-sm gap-2 bg-amber-100/70 border border-amber-300/80 px-2 py-1 rounded-lg">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className="font-extrabold text-amber-900 shrink-0">Phí phát sinh:</span>
+                        <span className="text-[11px] text-amber-800 font-medium truncate">({quickReceiptContract.extraFeeReason || 'Phụ thu phát sinh'})</span>
+                      </div>
+                      <span className="font-black text-rose-700 text-sm font-mono shrink-0">+{quickReceiptContract.extraFee.toLocaleString()}đ</span>
+                    </div>
+                  ) : null}
+
+                  {/* TỔNG TIỀN THANH TOÁN (GỒM PHÍ PHÁT SINH) */}
+                  <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 font-black text-gray-900 gap-2">
+                    <span>Tổng tiền thanh toán:</span>
+                    <span className="text-orange-700 text-base font-mono shrink-0">
+                      {(quickReceiptContract.totalPrice + (quickReceiptContract.extraFee || 0)).toLocaleString()}đ
+                    </span>
                   </div>
 
                   <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
@@ -2493,18 +2949,127 @@ export default function BookingCalendar({
                   </div>
                   
                   <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
-                    <span className="font-medium text-amber-900">Khách cọc đặt giữ máy trước ({quickReceiptContract.totalPrice > 0 ? Math.round((quickReceiptContract.paidAmount / quickReceiptContract.totalPrice) * 100) : 0}%):</span>
-                    <span className="font-bold text-amber-700 font-mono shrink-0">{quickReceiptContract.paidAmount.toLocaleString()}đ</span>
+                    <span className="font-medium text-amber-900">Khách đã thanh toán / cọc trước:</span>
+                    <span className="font-bold text-emerald-700 font-mono shrink-0">{quickReceiptContract.paidAmount.toLocaleString()}đ</span>
                   </div>
-                  <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
-                    <span>Thực tế khách đã thanh toán:</span>
-                    <span className="font-bold text-gray-400 font-mono shrink-0">0đ <span className="text-[10px] font-normal">(Chưa cọc)</span></span>
-                  </div>
+
                   <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-300 pt-2 font-bold text-gray-900 gap-2">
-                    <span>Còn lại cần thanh toán khi nhận máy:</span>
-                    <span className="text-rose-600 text-sm sm:text-base font-black font-mono shrink-0">{(quickReceiptContract.totalPrice - quickReceiptContract.paidAmount).toLocaleString()}đ</span>
+                    <span>Còn lại cần thanh toán:</span>
+                    <span className="text-rose-600 text-sm sm:text-base font-black font-mono shrink-0">
+                      {Math.max(0, (quickReceiptContract.totalPrice + (quickReceiptContract.extraFee || 0)) - quickReceiptContract.paidAmount).toLocaleString()}đ
+                    </span>
                   </div>
                 </div>
+
+                {/* KHU VỰC THU PHÍ PHÁT SINH & HOÀN TẤT ĐƠN (Chỉ hiển thị trên giao diện, không xuất ảnh) */}
+                {!isExportingReceipt && onUpdateContract && (
+                  <div className="space-y-2 pt-2 border-t border-gray-200" data-no-export="true">
+                    {editingExtraFee ? (
+                      <div className="bg-amber-50/90 border border-amber-300 p-3 rounded-xl space-y-2">
+                        <h4 className="text-xs font-black text-amber-950 uppercase">Thu phí phát sinh khi kết thúc / trả máy</h4>
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-600 uppercase block mb-1">Số tiền phụ phí (VNĐ)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            step={10000}
+                            value={extraFeeDraft || ''}
+                            onChange={e => setExtraFeeDraft(Math.max(0, parseInt(e.target.value) || 0))}
+                            placeholder="VD: 50000"
+                            className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold bg-white text-gray-900"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-600 uppercase block mb-1">Lý do phụ phí phát sinh</label>
+                          <input
+                            type="text"
+                            value={extraFeeReasonDraft}
+                            onChange={e => setExtraFeeReasonDraft(e.target.value)}
+                            placeholder="VD: Quá giờ 2 tiếng / Vệ sinh bụi cát / In thêm ảnh..."
+                            className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-bold bg-white text-gray-900"
+                          />
+                        </div>
+                        {/* Nút gợi ý nhanh lý do */}
+                        <div className="flex flex-wrap gap-1 pt-0.5">
+                          {['Trả trễ 1h (50k)', 'Trả trễ 2h (100k)', 'Vệ sinh máy (50k)', 'Xước nắp lens (50k)', 'In thêm 5 tấm'].map(r => (
+                            <button
+                              key={r}
+                              type="button"
+                              onClick={() => {
+                                setExtraFeeReasonDraft(r);
+                                if (r.includes('50k')) setExtraFeeDraft(50000);
+                                if (r.includes('100k')) setExtraFeeDraft(100000);
+                              }}
+                              className="text-[10px] bg-white hover:bg-amber-100 border border-amber-200 text-amber-900 px-2 py-0.5 rounded cursor-pointer transition font-medium"
+                            >
+                              {r}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated: RentalContract = {
+                                ...quickReceiptContract,
+                                extraFee: extraFeeDraft,
+                                extraFeeReason: extraFeeReasonDraft.trim()
+                              };
+                              setQuickReceiptContract(updated);
+                              onUpdateContract(updated);
+                              setEditingExtraFee(false);
+                            }}
+                            className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-1.5 rounded-lg transition cursor-pointer"
+                          >
+                            Lưu phụ phí
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingExtraFee(false)}
+                            className="px-3 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+                          >
+                            Hủy
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExtraFeeDraft(quickReceiptContract.extraFee || 0);
+                            setExtraFeeReasonDraft(quickReceiptContract.extraFeeReason || '');
+                            setEditingExtraFee(true);
+                          }}
+                          className="flex-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-3xs"
+                        >
+                          <DollarSign className="w-3.5 h-3.5 text-amber-700" />
+                          <span>{quickReceiptContract.extraFee ? 'Sửa phụ phí phát sinh' : '+ Thu phí phát sinh'}</span>
+                        </button>
+
+                        {quickReceiptContract.status !== 'Completed' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const finalTotal = quickReceiptContract.totalPrice + (quickReceiptContract.extraFee || 0);
+                              const updated: RentalContract = {
+                                ...quickReceiptContract,
+                                status: 'Completed',
+                                paidAmount: finalTotal
+                              };
+                              setQuickReceiptContract(updated);
+                              onUpdateContract(updated);
+                            }}
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-3xs"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5 text-white" />
+                            <span>✓ Hoàn tất đơn & Trả máy</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
