@@ -9,10 +9,12 @@ import {
   orderBy, 
   limit, 
   doc, 
-  setDoc 
+  setDoc,
+  getDoc
 } from 'firebase/firestore';
 import { syncToSupabase, fetchFromSupabase, isSupabaseConfigured } from './supabase';
 import { isIOS, isStandalone, isNotificationSupported } from './pushNotification';
+import { mergeContracts } from './contractUtils';
 
 export interface FirebaseConfig {
   apiKey: string;
@@ -381,13 +383,55 @@ export function listenToCrossDeviceAlerts(
   };
 }
 
-// Sync lightweight contracts to Firestore cloud doc so Vercel 9AM Cron Job can read them
-export async function syncContractsToCloud(contracts: any[]): Promise<void> {
+// Fetch full contracts from Firestore cloud doc
+export async function fetchFullContractsFromFirestore(): Promise<any[] | null> {
   try {
     const config = getFirebaseConfig();
     const app = getApps().length > 0 ? getApp() : initializeApp(config);
     const db = getFirestore(app);
-    const lightweight = (contracts || []).map(c => ({
+    const snap = await getDoc(doc(db, 'caos_cloud_data', 'contracts_store'));
+    if (snap.exists()) {
+      const val = snap.data();
+      if (val && val.data) {
+        const parsed = JSON.parse(val.data);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Firestore] fetchFullContractsFromFirestore failed:', err);
+  }
+  return null;
+}
+
+// Đồng bộ danh sách hợp đồng an toàn lên Firestore (Merge-before-write, chống ghi đè)
+export async function safeSyncContractsToFirestore(contracts: any[]): Promise<any[]> {
+  try {
+    const config = getFirebaseConfig();
+    const app = getApps().length > 0 ? getApp() : initializeApp(config);
+    const db = getFirestore(app);
+
+    // 1. Đọc doc hiện tại từ Firestore để gộp (không bao giờ đè mất đơn người khác)
+    let merged = contracts;
+    try {
+      const snap = await getDoc(doc(db, 'caos_cloud_data', 'contracts_store'));
+      if (snap.exists()) {
+        const val = snap.data();
+        if (val && val.data) {
+          const remoteList = JSON.parse(val.data);
+          if (Array.isArray(remoteList) && remoteList.length > 0) {
+            const { merged: m } = mergeContracts(contracts, remoteList);
+            merged = m;
+          }
+        }
+      }
+    } catch (readErr) {
+      console.warn('[Firestore] Pre-save read error, preserving current:', readErr);
+    }
+
+    // 2. Chuẩn bị lightweight cho Vercel Cron
+    const lightweight = (merged || []).map(c => ({
       id: c.id,
       customerName: c.customerName,
       customerPhone: c.customerPhone,
@@ -398,12 +442,29 @@ export async function syncContractsToCloud(contracts: any[]): Promise<void> {
       returnTime: c.returnTime,
       is6Hours: c.is6Hours
     }));
-    await setDoc(doc(db, 'caos_cloud_data', 'contracts'), {
-      data: JSON.stringify(lightweight),
-      updatedAt: new Date().toISOString()
-    });
+
+    // 3. Ghi đồng thời cả 2 doc: lightweight và full
+    await Promise.all([
+      setDoc(doc(db, 'caos_cloud_data', 'contracts'), {
+        data: JSON.stringify(lightweight),
+        updatedAt: new Date().toISOString()
+      }),
+      setDoc(doc(db, 'caos_cloud_data', 'contracts_store'), {
+        data: JSON.stringify(merged),
+        updatedAt: new Date().toISOString()
+      })
+    ]);
+
+    return merged;
   } catch (err) {
-    console.warn('Sync contracts to cloud doc failed:', err);
+    console.warn('[Firestore] safeSyncContractsToFirestore error:', err);
+    return contracts;
   }
+}
+
+// Sync lightweight contracts to Firestore cloud doc so Vercel 9AM Cron Job can read them
+// And also sync full contracts safely to prevent cross-device data overwrite
+export async function syncContractsToCloud(contracts: any[]): Promise<any[]> {
+  return safeSyncContractsToFirestore(contracts);
 }
 

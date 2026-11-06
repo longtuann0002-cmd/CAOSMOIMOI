@@ -132,3 +132,112 @@ export function deduplicateContracts(contracts: RentalContract[]): {
     fixedCount: duplicates.length
   };
 }
+
+/**
+ * Hợp nhất thông minh danh sách hợp đồng giữa 2 nguồn (ví dụ Local và Cloud/Thiết bị khác)
+ * Đảm bảo:
+ * 1. Tuyệt đối KHÔNG BAO GIỜ làm mất hợp đồng của bất kỳ bên nào (Union by id & contractCode).
+ * 2. Nếu cùng 1 hợp đồng xuất hiện ở cả 2 nơi: ưu tiên bản có thông tin mới nhất.
+ * 3. Tự động xử lý xung đột mã hợp đồng nếu 2 thiết bị tạo trùng mã cùng lúc.
+ */
+export function mergeContracts(
+  localList: RentalContract[],
+  incomingList: RentalContract[]
+): {
+  merged: RentalContract[];
+  hasChanges: boolean;
+  addedCount: number;
+} {
+  if (!Array.isArray(incomingList) || incomingList.length === 0) {
+    return { merged: localList || [], hasChanges: false, addedCount: 0 };
+  }
+
+  if (!Array.isArray(localList) || localList.length === 0) {
+    const { deduplicated } = deduplicateContracts(incomingList);
+    return { merged: deduplicated, hasChanges: true, addedCount: deduplicated.length };
+  }
+
+  let hasChanges = false;
+  let addedCount = 0;
+
+  // Bản đồ theo ID
+  const map = new Map<string, RentalContract>();
+  for (const item of localList) {
+    if (item && item.id) {
+      map.set(item.id, item);
+    }
+  }
+
+  // Tập hợp các contractCode hiện có
+  const codeToIdMap = new Map<string, string>();
+  for (const item of localList) {
+    if (item && item.contractCode) {
+      codeToIdMap.set(item.contractCode.trim().toUpperCase(), item.id);
+    }
+  }
+
+  for (const inc of incomingList) {
+    if (!inc || !inc.id) continue;
+
+    const existing = map.get(inc.id);
+    if (!existing) {
+      // Hợp đồng mới từ thiết bị khác / cloud
+      let contractToAdd = { ...inc };
+
+      // Kiểm tra xem contractCode có bị trùng với hợp đồng khác không
+      const incCode = (contractToAdd.contractCode || '').trim().toUpperCase();
+      if (incCode && codeToIdMap.has(incCode) && codeToIdMap.get(incCode) !== inc.id) {
+        // Trùng mã với hợp đồng khác: tự cấp mã mới an toàn
+        const currentArr = Array.from(map.values());
+        const safeCode = generateNextContractCode(currentArr, contractToAdd.startDate || contractToAdd.createdAt);
+        contractToAdd.contractCode = safeCode;
+      }
+
+      map.set(contractToAdd.id, contractToAdd);
+      if (contractToAdd.contractCode) {
+        codeToIdMap.set(contractToAdd.contractCode.trim().toUpperCase(), contractToAdd.id);
+      }
+      hasChanges = true;
+      addedCount++;
+    } else {
+      // Đã có trong map: kiểm tra xem incoming có cập nhật gì mới không
+      const localTime = new Date(existing.createdAt || 0).getTime();
+      const incTime = new Date(inc.createdAt || 0).getTime();
+      
+      const isStatusChanged = existing.status !== inc.status;
+      const isPaidChanged = existing.paidAmount !== inc.paidAmount;
+      const isDepositChanged = existing.depositAmount !== inc.depositAmount;
+      const isNoteChanged = existing.note !== inc.note;
+
+      if (isStatusChanged || isPaidChanged || isDepositChanged || isNoteChanged) {
+        // Có sự thay đổi: ưu tiên hợp nhất các trường có giá trị
+        const mergedItem: RentalContract = {
+          ...existing,
+          ...inc,
+          // Giữ note dài hơn nếu có
+          note: (inc.note && inc.note.length > (existing.note || '').length) ? inc.note : existing.note,
+          paidAmount: inc.paidAmount !== undefined ? inc.paidAmount : existing.paidAmount,
+          depositAmount: inc.depositAmount !== undefined ? inc.depositAmount : existing.depositAmount,
+          status: inc.status || existing.status
+        };
+        map.set(existing.id, mergedItem);
+        hasChanges = true;
+      }
+    }
+  }
+
+  const result = Array.from(map.values());
+  // Sắp xếp giảm dần theo thời gian tạo hoặc ngày bắt đầu
+  result.sort((a, b) => {
+    const timeA = new Date(a.createdAt || a.startDate || 0).getTime();
+    const timeB = new Date(b.createdAt || b.startDate || 0).getTime();
+    return timeB - timeA;
+  });
+
+  const { deduplicated } = deduplicateContracts(result);
+  return {
+    merged: deduplicated,
+    hasChanges,
+    addedCount
+  };
+}

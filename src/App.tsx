@@ -10,13 +10,13 @@ import {
   INITIAL_CONTRACTS,
   INITIAL_EXPENSES
 } from './utils/mockData';
-import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from './utils/supabase';
+import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase, safeSyncContractsToSupabase, subscribeToSupabaseChanges } from './utils/supabase';
 import { formatDMY } from './utils/dateUtils';
 import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushNotification, updateAppBadge, clearAppBadge } from './utils/pushNotification';
-import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken } from './utils/firebasePush';
+import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken, fetchFullContractsFromFirestore, safeSyncContractsToFirestore } from './utils/firebasePush';
 import { matchContract, matchCamera, matchCustomer } from './utils/searchUtils';
 import { compressImageFile } from './utils/imageUtils';
-import { deduplicateContracts, generateNextContractCode } from './utils/contractUtils';
+import { deduplicateContracts, generateNextContractCode, mergeContracts } from './utils/contractUtils';
 
 
 // Component imports
@@ -429,7 +429,7 @@ export default function App() {
     };
   }, [loaded]);
 
-  // Listen to cross-device notification broadcasts from other devices/staff
+  // Listen to cross-device notification broadcasts & Real-time Auto-Merge from other devices/staff
   useEffect(() => {
     initFirebaseMessaging();
 
@@ -438,13 +438,61 @@ export default function App() {
       registerDeviceFCMToken().catch(() => {});
     }
 
-    const unsubscribe = listenToCrossDeviceAlerts((alert) => {
-      // App is OPEN: only show in-app toast (no extra push — FCM already delivered it outside)
+    const unsubscribeAlerts = listenToCrossDeviceAlerts(async (alert) => {
+      // App is OPEN: show in-app toast
       addToast(alert.title, 'info', alert.body);
+
+      // TỰ ĐỘNG HỢP NHẤT DỮ LIỆU ĐƠN HÀNG THỜI GIAN THỰC (Chống lưu đè khi nhiều thiết bị dùng chung)
+      if (alert.data && alert.data.type === 'CONTRACT_CREATED' && alert.data.contract) {
+        const incomingContract = alert.data.contract;
+        setContracts(prev => {
+          const { merged, hasChanges } = mergeContracts(prev, [incomingContract]);
+          if (hasChanges) {
+            saveStoredData('contracts', merged);
+            return merged;
+          }
+          return prev;
+        });
+      } else {
+        // Tự động kiểm tra Cloud để lấy danh sách hợp đồng mới nhất
+        try {
+          const cloudList = isSupabaseConfigured
+            ? await fetchFromSupabase('contracts')
+            : await fetchFullContractsFromFirestore();
+
+          if (Array.isArray(cloudList) && cloudList.length > 0) {
+            setContracts(prev => {
+              const { merged, hasChanges } = mergeContracts(prev, cloudList);
+              if (hasChanges) {
+                saveStoredData('contracts', merged);
+                return merged;
+              }
+              return prev;
+            });
+          }
+        } catch (fetchErr) {
+          console.warn('[Cross-Device Sync] Live merge check failed:', fetchErr);
+        }
+      }
+    });
+
+    // Lắng nghe thay đổi thời gian thực từ Supabase Realtime (nếu có cấu hình)
+    const unsubscribeSupabase = subscribeToSupabaseChanges((key, data) => {
+      if (key === 'contracts' && Array.isArray(data) && data.length > 0) {
+        setContracts(prev => {
+          const { merged, hasChanges } = mergeContracts(prev, data);
+          if (hasChanges) {
+            saveStoredData('contracts', merged);
+            return merged;
+          }
+          return prev;
+        });
+      }
     });
 
     return () => {
-      unsubscribe();
+      unsubscribeAlerts();
+      unsubscribeSupabase();
     };
   }, []);
 
@@ -492,7 +540,9 @@ export default function App() {
     }
   }, [loaded, pendingOrOverdueContractsCount]);
 
-  // Sync data states to local storage and Supabase
+  const isInitialLoadRef = useRef(true);
+
+  // Sync data states to local storage and Supabase/Firestore safely (Merge-before-write)
   useEffect(() => {
     if (!loaded) return;
     saveStoredData('cameras', cameras);
@@ -503,11 +553,35 @@ export default function App() {
 
   useEffect(() => {
     if (!loaded) return;
-    saveStoredData('contracts', contracts);
-    if (isSupabaseConfigured) {
-      syncToSupabase('contracts', contracts);
+
+    // Bỏ qua lần render đầu tiên ngay sau khi loaded = true để ngăn chặn việc ghi đè Cloud khi vừa mở app
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
+      return;
     }
-    syncContractsToCloud(contracts);
+
+    saveStoredData('contracts', contracts);
+
+    // Đồng bộ an toàn lên Cloud: Luôn kiểm tra và gộp với dữ liệu trên Cloud trước khi lưu
+    if (isSupabaseConfigured) {
+      safeSyncContractsToSupabase(contracts).then(({ success, mergedContracts }) => {
+        if (success && mergedContracts && mergedContracts.length > contracts.length) {
+          setContracts(mergedContracts);
+          saveStoredData('contracts', mergedContracts);
+        }
+      }).catch(err => {
+        console.warn('[Supabase Sync Guard] Error:', err);
+      });
+    }
+
+    safeSyncContractsToFirestore(contracts).then((mergedContracts) => {
+      if (mergedContracts && mergedContracts.length > contracts.length) {
+        setContracts(mergedContracts);
+        saveStoredData('contracts', mergedContracts);
+      }
+    }).catch(err => {
+      console.warn('[Firestore Sync Guard] Error:', err);
+    });
   }, [loaded, contracts]);
 
   useEffect(() => {
@@ -717,105 +791,122 @@ export default function App() {
     }
   }, [loaded, snapshots]);
 
-  // Load initial data block asynchronously from Supabase on mount
+  // Load initial data block asynchronously from Supabase & Firestore on mount with Smart Merging
   useEffect(() => {
     const loadInitialData = async () => {
-      if (!isSupabaseConfigured) {
-        setCameras(loadStoredData('cameras', INITIAL_CAMERAS));
-        setContracts(loadStoredData('contracts', INITIAL_CONTRACTS));
-        setCustomers(loadStoredData('customers', INITIAL_CUSTOMERS));
-        setExpenses(loadStoredData('expenses', INITIAL_EXPENSES));
-        setLoaded(true);
-        return;
-      }
+      const localContracts = loadStoredData('contracts', INITIAL_CONTRACTS);
+      const localCameras = loadStoredData('cameras', INITIAL_CAMERAS);
+      const localCustomers = loadStoredData('customers', INITIAL_CUSTOMERS);
+      const localExpenses = loadStoredData('expenses', INITIAL_EXPENSES);
 
       try {
-        const cloudCameras = await fetchFromSupabase('cameras');
-        const cloudContracts = await fetchFromSupabase('contracts');
-        const cloudCustomers = await fetchFromSupabase('customers');
-        const cloudExpenses = await fetchFromSupabase('expenses');
+        let cloudContracts: RentalContract[] | null = null;
+        let cloudCameras: Camera[] | null = null;
+        let cloudCustomers: Customer[] | null = null;
+        let cloudExpenses: Expense[] | null = null;
+
+        // 1. Thử tải từ Supabase nếu có cấu hình
+        if (isSupabaseConfigured) {
+          const [cCam, cCon, cCust, cExp] = await Promise.all([
+            fetchFromSupabase('cameras').catch(() => null),
+            fetchFromSupabase('contracts').catch(() => null),
+            fetchFromSupabase('customers').catch(() => null),
+            fetchFromSupabase('expenses').catch(() => null)
+          ]);
+          cloudCameras = cCam;
+          cloudContracts = cCon;
+          cloudCustomers = cCust;
+          cloudExpenses = cExp;
+        }
+
+        // 2. Fallback / Redundant sync: Thử lấy contracts từ Firestore Cloud Doc
+        if (!cloudContracts || !Array.isArray(cloudContracts) || cloudContracts.length === 0) {
+          const firestoreContracts = await fetchFullContractsFromFirestore().catch(() => null);
+          if (firestoreContracts && Array.isArray(firestoreContracts) && firestoreContracts.length > 0) {
+            cloudContracts = firestoreContracts;
+          }
+        }
+
+        // 3. HỢP NHẤT THÔNG MINH (Smart Merge) - Tuyệt đối không làm mất hợp đồng của bất kỳ thiết bị nào
+        if (cloudContracts && Array.isArray(cloudContracts) && cloudContracts.length > 0) {
+          const rawContracts = (cloudContracts as RentalContract[]).map(c => ({ ...c, note: cleanSystemNote(c.note) }));
+          const { merged, addedCount } = mergeContracts(localContracts, rawContracts);
+          setContracts(merged);
+          saveStoredData('contracts', merged);
+          if (addedCount > 0) {
+            console.log(`[Cloud-Init] Đã hợp nhất an toàn ${addedCount} đơn hàng mới từ Cloud.`);
+          }
+        } else {
+          const { deduplicated } = deduplicateContracts(localContracts);
+          setContracts(deduplicated);
+        }
 
         if (cloudCameras !== null) {
           setCameras(cloudCameras);
         } else {
-          setCameras(loadStoredData('cameras', INITIAL_CAMERAS));
-        }
-
-        if (cloudContracts !== null) {
-          const rawContracts = (cloudContracts as RentalContract[]).map(c => ({ ...c, note: cleanSystemNote(c.note) }));
-          const { deduplicated, fixedCount } = deduplicateContracts(rawContracts);
-          setContracts(deduplicated);
-          if (fixedCount > 0) {
-            console.warn(`[Auto-Repair] Đã phát hiện và tự động sửa ${fixedCount} mã hợp đồng bị trùng lặp.`);
-            saveStoredData('contracts', deduplicated);
-            if (isSupabaseConfigured) {
-              syncToSupabase('contracts', deduplicated);
-            }
-          }
-        } else {
-          const localContracts = loadStoredData('contracts', INITIAL_CONTRACTS);
-          const { deduplicated } = deduplicateContracts(localContracts);
-          setContracts(deduplicated);
+          setCameras(localCameras);
         }
 
         if (cloudCustomers !== null) {
           setCustomers(cloudCustomers);
         } else {
-          setCustomers(loadStoredData('customers', INITIAL_CUSTOMERS));
+          setCustomers(localCustomers);
         }
 
         if (cloudExpenses !== null) {
           setExpenses(cloudExpenses);
         } else {
-          setExpenses(loadStoredData('expenses', INITIAL_EXPENSES));
+          setExpenses(localExpenses);
         }
 
         // Fetch bank config and custom payment QR from Supabase cloud
-        const cloudBankConfig = await fetchFromSupabase('rental_bank_config');
-        if (cloudBankConfig) {
-          saveStoredData('rental_bank_config', cloudBankConfig);
-        }
-        const cloudCustomQr = await fetchFromSupabase('custom_payment_qr_image');
-        if (cloudCustomQr) {
-          saveStoredData('custom_payment_qr_image', cloudCustomQr);
-        }
+        if (isSupabaseConfigured) {
+          const cloudBankConfig = await fetchFromSupabase('rental_bank_config').catch(() => null);
+          if (cloudBankConfig) {
+            saveStoredData('rental_bank_config', cloudBankConfig);
+          }
+          const cloudCustomQr = await fetchFromSupabase('custom_payment_qr_image').catch(() => null);
+          if (cloudCustomQr) {
+            saveStoredData('custom_payment_qr_image', cloudCustomQr);
+          }
 
-        // Fetch Brand & Store Identity settings from Supabase
-        const cloudBrand = await fetchFromSupabase('brand_settings');
-        if (cloudBrand) {
-          if (cloudBrand.logoText !== undefined) { setLogoText(cloudBrand.logoText); saveStoredData('logoText', cloudBrand.logoText); }
-          if (cloudBrand.logoFontSize !== undefined) { setLogoFontSize(cloudBrand.logoFontSize); saveStoredData('logoFontSize', cloudBrand.logoFontSize); }
-          if (cloudBrand.logoSubtitle !== undefined) { setLogoSubtitle(cloudBrand.logoSubtitle); saveStoredData('logoSubtitle', cloudBrand.logoSubtitle); }
-          if (cloudBrand.logoSubtitleCase !== undefined) { setLogoSubtitleCase(cloudBrand.logoSubtitleCase); saveStoredData('logoSubtitleCase', cloudBrand.logoSubtitleCase); }
-          if (cloudBrand.logoSubtitleFontSize !== undefined) { setLogoSubtitleFontSize(cloudBrand.logoSubtitleFontSize); saveStoredData('logoSubtitleFontSize', cloudBrand.logoSubtitleFontSize); }
-          if (cloudBrand.logoIconType !== undefined) { setLogoIconType(cloudBrand.logoIconType); saveStoredData('logoIconType', cloudBrand.logoIconType); }
-          if (cloudBrand.logoIconColor !== undefined) { setLogoIconColor(cloudBrand.logoIconColor); saveStoredData('logoIconColor', cloudBrand.logoIconColor); }
-          if (cloudBrand.logoBase64 !== undefined) { setLogoBase64(cloudBrand.logoBase64); saveStoredData('logoBase64', cloudBrand.logoBase64); }
-          if (cloudBrand.accountSectionTitle !== undefined) { setAccountSectionTitle(cloudBrand.accountSectionTitle); saveStoredData('accountSectionTitle', cloudBrand.accountSectionTitle); }
-        }
+          // Fetch Brand & Store Identity settings from Supabase
+          const cloudBrand = await fetchFromSupabase('brand_settings').catch(() => null);
+          if (cloudBrand) {
+            if (cloudBrand.logoText !== undefined) { setLogoText(cloudBrand.logoText); saveStoredData('logoText', cloudBrand.logoText); }
+            if (cloudBrand.logoFontSize !== undefined) { setLogoFontSize(cloudBrand.logoFontSize); saveStoredData('logoFontSize', cloudBrand.logoFontSize); }
+            if (cloudBrand.logoSubtitle !== undefined) { setLogoSubtitle(cloudBrand.logoSubtitle); saveStoredData('logoSubtitle', cloudBrand.logoSubtitle); }
+            if (cloudBrand.logoSubtitleCase !== undefined) { setLogoSubtitleCase(cloudBrand.logoSubtitleCase); saveStoredData('logoSubtitleCase', cloudBrand.logoSubtitleCase); }
+            if (cloudBrand.logoSubtitleFontSize !== undefined) { setLogoSubtitleFontSize(cloudBrand.logoSubtitleFontSize); saveStoredData('logoSubtitleFontSize', cloudBrand.logoSubtitleFontSize); }
+            if (cloudBrand.logoIconType !== undefined) { setLogoIconType(cloudBrand.logoIconType); saveStoredData('logoIconType', cloudBrand.logoIconType); }
+            if (cloudBrand.logoIconColor !== undefined) { setLogoIconColor(cloudBrand.logoIconColor); saveStoredData('logoIconColor', cloudBrand.logoIconColor); }
+            if (cloudBrand.logoBase64 !== undefined) { setLogoBase64(cloudBrand.logoBase64); saveStoredData('logoBase64', cloudBrand.logoBase64); }
+            if (cloudBrand.accountSectionTitle !== undefined) { setAccountSectionTitle(cloudBrand.accountSectionTitle); saveStoredData('accountSectionTitle', cloudBrand.accountSectionTitle); }
+          }
 
-        // Fetch Registered User Accounts from Supabase
-        const cloudUsers = await fetchFromSupabase('registeredUsers');
-        if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
-          setRegisteredUsers(cloudUsers);
-          saveStoredData('registeredUsers', cloudUsers);
+          // Fetch Registered User Accounts from Supabase
+          const cloudUsers = await fetchFromSupabase('registeredUsers').catch(() => null);
+          if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+            setRegisteredUsers(cloudUsers);
+            saveStoredData('registeredUsers', cloudUsers);
 
-          // Update active session currentUser if info changed in cloud
-          const savedCurrent = loadStoredData('currentUser', null);
-          if (savedCurrent) {
-            const matched = cloudUsers.find((u: any) => u.id === savedCurrent.id || u.username.toLowerCase() === savedCurrent.username.toLowerCase());
-            if (matched) {
-              setCurrentUser(matched);
-              saveStoredData('currentUser', matched);
+            // Update active session currentUser if info changed in cloud
+            const savedCurrent = loadStoredData('currentUser', null);
+            if (savedCurrent) {
+              const matched = cloudUsers.find((u: any) => u.id === savedCurrent.id || u.username.toLowerCase() === savedCurrent.username.toLowerCase());
+              if (matched) {
+                setCurrentUser(matched);
+                saveStoredData('currentUser', matched);
+              }
             }
           }
         }
       } catch (err) {
-        console.error('[Supabase] Fetch error, falling back locally', err);
-        setCameras(loadStoredData('cameras', INITIAL_CAMERAS));
-        setContracts(loadStoredData('contracts', INITIAL_CONTRACTS));
-        setCustomers(loadStoredData('customers', INITIAL_CUSTOMERS));
-        setExpenses(loadStoredData('expenses', INITIAL_EXPENSES));
+        console.error('[Cloud Init] Error during initial data load, keeping safe local:', err);
+        setCameras(localCameras);
+        setContracts(localContracts);
+        setCustomers(localCustomers);
+        setExpenses(localExpenses);
       } finally {
         setLoaded(true);
       }
@@ -863,32 +954,55 @@ export default function App() {
       }
     }
 
-    // Refresh from Supabase when switching back to tab
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && isSupabaseConfigured) {
+    // Refresh & Auto-merge from Cloud when switching back to tab or focusing window
+    const handleVisibilityOrFocus = async () => {
+      if (document.visibilityState === 'visible') {
         try {
-          const [cloudBrand, cloudUsers] = await Promise.all([
-            fetchFromSupabase('brand_settings'),
-            fetchFromSupabase('registeredUsers')
-          ]);
-          if (cloudBrand) {
-            if (cloudBrand.logoText !== undefined) setLogoText(cloudBrand.logoText);
-            if (cloudBrand.logoFontSize !== undefined) setLogoFontSize(cloudBrand.logoFontSize);
-            if (cloudBrand.logoSubtitle !== undefined) setLogoSubtitle(cloudBrand.logoSubtitle);
-            if (cloudBrand.logoSubtitleCase !== undefined) setLogoSubtitleCase(cloudBrand.logoSubtitleCase);
-            if (cloudBrand.logoSubtitleFontSize !== undefined) setLogoSubtitleFontSize(cloudBrand.logoSubtitleFontSize);
-            if (cloudBrand.logoIconType !== undefined) setLogoIconType(cloudBrand.logoIconType);
-            if (cloudBrand.logoIconColor !== undefined) setLogoIconColor(cloudBrand.logoIconColor);
-            if (cloudBrand.logoBase64 !== undefined) setLogoBase64(cloudBrand.logoBase64);
-            if (cloudBrand.accountSectionTitle !== undefined) setAccountSectionTitle(cloudBrand.accountSectionTitle);
+          // 1. Tự động kéo contracts mới nhất và gộp
+          let cloudContracts: RentalContract[] | null = null;
+          if (isSupabaseConfigured) {
+            cloudContracts = await fetchFromSupabase('contracts').catch(() => null);
           }
-          if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
-            setRegisteredUsers(cloudUsers);
-            setCurrentUser(prev => {
-              if (!prev) return null;
-              const matched = cloudUsers.find((u: any) => u.id === prev.id || u.username.toLowerCase() === prev.username.toLowerCase());
-              return matched || prev;
+          if (!cloudContracts || !Array.isArray(cloudContracts)) {
+            cloudContracts = await fetchFullContractsFromFirestore().catch(() => null);
+          }
+
+          if (cloudContracts && Array.isArray(cloudContracts) && cloudContracts.length > 0) {
+            setContracts(prev => {
+              const { merged, hasChanges } = mergeContracts(prev, cloudContracts!);
+              if (hasChanges) {
+                saveStoredData('contracts', merged);
+                return merged;
+              }
+              return prev;
             });
+          }
+
+          // 2. Kéo brand và user info
+          if (isSupabaseConfigured) {
+            const [cloudBrand, cloudUsers] = await Promise.all([
+              fetchFromSupabase('brand_settings').catch(() => null),
+              fetchFromSupabase('registeredUsers').catch(() => null)
+            ]);
+            if (cloudBrand) {
+              if (cloudBrand.logoText !== undefined) setLogoText(cloudBrand.logoText);
+              if (cloudBrand.logoFontSize !== undefined) setLogoFontSize(cloudBrand.logoFontSize);
+              if (cloudBrand.logoSubtitle !== undefined) setLogoSubtitle(cloudBrand.logoSubtitle);
+              if (cloudBrand.logoSubtitleCase !== undefined) setLogoSubtitleCase(cloudBrand.logoSubtitleCase);
+              if (cloudBrand.logoSubtitleFontSize !== undefined) setLogoSubtitleFontSize(cloudBrand.logoSubtitleFontSize);
+              if (cloudBrand.logoIconType !== undefined) setLogoIconType(cloudBrand.logoIconType);
+              if (cloudBrand.logoIconColor !== undefined) setLogoIconColor(cloudBrand.logoIconColor);
+              if (cloudBrand.logoBase64 !== undefined) setLogoBase64(cloudBrand.logoBase64);
+              if (cloudBrand.accountSectionTitle !== undefined) setAccountSectionTitle(cloudBrand.accountSectionTitle);
+            }
+            if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+              setRegisteredUsers(cloudUsers);
+              setCurrentUser(prev => {
+                if (!prev) return null;
+                const matched = cloudUsers.find((u: any) => u.id === prev.id || u.username.toLowerCase() === prev.username.toLowerCase());
+                return matched || prev;
+              });
+            }
           }
         } catch (err) {
           console.warn('Visibility live sync error:', err);
@@ -896,12 +1010,14 @@ export default function App() {
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
 
     return () => {
       if (brandChannel) brandChannel.close();
       if (profileChannel) profileChannel.close();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
     };
   }, []);
 
@@ -1065,7 +1181,24 @@ export default function App() {
       contractToAdd = { ...newContract, contractCode: safeCode };
     }
 
-    setContracts(prev => [contractToAdd, ...prev]);
+    // 1. Cập nhật state local ngay lập tức và lưu vào localStorage
+    let nextContracts: RentalContract[] = [];
+    setContracts(prev => {
+      const { merged } = mergeContracts(prev, [contractToAdd]);
+      nextContracts = merged;
+      saveStoredData('contracts', merged);
+      return merged;
+    });
+
+    // 2. Đồng bộ AN TOÀN TUYỆT ĐỐI lên Cloud Store (Merge-before-write, chống ghi đè)
+    if (isSupabaseConfigured) {
+      safeSyncContractsToSupabase(nextContracts).catch(err => {
+        console.warn('[Supabase Sync Error]', err);
+      });
+    }
+    safeSyncContractsToFirestore(nextContracts).catch(err => {
+      console.warn('[Firestore Sync Error]', err);
+    });
 
     // Automatically update camera statuses depending on starting date of contract
     // (If contract starts today, mark cameras as Rented, but actually we maintain dynamically inside lists)
@@ -1129,17 +1262,21 @@ export default function App() {
       `Mã hợp đồng: ${newContract.contractCode} | Khách hàng: ${newContract.customerName} (Đã lưu vào danh sách khách hàng)`
     );
 
-    // Broadcast to ALL devices (including this one) — single source of notification
-    const itemsText = (newContract.items || []).map(i => i.cameraName).join(' & ') || 'Thiết bị thuê';
-    const timeInfo = newContract.is6Hours
-      ? `Gói 6h · ${newContract.startTime || '08:00'}–${newContract.returnTime || '14:00'}`
+    // Broadcast to ALL devices (including this one) — single source of notification & Real-time Auto-Merge
+    const itemsText = (contractToAdd.items || []).map(i => i.cameraName).join(' & ') || 'Thiết bị thuê';
+    const timeInfo = contractToAdd.is6Hours
+      ? `Gói 6h · ${contractToAdd.startTime || '08:00'}–${contractToAdd.returnTime || '14:00'}`
       : (() => {
           const fmt = (d: string) => { const [y, m, day] = d.split('-'); return `${day}/${m}`; };
-          return `${fmt(newContract.startDate)}–${fmt(newContract.endDate)}`;
+          return `${fmt(contractToAdd.startDate)}–${fmt(contractToAdd.endDate)}`;
         })();
-    const title = `📋 ${newContract.contractCode} · ${newContract.customerName}`;
-    const body = `${itemsText}\n${timeInfo} · ${newContract.totalPrice.toLocaleString('vi-VN')}đ`;
-    broadcastToAllDevices(title, body, { contractId: newContract.id }).catch(err => {
+    const title = `📋 ${contractToAdd.contractCode} · ${contractToAdd.customerName}`;
+    const body = `${itemsText}\n${timeInfo} · ${contractToAdd.totalPrice.toLocaleString('vi-VN')}đ`;
+    broadcastToAllDevices(title, body, {
+      contractId: contractToAdd.id,
+      type: 'CONTRACT_CREATED',
+      contract: contractToAdd
+    }).catch(err => {
       console.warn('Broadcast to all devices error:', err);
     });
   };
