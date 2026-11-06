@@ -2970,9 +2970,19 @@ export default function BookingCalendar({
 
                   <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-300 pt-2 font-bold text-gray-900 gap-2">
                     <span>Còn lại cần thanh toán:</span>
-                    <span className="text-rose-600 text-sm sm:text-base font-black font-mono shrink-0">
-                      {Math.max(0, (quickReceiptContract.totalPrice + (quickReceiptContract.extraFee || 0)) - quickReceiptContract.paidAmount).toLocaleString()}đ
-                    </span>
+                    {(() => {
+                      const remaining = Math.max(0, (quickReceiptContract.totalPrice + (quickReceiptContract.extraFee || 0)) - quickReceiptContract.paidAmount);
+                      return remaining === 0 ? (
+                        <span className="text-emerald-600 text-sm sm:text-base font-black font-mono shrink-0 flex items-center gap-1 italic">
+                          <Check className="w-4 h-4 stroke-[2.5]" />
+                          Đã thu đủ 100%
+                        </span>
+                      ) : (
+                        <span className="text-rose-600 text-sm sm:text-base font-black font-mono shrink-0">
+                          {remaining.toLocaleString()}đ
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
 
