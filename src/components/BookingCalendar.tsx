@@ -2470,7 +2470,7 @@ export default function BookingCalendar({
                       <div className="space-y-1">
                         <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
                         <p className="font-black text-gray-900 text-sm sm:text-base">{quickReceiptContract.customerName}</p>
-                        <div className="text-xs space-y-0.5">
+                        <div className="text-xs space-y-1.5">
                           <p className="text-gray-600 font-mono font-bold">SĐT: {quickReceiptContract.customerPhone}</p>
                           <p className="text-gray-600 text-xs truncate flex items-center gap-1">
                             <span className="text-gray-500 font-medium shrink-0">Thế chấp:</span>
@@ -2973,7 +2973,7 @@ export default function BookingCalendar({
                     {(() => {
                       const remaining = Math.max(0, (quickReceiptContract.totalPrice + (quickReceiptContract.extraFee || 0)) - quickReceiptContract.paidAmount);
                       return remaining === 0 ? (
-                        <span className="text-emerald-600 text-sm sm:text-base font-black font-mono shrink-0 flex items-center gap-1 italic">
+                        <span className="text-emerald-600 text-sm sm:text-base font-black font-mono shrink-0 flex items-center gap-1">
                           <Check className="w-4 h-4 stroke-[2.5]" />
                           Đã thu đủ 100%
                         </span>
