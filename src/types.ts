@@ -49,6 +49,7 @@ export interface RentalContract {
   depositAmount: number; // Tiền cọc hoặc tài sản cọc quy đổi
   extraFee?: number; // Phí phát sinh (quá giờ, hư tổn, phụ kiện, in thêm ảnh...)
   extraFeeReason?: string; // Lý do thu phí phát sinh
+  rentalRules?: string; // Lưu ý & nội quy thuê máy (có thể tùy chỉnh)
   status: ContractStatus;
   note?: string;
   createdAt: string;

@@ -710,6 +710,15 @@ export default function BookingCalendar({
   const [extraFeeDraft, setExtraFeeDraft] = useState<number>(0);
   const [extraFeeReasonDraft, setExtraFeeReasonDraft] = useState<string>('');
 
+  // Quản lý Lưu ý & Nội quy thuê máy
+  const DEFAULT_RENTAL_RULES = `• Vui lòng kiểm tra kỹ tình trạng máy, ống kính và phụ kiện đi kèm trước khi nhận.
+• Trả máy đúng thời gian đã cam kết; nếu cần gia hạn vui lòng báo trước ít nhất 2 giờ.
+• Giữ gìn thiết bị cẩn thận, không để thiết bị vào nước, cát bụi, hóa chất hoặc va đập mạnh.
+• Mọi hư hỏng, trầy xước hoặc mất phụ kiện sẽ bồi hoàn theo biểu phí thực tế.`;
+  const [editingRules, setEditingRules] = useState(false);
+  const [rulesDraft, setRulesDraft] = useState<string>('');
+  const [saveRulesAsDefault, setSaveRulesAsDefault] = useState(false);
+
   // Hàm mở hóa đơn và khởi tạo toàn bộ draft state
   const openReceiptModal = (c: RentalContract) => {
     setQuickReceiptContract(c);
@@ -727,6 +736,9 @@ export default function BookingCalendar({
     setEditingExtraFee(false);
     setExtraFeeDraft(c.extraFee || 0);
     setExtraFeeReasonDraft(c.extraFeeReason || '');
+    setEditingRules(false);
+    setRulesDraft(c.rentalRules || localStorage.getItem('caos_default_rental_rules') || DEFAULT_RENTAL_RULES);
+    setSaveRulesAsDefault(false);
   };
 
   // Lock body scroll whenever any modal is open to prevent background scrolling on mobile
@@ -2454,24 +2466,214 @@ export default function BookingCalendar({
                 <div className="bg-slate-50/80 p-2 sm:p-3.5 border border-slate-200/80 rounded-xl space-y-3" style={{overflow: 'visible'}}>
                   {/* Customer Info & QR Code Row (Synchronized side-by-side on both mobile and desktop) */}
                   <div className="flex flex-row flex-nowrap gap-2 sm:gap-3 items-start justify-between">
-                    <div className="space-y-1 min-w-0 flex-1 overflow-hidden">
-                      <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
-                      <p className="font-black text-gray-900 text-sm sm:text-base">{quickReceiptContract.customerName}</p>
-                      <p className="text-xs text-gray-600 font-mono font-bold">SĐT: {quickReceiptContract.customerPhone}</p>
-                      <div className="pt-0.5">
-                        <div className="inline-flex items-center gap-1.5 bg-amber-50/90 border border-amber-200/90 px-2 py-0.5 rounded-lg text-amber-950 max-w-full">
-                          <span className="text-[10px] font-extrabold text-amber-800 uppercase shrink-0">Thế chấp:</span>
-                          <span className="text-[10.5px] font-bold font-mono text-gray-800 truncate">
-                            {quickReceiptContract.customerDocType === 'Other'
-                              ? (quickReceiptContract.customerDocNote?.trim() || 'Tài sản khác')
-                              : `${renderDocTypeLabel(quickReceiptContract.customerDocType)}${
-                                  quickReceiptContract.customerDocNote?.trim() && 
-                                  !['Giữ CCCD gốc + 1.000.000đ', 'Giữ CCCD gốc', 'Giữ GPLX gốc', 'Giữ Hộ chiếu gốc', 'Đặt cọc tiền mặt'].includes(quickReceiptContract.customerDocNote.trim())
-                                    ? ` (${quickReceiptContract.customerDocNote.trim()})`
-                                    : ''
-                                }`}
-                          </span>
+                    <div className="space-y-2 min-w-0 flex-1 overflow-hidden">
+                      <div className="space-y-1">
+                        <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
+                        <p className="font-black text-gray-900 text-sm sm:text-base">{quickReceiptContract.customerName}</p>
+                        <p className="text-xs text-gray-600 font-mono font-bold">SĐT: {quickReceiptContract.customerPhone}</p>
+                        <div className="pt-0.5">
+                          <div className="inline-flex items-center gap-1.5 bg-amber-50/90 border border-amber-200/90 px-2 py-0.5 rounded-lg text-amber-950 max-w-full">
+                            <span className="text-[10px] font-extrabold text-amber-800 uppercase shrink-0">Thế chấp:</span>
+                            <span className="text-[10.5px] font-bold font-mono text-gray-800 truncate">
+                              {quickReceiptContract.customerDocType === 'Other'
+                                ? (quickReceiptContract.customerDocNote?.trim() || 'Tài sản khác')
+                                : `${renderDocTypeLabel(quickReceiptContract.customerDocType)}${
+                                    quickReceiptContract.customerDocNote?.trim() && 
+                                    !['Giữ CCCD gốc + 1.000.000đ', 'Giữ CCCD gốc', 'Giữ GPLX gốc', 'Giữ Hộ chiếu gốc', 'Đặt cọc tiền mặt'].includes(quickReceiptContract.customerDocNote.trim())
+                                      ? ` (${quickReceiptContract.customerDocNote.trim()})`
+                                      : ''
+                                  }`}
+                            </span>
+                          </div>
                         </div>
+                      </div>
+
+                      {/* THÔNG TIN THỜI HẠN NẰM NGAY DƯỚI THẾ CHẤP */}
+                      <div className="pt-2 border-t border-dashed border-gray-200 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN THỜI HẠN</h4>
+                          {!isExportingReceipt && onUpdateContract && !editingDates && (
+                            <button
+                              type="button"
+                              data-no-export="true"
+                              onClick={() => {
+                                setDateDraft({
+                                  startDate: quickReceiptContract.startDate,
+                                  endDate: quickReceiptContract.endDate,
+                                  is6Hours: Boolean(quickReceiptContract.is6Hours),
+                                  startTime: quickReceiptContract.startTime || '08:00',
+                                  returnTime: quickReceiptContract.returnTime || '14:00'
+                                });
+                                setEditingDates(true);
+                              }}
+                              className="no-export-item flex items-center gap-1 text-[10px] font-bold text-orange-600 hover:bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-lg transition cursor-pointer"
+                              title="Sửa lịch thuê máy"
+                            >
+                              <Edit2 className="w-3 h-3" /> Sửa lịch
+                            </button>
+                          )}
+                        </div>
+
+                        {editingDates ? (
+                          <div className="space-y-2 bg-orange-50/70 border border-orange-200 p-2 rounded-xl text-left">
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <div>
+                                <label className="text-[9.5px] font-extrabold text-gray-600 uppercase block mb-0.5">Bắt đầu *</label>
+                                <input
+                                  type="date"
+                                  value={dateDraft.startDate}
+                                  onChange={e => {
+                                    const newStart = e.target.value;
+                                    setDateDraft(d => ({
+                                      ...d,
+                                      startDate: newStart,
+                                      endDate: (!d.is6Hours && d.endDate < newStart) ? newStart : d.endDate
+                                    }));
+                                  }}
+                                  className="w-full border border-gray-300 rounded-lg px-1.5 py-1 text-[11px] font-mono font-bold bg-white text-gray-900"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9.5px] font-extrabold text-gray-600 uppercase block mb-0.5">
+                                  {dateDraft.is6Hours ? 'Ngày thuê' : 'Hạn trả *'}
+                                </label>
+                                <input
+                                  type="date"
+                                  disabled={dateDraft.is6Hours}
+                                  value={dateDraft.is6Hours ? dateDraft.startDate : dateDraft.endDate}
+                                  min={dateDraft.startDate}
+                                  onChange={e => setDateDraft(d => ({ ...d, endDate: e.target.value }))}
+                                  className="w-full border border-gray-300 rounded-lg px-1.5 py-1 text-[11px] font-mono font-bold bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-0.5">
+                              <label className="flex items-center gap-1 cursor-pointer text-[11px] font-bold text-gray-800">
+                                <input
+                                  type="checkbox"
+                                  checked={dateDraft.is6Hours}
+                                  onChange={e => {
+                                    const checked = e.target.checked;
+                                    setDateDraft(d => ({
+                                      ...d,
+                                      is6Hours: checked,
+                                      endDate: checked ? d.startDate : d.endDate
+                                    }));
+                                  }}
+                                  className="w-3.5 h-3.5 text-orange-600 rounded focus:ring-orange-500"
+                                />
+                                <span>Gói thuê 6 tiếng</span>
+                              </label>
+                            </div>
+
+                            {dateDraft.is6Hours && (
+                              <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-orange-200/60">
+                                <div>
+                                  <label className="text-[9.5px] font-bold text-gray-500 block mb-0.5">Giờ nhận</label>
+                                  <input
+                                    type="time"
+                                    value={dateDraft.startTime}
+                                    onChange={e => {
+                                      const newStart = e.target.value;
+                                      setDateDraft(d => ({ ...d, startTime: newStart, returnTime: add6Hours(newStart) }));
+                                    }}
+                                    className="w-full border border-gray-300 rounded-lg px-1.5 py-0.5 text-xs font-mono bg-white text-gray-900 font-bold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[9.5px] font-bold text-gray-500 block mb-0.5">Giờ trả (+6h)</label>
+                                  <input
+                                    type="time"
+                                    value={dateDraft.returnTime}
+                                    onChange={e => setDateDraft(d => ({ ...d, returnTime: e.target.value }))}
+                                    className="w-full border border-gray-300 rounded-lg px-1.5 py-0.5 text-xs font-mono bg-white text-gray-900 font-bold"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex gap-1.5 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!dateDraft.startDate || (!dateDraft.is6Hours && !dateDraft.endDate)) {
+                                    setCustomAlertMessage('Vui lòng chọn ngày hợp lệ!');
+                                    return;
+                                  }
+                                  if (!dateDraft.is6Hours && dateDraft.endDate < dateDraft.startDate) {
+                                    setCustomAlertMessage('Ngày trả không thể nhỏ hơn ngày bắt đầu!');
+                                    return;
+                                  }
+
+                                  const targetEnd = dateDraft.is6Hours ? dateDraft.startDate : dateDraft.endDate;
+                                  const conflict = checkBookingConflict(
+                                    quickReceiptContract.items.map(i => i.cameraId),
+                                    dateDraft.startDate,
+                                    targetEnd,
+                                    dateDraft.is6Hours,
+                                    contracts,
+                                    quickReceiptContract.id,
+                                    dateDraft.is6Hours ? dateDraft.startTime : undefined,
+                                    dateDraft.is6Hours ? dateDraft.returnTime : undefined
+                                  );
+
+                                  if (conflict.hasConflict) {
+                                    setCustomAlertMessage(conflict.message);
+                                    return;
+                                  }
+
+                                  const financial = recalculateContractFinancials(
+                                    quickReceiptContract.items,
+                                    dateDraft.startDate,
+                                    targetEnd,
+                                    dateDraft.is6Hours,
+                                    quickReceiptContract.discountPercent || 0,
+                                    cameras
+                                  );
+
+                                  const updated: RentalContract = {
+                                    ...quickReceiptContract,
+                                    startDate: dateDraft.startDate,
+                                    endDate: targetEnd,
+                                    is6Hours: dateDraft.is6Hours,
+                                    startTime: dateDraft.is6Hours ? dateDraft.startTime : undefined,
+                                    returnTime: dateDraft.is6Hours ? dateDraft.returnTime : undefined,
+                                    items: financial.items,
+                                    totalPrice: financial.totalPrice
+                                  };
+
+                                  setQuickReceiptContract(updated);
+                                  if (onUpdateContract) onUpdateContract(updated);
+                                  setEditingDates(false);
+                                }}
+                                className="flex-1 flex items-center justify-center gap-1 bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-bold py-1 rounded-lg transition cursor-pointer"
+                              >
+                                <Check className="w-3 h-3" /> Lưu
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingDates(false)}
+                                className="px-2 py-1 text-[11px] font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+                              >
+                                Hủy
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1 text-xs">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-gray-500 font-medium text-[11px]">Bắt đầu:</span>
+                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs">{formatDMY(quickReceiptContract.startDate)}</strong>
+                            </div>
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-gray-500 font-medium text-[11px]">Hạn trả máy:</span>
+                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs">
+                                {quickReceiptContract.is6Hours ? `Gói 6h (${quickReceiptContract.startTime || '08:00'} - ${quickReceiptContract.returnTime || '14:00'})` : formatDMY(quickReceiptContract.endDate)}
+                              </strong>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -2543,193 +2745,6 @@ export default function BookingCalendar({
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="space-y-1 pt-2.5 border-t border-gray-200">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN THỜI HẠN</h4>
-                      {!isExportingReceipt && onUpdateContract && !editingDates && (
-                        <button
-                          type="button"
-                          data-no-export="true"
-                          onClick={() => {
-                            setDateDraft({
-                              startDate: quickReceiptContract.startDate,
-                              endDate: quickReceiptContract.endDate,
-                              is6Hours: Boolean(quickReceiptContract.is6Hours),
-                              startTime: quickReceiptContract.startTime || '08:00',
-                              returnTime: quickReceiptContract.returnTime || '14:00'
-                            });
-                            setEditingDates(true);
-                          }}
-                          className="no-export-item flex items-center gap-1 text-[10px] font-bold text-orange-600 hover:bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-lg transition cursor-pointer"
-                          title="Sửa lịch thuê máy"
-                        >
-                          <Edit2 className="w-3 h-3" /> Sửa lịch
-                        </button>
-                      )}
-                    </div>
-
-                    {editingDates ? (
-                      <div className="space-y-2 bg-orange-50/70 border border-orange-200 p-2.5 rounded-xl">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-[10px] font-extrabold text-gray-600 uppercase block mb-1">Bắt đầu *</label>
-                            <input
-                              type="date"
-                              value={dateDraft.startDate}
-                              onChange={e => {
-                                const newStart = e.target.value;
-                                setDateDraft(d => ({
-                                  ...d,
-                                  startDate: newStart,
-                                  endDate: (!d.is6Hours && d.endDate < newStart) ? newStart : d.endDate
-                                }));
-                              }}
-                              className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-mono font-bold bg-white text-gray-900"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[10px] font-extrabold text-gray-600 uppercase block mb-1">
-                              {dateDraft.is6Hours ? 'Ngày thuê' : 'Hạn trả máy *'}
-                            </label>
-                            <input
-                              type="date"
-                              disabled={dateDraft.is6Hours}
-                              value={dateDraft.is6Hours ? dateDraft.startDate : dateDraft.endDate}
-                              min={dateDraft.startDate}
-                              onChange={e => setDateDraft(d => ({ ...d, endDate: e.target.value }))}
-                              className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-mono font-bold bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 pt-0.5">
-                          <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-gray-800">
-                            <input
-                              type="checkbox"
-                              checked={dateDraft.is6Hours}
-                              onChange={e => {
-                                const checked = e.target.checked;
-                                setDateDraft(d => ({
-                                  ...d,
-                                  is6Hours: checked,
-                                  endDate: checked ? d.startDate : d.endDate
-                                }));
-                              }}
-                              className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
-                            />
-                            <span>Gói thuê 6 tiếng (nửa ngày)</span>
-                          </label>
-                        </div>
-
-                        {dateDraft.is6Hours && (
-                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-orange-200/60">
-                            <div>
-                              <label className="text-[10px] font-bold text-gray-500 block mb-0.5">Giờ nhận</label>
-                              <input
-                                type="time"
-                                value={dateDraft.startTime}
-                                onChange={e => {
-                                  const newStart = e.target.value;
-                                  setDateDraft(d => ({ ...d, startTime: newStart, returnTime: add6Hours(newStart) }));
-                                }}
-                                className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-mono bg-white text-gray-900 font-bold"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[10px] font-bold text-gray-500 block mb-0.5">Giờ trả (+6h)</label>
-                              <input
-                                type="time"
-                                value={dateDraft.returnTime}
-                                onChange={e => setDateDraft(d => ({ ...d, returnTime: e.target.value }))}
-                                className="w-full border border-gray-300 rounded-lg px-2 py-1 text-xs font-mono bg-white text-gray-900 font-bold"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!dateDraft.startDate || (!dateDraft.is6Hours && !dateDraft.endDate)) {
-                                setCustomAlertMessage('Vui lòng chọn ngày hợp lệ!');
-                                return;
-                              }
-                              if (!dateDraft.is6Hours && dateDraft.endDate < dateDraft.startDate) {
-                                setCustomAlertMessage('Ngày trả không thể nhỏ hơn ngày bắt đầu!');
-                                return;
-                              }
-
-                              const targetEnd = dateDraft.is6Hours ? dateDraft.startDate : dateDraft.endDate;
-                              const conflict = checkBookingConflict(
-                                quickReceiptContract.items.map(i => i.cameraId),
-                                dateDraft.startDate,
-                                targetEnd,
-                                dateDraft.is6Hours,
-                                contracts,
-                                quickReceiptContract.id,
-                                dateDraft.is6Hours ? dateDraft.startTime : undefined,
-                                dateDraft.is6Hours ? dateDraft.returnTime : undefined
-                              );
-
-                              if (conflict.hasConflict) {
-                                setCustomAlertMessage(conflict.message);
-                                return;
-                              }
-
-                              const financial = recalculateContractFinancials(
-                                quickReceiptContract.items,
-                                dateDraft.startDate,
-                                targetEnd,
-                                dateDraft.is6Hours,
-                                quickReceiptContract.discountPercent || 0,
-                                cameras
-                              );
-
-                              const updated: RentalContract = {
-                                ...quickReceiptContract,
-                                startDate: dateDraft.startDate,
-                                endDate: targetEnd,
-                                is6Hours: dateDraft.is6Hours,
-                                startTime: dateDraft.is6Hours ? dateDraft.startTime : undefined,
-                                returnTime: dateDraft.is6Hours ? dateDraft.returnTime : undefined,
-                                items: financial.items,
-                                totalPrice: financial.totalPrice
-                              };
-
-                              setQuickReceiptContract(updated);
-                              if (onUpdateContract) onUpdateContract(updated);
-                              setEditingDates(false);
-                            }}
-                            className="flex-1 flex items-center justify-center gap-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-1.5 rounded-lg transition cursor-pointer"
-                          >
-                            <Check className="w-3.5 h-3.5" /> Lưu lịch mới
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingDates(false)}
-                            className="px-3 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition cursor-pointer"
-                          >
-                            Hủy
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5 text-xs sm:text-[13px]">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-gray-500 font-medium whitespace-nowrap">Bắt đầu:</span>
-                          <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">{formatDMY(quickReceiptContract.startDate)}</strong>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-gray-500 font-medium whitespace-nowrap">Hạn trả máy:</span>
-                          <strong className="text-gray-900 font-bold font-mono whitespace-nowrap">
-                            {quickReceiptContract.is6Hours ? `Gói 6h (${quickReceiptContract.startTime || '08:00'} - ${quickReceiptContract.returnTime || '14:00'})` : formatDMY(quickReceiptContract.endDate)}
-                          </strong>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -2961,6 +2976,85 @@ export default function BookingCalendar({
                   </div>
                 </div>
 
+                {/* LƯU Ý & NỘI QUY THUÊ MÁY (Được xuất trong ảnh hoá đơn & in ấn) */}
+                <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-2.5 sm:p-3 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-black text-amber-900 tracking-wider flex items-center gap-1">
+                      <FileText className="w-3.5 h-3.5 text-amber-700" />
+                      <span>LƯU Ý & NỘI QUY THUÊ MÁY</span>
+                    </span>
+                    {!isExportingReceipt && !editingRules && onUpdateContract && (
+                      <button
+                        type="button"
+                        data-no-export="true"
+                        onClick={() => {
+                          setRulesDraft(quickReceiptContract.rentalRules || localStorage.getItem('caos_default_rental_rules') || DEFAULT_RENTAL_RULES);
+                          setEditingRules(true);
+                        }}
+                        className="no-export-item flex items-center gap-1 text-[10px] font-bold text-amber-800 hover:bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-lg transition cursor-pointer"
+                        title="Chỉnh sửa nội quy thuê máy"
+                      >
+                        <Edit2 className="w-3 h-3 text-amber-700" />
+                        <span>Sửa nội quy</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {editingRules ? (
+                    <div className="space-y-2 pt-1" data-no-export="true">
+                      <textarea
+                        rows={4}
+                        value={rulesDraft}
+                        onChange={e => setRulesDraft(e.target.value)}
+                        placeholder="Nhập nội quy, quy định thuê thiết bị..."
+                        className="w-full bg-white border border-amber-300 rounded-lg p-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 font-sans leading-relaxed"
+                      />
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="flex items-center gap-1.5 text-[10.5px] text-gray-700 cursor-pointer font-medium select-none">
+                          <input
+                            type="checkbox"
+                            checked={saveRulesAsDefault}
+                            onChange={e => setSaveRulesAsDefault(e.target.checked)}
+                            className="w-3.5 h-3.5 text-amber-600 rounded focus:ring-amber-500"
+                          />
+                          <span>Lưu làm mẫu mặc định cho các đơn sau</span>
+                        </label>
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated: RentalContract = {
+                                ...quickReceiptContract,
+                                rentalRules: rulesDraft.trim()
+                              };
+                              if (saveRulesAsDefault) {
+                                localStorage.setItem('caos_default_rental_rules', rulesDraft.trim());
+                              }
+                              setQuickReceiptContract(updated);
+                              if (onUpdateContract) onUpdateContract(updated);
+                              setEditingRules(false);
+                            }}
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-1 px-3 rounded-lg transition cursor-pointer"
+                          >
+                            Lưu nội quy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingRules(false)}
+                            className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-600 font-bold text-xs py-1 px-2.5 rounded-lg transition cursor-pointer"
+                          >
+                            Hủy
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[10.5px] sm:text-[11px] text-gray-750 space-y-0.5 leading-relaxed whitespace-pre-line font-sans">
+                      {quickReceiptContract.rentalRules || localStorage.getItem('caos_default_rental_rules') || DEFAULT_RENTAL_RULES}
+                    </div>
+                  )}
+                </div>
+
                 {/* KHU VỰC THU PHÍ PHÁT SINH & HOÀN TẤT ĐƠN (Chỉ hiển thị trên giao diện, không xuất ảnh) */}
                 {!isExportingReceipt && onUpdateContract && (
                   <div className="space-y-2 pt-2 border-t border-gray-200" data-no-export="true">
@@ -3040,39 +3134,131 @@ export default function BookingCalendar({
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setExtraFeeDraft(quickReceiptContract.extraFee || 0);
-                            setExtraFeeReasonDraft(quickReceiptContract.extraFeeReason || '');
-                            setEditingExtraFee(true);
-                          }}
-                          className="flex-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-3xs"
-                        >
-                          <DollarSign className="w-3.5 h-3.5 text-amber-700" />
-                          <span>{quickReceiptContract.extraFee ? 'Sửa phụ phí phát sinh' : '+ Thu phí phát sinh'}</span>
-                        </button>
+                      <div className="space-y-2.5">
+                        {quickReceiptContract.status === 'Pending' && (() => {
+                          const totalPrice = quickReceiptContract.totalPrice || 0;
+                          const deposit50 = Math.round(totalPrice * 0.5);
+                          const paid = quickReceiptContract.paidAmount || 0;
+                          const isUnpaid = paid === 0;
+                          const isPaidFull = paid >= totalPrice && totalPrice > 0;
+                          const isDeposit50 = paid > 0 && !isPaidFull;
 
-                        {quickReceiptContract.status !== 'Completed' && (
+                          return (
+                            <div className="w-full space-y-2">
+                              {/* Thanh 3 nấc cọc: Chưa cọc | Cọc 50% | Đủ 100% */}
+                              <div className="w-full bg-slate-100/90 border border-slate-200/90 rounded-2xl p-1 flex items-center gap-1 shadow-inner">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated: RentalContract = {
+                                      ...quickReceiptContract,
+                                      paidAmount: 0
+                                    };
+                                    setQuickReceiptContract(updated);
+                                    onUpdateContract?.(updated);
+                                  }}
+                                  className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer select-none ${
+                                    isUnpaid
+                                      ? 'bg-[#5046e4] text-white shadow-sm'
+                                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/70'
+                                  }`}
+                                >
+                                  <span>⏳ Chưa cọc</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated: RentalContract = {
+                                      ...quickReceiptContract,
+                                      paidAmount: deposit50
+                                    };
+                                    setQuickReceiptContract(updated);
+                                    onUpdateContract?.(updated);
+                                  }}
+                                  className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer select-none ${
+                                    isDeposit50
+                                      ? 'bg-[#5046e4] text-white shadow-sm'
+                                      : 'text-amber-800 hover:text-amber-950 hover:bg-white/70'
+                                  }`}
+                                >
+                                  <span>Cọc 50% ({deposit50.toLocaleString()}đ)</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated: RentalContract = {
+                                      ...quickReceiptContract,
+                                      paidAmount: totalPrice
+                                    };
+                                    setQuickReceiptContract(updated);
+                                    onUpdateContract?.(updated);
+                                  }}
+                                  className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer select-none ${
+                                    isPaidFull
+                                      ? 'bg-[#5046e4] text-white shadow-sm'
+                                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/70'
+                                  }`}
+                                >
+                                  <span>Đủ 100% ({totalPrice.toLocaleString()}đ)</span>
+                                </button>
+                              </div>
+
+                              {/* Nút Bàn giao máy (Bắt đầu thuê) full-width */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated: RentalContract = {
+                                    ...quickReceiptContract,
+                                    status: 'Active'
+                                  };
+                                  setQuickReceiptContract(updated);
+                                  onUpdateContract?.(updated);
+                                }}
+                                className="w-full bg-[#1e60ff] hover:bg-blue-700 text-white font-black py-2.5 px-4 rounded-2xl shadow-md hover:shadow-lg text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition active:scale-[0.99]"
+                              >
+                                <Check className="w-4 h-4 text-white stroke-[2.5]" />
+                                <span>Bàn giao máy (Bắt đầu thuê)</span>
+                              </button>
+                            </div>
+                          );
+                        })()}
+
+                        <div className="flex flex-wrap gap-2 pt-0.5">
                           <button
                             type="button"
                             onClick={() => {
-                              const finalTotal = quickReceiptContract.totalPrice + (quickReceiptContract.extraFee || 0);
-                              const updated: RentalContract = {
-                                ...quickReceiptContract,
-                                status: 'Completed',
-                                paidAmount: finalTotal
-                              };
-                              setQuickReceiptContract(updated);
-                              onUpdateContract(updated);
+                              setExtraFeeDraft(quickReceiptContract.extraFee || 0);
+                              setExtraFeeReasonDraft(quickReceiptContract.extraFeeReason || '');
+                              setEditingExtraFee(true);
                             }}
-                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-3xs"
+                            className="flex-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-3xs"
                           >
-                            <CheckCircle className="w-3.5 h-3.5 text-white" />
-                            <span>✓ Hoàn tất đơn & Trả máy</span>
+                            <DollarSign className="w-3.5 h-3.5 text-amber-700" />
+                            <span>{quickReceiptContract.extraFee ? 'Sửa phụ phí phát sinh' : '+ Thu phí phát sinh'}</span>
                           </button>
-                        )}
+
+                          {quickReceiptContract.status === 'Active' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const finalTotal = quickReceiptContract.totalPrice + (quickReceiptContract.extraFee || 0);
+                                const updated: RentalContract = {
+                                  ...quickReceiptContract,
+                                  status: 'Completed',
+                                  paidAmount: finalTotal
+                                };
+                                setQuickReceiptContract(updated);
+                                onUpdateContract?.(updated);
+                              }}
+                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-3xs"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5 text-white" />
+                              <span>✓ Hoàn tất đơn & Trả máy</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
