@@ -461,6 +461,24 @@ export default function App() {
         return;
       }
 
+      // Xử lý sự kiện XÓA HỢP ĐỒNG HÀNG LOẠT từ thiết bị khác
+      if (alert.data && alert.data.type === 'CONTRACT_BULK_DELETED') {
+        const delIds = alert.data.contractIds || [];
+        const delCodes = alert.data.contractCodes || [];
+        const all = [...delIds, ...delCodes];
+        if (all.length > 0) {
+          addDeletedContractIds(all);
+          const delSet = new Set(delIds);
+          const codeSet = new Set(delCodes.map((s: string) => s.toUpperCase()));
+          setContracts(prev => {
+            const next = prev.filter(c => !delSet.has(c.id) && !codeSet.has((c.contractCode || '').toUpperCase()));
+            saveStoredData('contracts', next);
+            return next;
+          });
+        }
+        return;
+      }
+
       // TỰ ĐỘNG HỢP NHẤT DỮ LIỆU ĐƠN HÀNG THỜI GIAN THỰC (Chống lưu đè khi nhiều thiết bị dùng chung)
       if (alert.data && alert.data.type === 'CONTRACT_CREATED' && alert.data.contract) {
         const incomingContract = alert.data.contract;
@@ -1644,6 +1662,69 @@ export default function App() {
         `Đã xóa hợp đồng ${contractToDelete.contractCode} và cập nhật lại thông tin khách hàng "${contractToDelete.customerName}".`
       );
     }
+  };
+
+  const handleDeleteContracts = (ids: string[]) => {
+    if (!ids || ids.length === 0) return;
+    const idSet = new Set(ids);
+    const contractsToDelete = contracts.filter(c => idSet.has(c.id));
+    if (contractsToDelete.length === 0) return;
+
+    // 1. Ghi nhận toàn bộ ID & mã hợp đồng vào danh sách đã xóa vĩnh viễn (Tombstones)
+    const allIdsAndCodes: string[] = [];
+    contractsToDelete.forEach(c => {
+      allIdsAndCodes.push(c.id);
+      if (c.contractCode) allIdsAndCodes.push(c.contractCode);
+    });
+    addDeletedContractIds(allIdsAndCodes);
+
+    // 2. Xóa khỏi danh sách và lưu vào LocalStorage
+    const updatedContracts = contracts.filter(c => !idSet.has(c.id));
+    setContracts(updatedContracts);
+    saveStoredData('contracts', updatedContracts);
+
+    // 3. Ghi đè trực tiếp danh sách đã xóa lên Cloud để chống khôi phục lại
+    if (isSupabaseConfigured) {
+      syncToSupabase('contracts', updatedContracts).catch(err => {
+        console.warn('[Supabase Bulk Delete Sync] Error:', err);
+      });
+    }
+    forceSyncContractsToFirestore(updatedContracts).catch(err => {
+      console.warn('[Firestore Bulk Delete Sync] Error:', err);
+    });
+
+    // 4. Phát tín hiệu realtime tới mọi thiết bị khác
+    broadcastToAllDevices(
+      'Hợp đồng đã bị xóa hàng loạt',
+      `Đã xóa ${contractsToDelete.length} hợp đồng khỏi hệ thống.`,
+      {
+        type: 'CONTRACT_BULK_DELETED',
+        contractIds: ids,
+        contractCodes: contractsToDelete.map(c => c.contractCode).filter(Boolean)
+      }
+    );
+
+    // 5. Cập nhật trạng thái máy ảnh tương ứng
+    setCameras(prevCams =>
+      prevCams.map(cam => {
+        const wasRented = contractsToDelete.some(c => c.items.some(i => i.cameraId === cam.id));
+        if (wasRented) {
+          const isStillRented = updatedContracts.some(
+            c => (c.status === 'Active' || c.status === 'Overdue') && c.items.some(i => i.cameraId === cam.id)
+          );
+          if (!isStillRented) {
+            return { ...cam, status: 'Available' as const };
+          }
+        }
+        return cam;
+      })
+    );
+
+    addToast(
+      'Đã xóa hợp đồng hàng loạt',
+      'success',
+      `Đã xóa vĩnh viễn ${contractsToDelete.length} hợp đồng thành công khỏi hệ thống.`
+    );
   };
 
   // Operations: CAMERAS
@@ -3377,6 +3458,7 @@ export default function App() {
                   onUpdateContract={handleUpdateContract}
                   onUpdateContractStatus={handleUpdateContractStatus}
                   onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
+                  onDeleteContracts={currentUser?.role === 'admin' ? handleDeleteContracts : undefined}
                   onUpdateContractNote={handleUpdateContractNote}
                   onUpdateContractCustomer={handleUpdateContractCustomer}
                   initialSearchQuery={contractManagerSearch}

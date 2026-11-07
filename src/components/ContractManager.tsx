@@ -26,6 +26,7 @@ interface ContractManagerProps {
   onUpdateContract?: (contract: RentalContract) => void;
   onUpdateContractStatus: (id: string, status: ContractStatus, note?: string, paidAmount?: number) => void;
   onDeleteContract?: (id: string) => void;
+  onDeleteContracts?: (ids: string[]) => void;
   onUpdateContractNote?: (id: string, note: string) => void;
   onUpdateContractCustomer?: (id: string, customerName: string, customerPhone: string, customerDocType: RentalContract['customerDocType'], customerDocNote: string) => void;
   initialSearchQuery?: string;
@@ -191,6 +192,7 @@ export default function ContractManager({
   onUpdateContract,
   onUpdateContractStatus,
   onDeleteContract,
+  onDeleteContracts,
   onUpdateContractNote,
   onUpdateContractCustomer,
   initialSearchQuery,
@@ -314,9 +316,11 @@ export default function ContractManager({
   const [customQrAmount, setCustomQrAmount] = useState<number | null>(null);
 
   const [previewReceiptImage, setPreviewReceiptImage] = useState<{ url: string; filename: string } | null>(null);
+  const [selectedContractIds, setSelectedContractIds] = useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState<boolean>(false);
 
   // Lock body scroll whenever any modal is open (placed after all related state declarations)
-  useScrollLock(Boolean(selectedContract || showAddModal || deleteConfirmId || customAlertMessage || showBankSettings || previewReceiptImage));
+  useScrollLock(Boolean(selectedContract || showAddModal || deleteConfirmId || customAlertMessage || showBankSettings || previewReceiptImage || showBulkDeleteModal));
 
   const [customQrImage, setCustomQrImage] = useState<string>(getStoredCustomQr);
   const [vietQrBase64, setVietQrBase64] = useState<string>('');
@@ -802,6 +806,45 @@ export default function ContractManager({
     return filteredContracts.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredContracts, currentPage, itemsPerPage]);
 
+  const isAllPageSelected = useMemo(() => {
+    if (paginatedContracts.length === 0) return false;
+    return paginatedContracts.every(c => selectedContractIds.includes(c.id));
+  }, [paginatedContracts, selectedContractIds]);
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedContractIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllCurrentPage = () => {
+    if (isAllPageSelected) {
+      const pageIds = new Set(paginatedContracts.map(c => c.id));
+      setSelectedContractIds(prev => prev.filter(id => !pageIds.has(id)));
+    } else {
+      const pageIds = paginatedContracts.map(c => c.id);
+      setSelectedContractIds(prev => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleSelectAllFiltered = () => {
+    setSelectedContractIds(filteredContracts.map(c => c.id));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedContractIds([]);
+  };
+
+  const handleBulkDeleteConfirm = () => {
+    if (onDeleteContracts) {
+      onDeleteContracts(selectedContractIds);
+    } else if (onDeleteContract) {
+      selectedContractIds.forEach(id => onDeleteContract(id));
+    }
+    setSelectedContractIds([]);
+    setShowBulkDeleteModal(false);
+  };
+
   // Handle building new contract total rate
   const calculatedDays = useMemo(() => {
     if (newContractForm.is6Hours) return 1; // 6-hour is considered 1 event
@@ -1175,18 +1218,45 @@ export default function ContractManager({
       <div className="bg-white border border-gray-150/70 rounded-2xl shadow-sm overflow-hidden">
         {/* Mobile View Card List */}
         <div className="block lg:hidden divide-y divide-gray-100 bg-gray-50/50">
+          {paginatedContracts.length > 0 && (
+            <div className="p-3 bg-gray-50 border-b border-gray-150 flex items-center justify-between text-xs font-bold text-gray-750">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isAllPageSelected}
+                  onChange={handleSelectAllCurrentPage}
+                  className="w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer accent-orange-600"
+                />
+                <span>Chọn tất cả trang này ({paginatedContracts.length})</span>
+              </label>
+              {selectedContractIds.length > 0 && (
+                <span className="text-[11px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
+                  Đã chọn {selectedContractIds.length}
+                </span>
+              )}
+            </div>
+          )}
           {paginatedContracts.length > 0 ? (
             paginatedContracts.map(c => {
               const duration = Math.max(1, Math.ceil((new Date(c.endDate).getTime() - new Date(c.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1);
+              const isSelected = selectedContractIds.includes(c.id);
               return (
-                <div key={c.id} className="p-4 sm:p-5 space-y-3 hover:bg-slate-50/30 transition bg-white first:rounded-t-2xl last:rounded-b-2xl">
-                  {/* Top section: Code & Status */}
+                <div key={c.id} className={`p-4 sm:p-5 space-y-3 transition bg-white first:rounded-t-2xl last:rounded-b-2xl ${isSelected ? 'ring-2 ring-orange-500/80 bg-orange-50/20' : 'hover:bg-slate-50/30'}`}>
+                  {/* Top section: Checkbox, Code & Status */}
                   <div className="flex items-center justify-between gap-2 border-b border-gray-100 pb-2.5">
-                    <span className={`font-mono font-bold text-xs px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${duplicateCodeSet.has(c.contractCode) ? 'bg-rose-50 text-rose-800 border-rose-300' : 'bg-gray-100 text-gray-900 border-gray-200'}`}>
-                      {duplicateCodeSet.has(c.contractCode) && <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" />}
-                      {c.contractCode}
-                      {duplicateCodeSet.has(c.contractCode) && <span className="text-[9px] font-bold text-rose-600 uppercase ml-0.5">Trùng</span>}
-                    </span>
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelect(c.id)}
+                        className="w-4.5 h-4.5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer accent-orange-600"
+                      />
+                      <span className={`font-mono font-bold text-xs px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${duplicateCodeSet.has(c.contractCode) ? 'bg-rose-50 text-rose-800 border-rose-300' : 'bg-gray-100 text-gray-900 border-gray-200'}`}>
+                        {duplicateCodeSet.has(c.contractCode) && <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" />}
+                        {c.contractCode}
+                        {duplicateCodeSet.has(c.contractCode) && <span className="text-[9px] font-bold text-rose-600 uppercase ml-0.5">Trùng</span>}
+                      </span>
+                    </div>
                     <span className={`inline-block border text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full shadow-3xs ${getStatusBadgeClass(c.status)}`}>
                       {getStatusLabel(c.status)}
                     </span>
@@ -1434,6 +1504,15 @@ export default function ContractManager({
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold text-xs select-none uppercase tracking-wider">
+                <th className="w-12 px-4 py-4 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllPageSelected}
+                    onChange={handleSelectAllCurrentPage}
+                    className="w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer accent-orange-600"
+                    title="Chọn tất cả trên trang này"
+                  />
+                </th>
                 <th className="px-6 py-4">Mã Hợp Đồng</th>
                 <th className="px-6 py-4">Khách Hàng</th>
                 <th className="px-6 py-4">Thiết Bị Thuê</th>
@@ -1447,8 +1526,17 @@ export default function ContractManager({
               {paginatedContracts.length > 0 ? (
                 paginatedContracts.map(c => {
                   const duration = Math.max(1, Math.ceil((new Date(c.endDate).getTime() - new Date(c.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1);
+                  const isSelected = selectedContractIds.includes(c.id);
                   return (
-                    <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={c.id} className={`transition-colors ${isSelected ? 'bg-orange-50/70 hover:bg-orange-100/50' : 'hover:bg-gray-50/50'}`}>
+                      <td className="w-12 px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelect(c.id)}
+                          className="w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer accent-orange-600"
+                        />
+                      </td>
                       <td className="px-6 py-4 font-mono font-bold text-gray-900">{c.contractCode}</td>
                       <td className="px-6 py-4">
                         <div className="font-semibold text-gray-850">{c.customerName}</div>
@@ -1594,7 +1682,7 @@ export default function ContractManager({
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-gray-400 font-medium italic">
+                  <td colSpan={8} className="px-6 py-10 text-center text-gray-400 font-medium italic">
                     Không tìm thấy hợp đồng nào đáp ứng điều kiện.
                   </td>
                 </tr>
@@ -3921,6 +4009,95 @@ export default function ContractManager({
                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl transition cursor-pointer"
               >
                 Đóng
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Floating Bulk Action Bar */}
+      {selectedContractIds.length > 0 && typeof document !== 'undefined' && createPortal(
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-gray-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-gray-700/80 max-w-xl w-[94%] sm:w-auto animate-fade-in">
+          <div className="flex items-center gap-2 font-bold text-xs sm:text-sm whitespace-nowrap">
+            <span className="bg-orange-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow-xs">
+              {selectedContractIds.length}
+            </span>
+            <span>Đã chọn</span>
+          </div>
+
+          {selectedContractIds.length < filteredContracts.length && (
+            <button
+              type="button"
+              onClick={handleSelectAllFiltered}
+              className="text-xs text-orange-400 hover:text-orange-300 underline font-medium cursor-pointer whitespace-nowrap hidden sm:inline"
+            >
+              Chọn tất cả ({filteredContracts.length})
+            </button>
+          )}
+
+          <div className="h-4 w-px bg-gray-700 hidden sm:block" />
+
+          {(onDeleteContracts || onDeleteContract) && (
+            <button
+              type="button"
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold text-xs sm:text-sm px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs ml-auto sm:ml-0 whitespace-nowrap"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Xóa ({selectedContractIds.length})</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleClearSelection}
+            className="text-gray-400 hover:text-white text-xs px-2.5 py-1.5 rounded-lg hover:bg-gray-800 transition cursor-pointer whitespace-nowrap font-medium"
+          >
+            Bỏ chọn
+          </button>
+        </div>,
+        document.body
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[99999] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-scale-up border border-gray-100 p-6 space-y-4">
+            <div className="flex items-center gap-3 text-red-600">
+              <span className="p-2.5 bg-red-50 rounded-xl">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </span>
+              <div>
+                <h3 className="font-black text-lg text-gray-900">Xác nhận xóa hàng loạt</h3>
+                <p className="text-xs text-gray-500">Thao tác này sẽ xóa vĩnh viễn dữ liệu</p>
+              </div>
+            </div>
+
+            <div className="bg-red-50/70 border border-red-200 rounded-xl p-3 text-xs text-red-900 space-y-1">
+              <p className="font-bold">
+                Bạn đang chuẩn bị xóa vĩnh viễn <span className="text-red-700 font-black text-sm">{selectedContractIds.length}</span> hợp đồng đã chọn.
+              </p>
+              <p className="text-red-700">
+                Toàn bộ các hợp đồng này sẽ bị xóa khỏi bộ nhớ máy và đồng bộ xóa sạch trên máy chủ Cloud.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDeleteConfirm}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold px-5 py-2 rounded-xl text-sm transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Đồng ý xóa ({selectedContractIds.length} đơn)</span>
               </button>
             </div>
           </div>
