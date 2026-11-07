@@ -53,6 +53,7 @@ export interface RentalContract {
   status: ContractStatus;
   note?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Customer {

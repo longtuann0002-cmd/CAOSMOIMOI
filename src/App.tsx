@@ -480,7 +480,7 @@ export default function App() {
       }
 
       // TỰ ĐỘNG HỢP NHẤT DỮ LIỆU ĐƠN HÀNG THỜI GIAN THỰC (Chống lưu đè khi nhiều thiết bị dùng chung)
-      if (alert.data && alert.data.type === 'CONTRACT_CREATED' && alert.data.contract) {
+      if (alert.data && (alert.data.type === 'CONTRACT_CREATED' || alert.data.type === 'CONTRACT_UPDATED') && alert.data.contract) {
         const incomingContract = alert.data.contract;
         setContracts(prev => {
           const { merged, hasChanges } = mergeContracts(prev, [incomingContract]);
@@ -1324,11 +1324,16 @@ export default function App() {
 
   // Operations: CONTRACTS
   const handleAddContract = (newContract: RentalContract) => {
-    let contractToAdd = newContract;
+    const nowIso = new Date().toISOString();
+    let contractToAdd: RentalContract = {
+      ...newContract,
+      createdAt: newContract.createdAt || nowIso,
+      updatedAt: nowIso
+    };
     if (contracts.some(c => c.contractCode === newContract.contractCode)) {
       const safeCode = generateNextContractCode(contracts, newContract.startDate);
       console.warn(`[Conflict-Guard] Mã ${newContract.contractCode} đã tồn tại! Tự động cấp mã mới: ${safeCode}`);
-      contractToAdd = { ...newContract, contractCode: safeCode };
+      contractToAdd = { ...contractToAdd, contractCode: safeCode };
     }
 
     // 1. Cập nhật state local ngay lập tức và lưu vào localStorage
@@ -1385,7 +1390,7 @@ export default function App() {
           notes: newContract.customerDocNote 
             ? `Hồ sơ tự động tạo từ đơn thuê ${newContract.contractCode}. Cọc/Giấy tờ: ${newContract.customerDocNote}`
             : `Hồ sơ tự động tạo từ đơn thuê ${newContract.contractCode}.`,
-          createdAt: newContract.createdAt || new Date().toISOString()
+          createdAt: newContract.createdAt || nowIso
         };
         return [newCustomer, ...prevCusts];
       }
@@ -1448,7 +1453,10 @@ export default function App() {
   // Cập nhật toàn diện hợp đồng (Sửa lịch, thêm/bớt thiết bị, phụ phí phát sinh)
   const handleUpdateContract = (updatedContract: RentalContract) => {
     // Nếu đơn đã hoàn tất, đảm bảo phụ phí phát sinh được cộng trực tiếp vào đã thu (doanh thu)
-    let contractToSave = updatedContract;
+    let contractToSave: RentalContract = {
+      ...updatedContract,
+      updatedAt: new Date().toISOString()
+    };
     if (contractToSave.status === 'Completed') {
       const fullTotal = (contractToSave.totalPrice || 0) + (contractToSave.extraFee || 0);
       if ((contractToSave.paidAmount || 0) < fullTotal) {
@@ -1515,6 +1523,7 @@ export default function App() {
 
   const handleUpdateContractStatus = (id: string, status: ContractStatus, note?: string, paidAmount?: number) => {
     const targetContract = contracts.find(c => c.id === id);
+    let label = status;
     if (targetContract) {
       const statusLabels: Record<ContractStatus, string> = {
         'Pending': 'Chờ duyệt',
@@ -1523,7 +1532,7 @@ export default function App() {
         'Overdue': 'Quá hạn',
         'Cancelled': 'Đã hủy'
       };
-      const label = statusLabels[status] || status;
+      label = statusLabels[status] || status;
       addToast(
         'Cập nhật trạng thái hợp đồng',
         'info',
@@ -1565,8 +1574,12 @@ export default function App() {
       }
     }
 
-    setContracts(prev =>
-      prev.map(c => {
+    const nowIso = new Date().toISOString();
+    let updatedContractsList: RentalContract[] = [];
+    let updatedTarget: RentalContract | null = null;
+
+    setContracts(prev => {
+      const next = prev.map(c => {
         if (c.id === id) {
           let finalPaidAmount = c.paidAmount;
 
@@ -1578,12 +1591,14 @@ export default function App() {
             finalPaidAmount = (c.totalPrice || 0) + (c.extraFee || 0);
           }
 
-          const updatedContract = {
+          const updatedContract: RentalContract = {
             ...c,
             status,
-            note: cleanSystemNote(c.note),
-            paidAmount: finalPaidAmount
+            note: note !== undefined ? note : cleanSystemNote(c.note),
+            paidAmount: finalPaidAmount,
+            updatedAt: nowIso
           };
+          updatedTarget = updatedContract;
 
           // Adjust camera statuses based on contract transition
           if (status === 'Completed' || status === 'Cancelled') {
@@ -1611,19 +1626,49 @@ export default function App() {
           return updatedContract;
         }
         return c;
-      })
-    );
+      });
+      updatedContractsList = next;
+      saveStoredData('contracts', next);
+      return next;
+    });
+
+    if (updatedTarget) {
+      if (isSupabaseConfigured) {
+        safeSyncContractsToSupabase(updatedContractsList).catch(() => {});
+      }
+      safeSyncContractsToFirestore(updatedContractsList).catch(err => {
+        console.warn('[Firestore Status Sync Error]', err);
+      });
+
+      broadcastToAllDevices(
+        `Đơn ${targetContract?.contractCode || ''} chuyển trạng thái`,
+        `Hợp đồng ${targetContract?.contractCode || ''} đã chuyển sang "${label}".`,
+        {
+          type: 'CONTRACT_UPDATED',
+          contract: updatedTarget
+        }
+      ).catch(() => {});
+    }
   };
 
   const handleUpdateContractNote = (id: string, note: string) => {
-    setContracts(prev =>
-      prev.map(c => {
+    const nowIso = new Date().toISOString();
+    let nextList: RentalContract[] = [];
+    setContracts(prev => {
+      const next = prev.map(c => {
         if (c.id === id) {
-          return { ...c, note };
+          return { ...c, note, updatedAt: nowIso };
         }
         return c;
-      })
-    );
+      });
+      nextList = next;
+      saveStoredData('contracts', next);
+      return next;
+    });
+    if (nextList.length > 0) {
+      safeSyncContractsToFirestore(nextList).catch(() => {});
+      if (isSupabaseConfigured) safeSyncContractsToSupabase(nextList).catch(() => {});
+    }
   };
 
   const handleUpdateContractCustomer = (
@@ -1633,14 +1678,23 @@ export default function App() {
     customerDocType: RentalContract['customerDocType'],
     customerDocNote: string
   ) => {
-    setContracts(prev =>
-      prev.map(c => {
+    const nowIso = new Date().toISOString();
+    let nextList: RentalContract[] = [];
+    setContracts(prev => {
+      const next = prev.map(c => {
         if (c.id === id) {
-          return { ...c, customerName, customerPhone, customerDocType, customerDocNote };
+          return { ...c, customerName, customerPhone, customerDocType, customerDocNote, updatedAt: nowIso };
         }
         return c;
-      })
-    );
+      });
+      nextList = next;
+      saveStoredData('contracts', next);
+      return next;
+    });
+    if (nextList.length > 0) {
+      safeSyncContractsToFirestore(nextList).catch(() => {});
+      if (isSupabaseConfigured) safeSyncContractsToSupabase(nextList).catch(() => {});
+    }
 
     // Also sync updated customer info into Customer Management
     setCustomers(prevCusts => {

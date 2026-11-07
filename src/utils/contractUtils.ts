@@ -246,29 +246,48 @@ export function mergeContracts(
       hasChanges = true;
       addedCount++;
     } else {
-      // Đã có trong map: kiểm tra xem incoming có cập nhật gì mới không
-      const localTime = new Date(existing.createdAt || 0).getTime();
-      const incTime = new Date(inc.createdAt || 0).getTime();
-      
-      const isStatusChanged = existing.status !== inc.status;
-      const isPaidChanged = existing.paidAmount !== inc.paidAmount;
-      const isDepositChanged = existing.depositAmount !== inc.depositAmount;
-      const isNoteChanged = existing.note !== inc.note;
+      // Đã có trong map: kiểm tra xem đối tượng nào mới hơn dựa vào updatedAt hoặc trạng thái
+      const existingTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+      const incTime = new Date(inc.updatedAt || inc.createdAt || 0).getTime();
 
-      if (isStatusChanged || isPaidChanged || isDepositChanged || isNoteChanged) {
-        // Có sự thay đổi: ưu tiên hợp nhất các trường có giá trị
-        const mergedItem: RentalContract = {
-          ...existing,
-          ...inc,
-          // Giữ note dài hơn nếu có
-          note: (inc.note && inc.note.length > (existing.note || '').length) ? inc.note : existing.note,
-          paidAmount: inc.paidAmount !== undefined ? inc.paidAmount : existing.paidAmount,
-          depositAmount: inc.depositAmount !== undefined ? inc.depositAmount : existing.depositAmount,
-          status: inc.status || existing.status
-        };
-        map.set(existing.id, mergedItem);
+      // Xác định đối tượng có thông tin cập nhật mới nhất (Ưu tiên bản có updatedAt mới hơn)
+      let primary = existing;
+      let secondary = inc;
+
+      if (incTime > existingTime) {
+        primary = inc;
+        secondary = existing;
+      }
+
+      // QUY TẮC BẢO TOÀN TRẠNG THÁI: Tuyệt đối không bao giờ để trạng thái hạ cấp từ 'Active'/'Completed' về 'Pending'
+      // trừ khi bản ghi Pending có updatedAt mới hơn rõ rệt
+      let resolvedStatus = primary.status;
+      if (primary.status === 'Pending' && (secondary.status === 'Active' || secondary.status === 'Completed' || secondary.status === 'Overdue')) {
+        if (incTime <= existingTime) {
+          resolvedStatus = secondary.status;
+        }
+      }
+
+      const mergedItem: RentalContract = {
+        ...secondary,
+        ...primary,
+        status: resolvedStatus,
+        // Giữ lại ghi chú đầy đủ hơn
+        note: (primary.note && primary.note.length >= (secondary.note || '').length) ? primary.note : (secondary.note || primary.note),
+        paidAmount: primary.paidAmount !== undefined ? primary.paidAmount : secondary.paidAmount,
+        depositAmount: primary.depositAmount !== undefined ? primary.depositAmount : secondary.depositAmount,
+        updatedAt: primary.updatedAt || secondary.updatedAt || new Date().toISOString()
+      };
+
+      if (
+        existing.status !== mergedItem.status ||
+        existing.paidAmount !== mergedItem.paidAmount ||
+        existing.depositAmount !== mergedItem.depositAmount ||
+        existing.note !== mergedItem.note
+      ) {
         hasChanges = true;
       }
+      map.set(existing.id, mergedItem);
     }
   }
 
