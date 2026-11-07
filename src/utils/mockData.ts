@@ -521,10 +521,18 @@ export function loadStoredData<T>(key: string, defaultVal: T): T {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (key === 'contracts' && Array.isArray(parsed)) {
-        return parsed.map((c: any) => ({
-          ...c,
-          note: cleanSystemNote(c.note)
-        })) as unknown as T;
+        return parsed
+          .filter((c: any) => c && c.id && !c.id.startsWith('mock-con-') && !/^con-[1-9]$/.test(c.id))
+          .map((c: any) => ({
+            ...c,
+            note: cleanSystemNote(c.note)
+          })) as unknown as T;
+      }
+      if (key === 'customers' && Array.isArray(parsed)) {
+        return parsed.filter((c: any) => c && c.id && !['cust-1', 'cust-2', 'cust-3', 'cust-4'].includes(c.id)) as unknown as T;
+      }
+      if (key === 'expenses' && Array.isArray(parsed)) {
+        return parsed.filter((e: any) => e && e.id && !e.id.startsWith('mock-exp-') && !/^exp-[1-9]$/.test(e.id)) as unknown as T;
       }
       return parsed;
     }

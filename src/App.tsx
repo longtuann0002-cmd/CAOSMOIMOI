@@ -16,7 +16,7 @@ import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushN
 import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken, fetchFullContractsFromFirestore, safeSyncContractsToFirestore, forceSyncContractsToFirestore, syncDataToFirestore, fetchDataFromFirestore, subscribeToFirestoreDoc } from './utils/firebasePush';
 import { matchContract, matchCamera, matchCustomer } from './utils/searchUtils';
 import { compressImageFile } from './utils/imageUtils';
-import { deduplicateContracts, generateNextContractCode, mergeContracts, addDeletedContractIds, getDeletedContractIds } from './utils/contractUtils';
+import { deduplicateContracts, generateNextContractCode, mergeContracts, addDeletedContractIds, getDeletedContractIds, isMockContract, KNOWN_MOCK_CONTRACT_IDS } from './utils/contractUtils';
 
 
 // Component imports
@@ -250,16 +250,22 @@ export default function App() {
     const loaded = loadStoredData('contracts', INITIAL_CONTRACTS);
     const deletedSet = getDeletedContractIds();
     const cleanContracts = (loaded || []).filter(c => 
-      c && c.id && !deletedSet.has(c.id) && !deletedSet.has((c.contractCode || '').trim().toUpperCase())
+      c && c.id && 
+      !deletedSet.has(c.id) && 
+      !deletedSet.has((c.contractCode || '').trim().toUpperCase()) &&
+      !isMockContract(c)
     );
     const { deduplicated } = deduplicateContracts(cleanContracts);
     return deduplicated;
   });
-  const [customers, setCustomers] = useState<Customer[]>(() =>
-    loadStoredData('customers', INITIAL_CUSTOMERS)
-  );
+  const [customers, setCustomers] = useState<Customer[]>(() => {
+    const loaded = loadStoredData('customers', INITIAL_CUSTOMERS);
+    // Loại bỏ các khách hàng mẫu nếu không có hợp đồng thật
+    return (loaded || []).filter(c => c && c.id && !['cust-1', 'cust-2', 'cust-3', 'cust-4'].includes(c.id));
+  });
   const [expenses, setExpenses] = useState<Expense[]>(() => {
-    return loadStoredData('expenses', INITIAL_EXPENSES) || [];
+    const loaded = loadStoredData('expenses', INITIAL_EXPENSES) || [];
+    return loaded.filter(e => e && e.id && !e.id.startsWith('mock-exp-') && !/^exp-[1-9]$/.test(e.id));
   });
 
   // Active view tab state (default to 'calendar' as shown in screenshot)
@@ -915,18 +921,34 @@ export default function App() {
           }
         }
 
-        // 4. HỢP NHẤT THÔNG MINH (Smart Merge) - Tuyệt đối không làm mất hợp đồng của bất kỳ thiết bị nào
+        // 4. HỢP NHẤT THÔNG MINH (Smart Merge) - Tự động thanh lọc triệt để mọi đơn ảo / mock data
+        let hasMockContractsInCloud = false;
+        if (cloudContracts && Array.isArray(cloudContracts)) {
+          hasMockContractsInCloud = cloudContracts.some(c => isMockContract(c));
+        }
+
         if (cloudContracts && Array.isArray(cloudContracts) && cloudContracts.length > 0) {
-          const rawContracts = (cloudContracts as RentalContract[]).map(c => ({ ...c, note: cleanSystemNote(c.note) }));
+          const rawContracts = (cloudContracts as RentalContract[])
+            .map(c => ({ ...c, note: cleanSystemNote(c.note) }))
+            .filter(c => !isMockContract(c));
           const { merged, addedCount } = mergeContracts(localContracts, rawContracts);
           setContracts(merged);
           saveStoredData('contracts', merged);
+
+          // Nếu Cloud Firestore chứa đơn ảo cũ, lập tức ghi đè dọn sạch Firestore vĩnh viễn!
+          if (hasMockContractsInCloud) {
+            console.warn('[Auto-Purge] Phát hiện và loại bỏ triệt để các đơn ảo trên Cloud Firestore!');
+            forceSyncContractsToFirestore(merged).catch(() => null);
+            addDeletedContractIds(Array.from(KNOWN_MOCK_CONTRACT_IDS));
+            syncDataToFirestore('deleted_contracts_store', Array.from(getDeletedContractIds()));
+          }
           if (addedCount > 0) {
             console.log(`[Cloud-Init] Đã hợp nhất an toàn ${addedCount} đơn hàng mới từ Cloud.`);
           }
         } else {
-          const { deduplicated } = deduplicateContracts(localContracts);
+          const { deduplicated } = deduplicateContracts(localContracts.filter(c => !isMockContract(c)));
           setContracts(deduplicated);
+          saveStoredData('contracts', deduplicated);
         }
 
         if (cloudCameras !== null) {
@@ -935,16 +957,26 @@ export default function App() {
           setCameras(localCameras);
         }
 
-        if (cloudCustomers !== null) {
-          setCustomers(cloudCustomers);
-        } else {
-          setCustomers(localCustomers);
+        // Lọc sạch khách hàng mẫu
+        let cleanCustomers = cloudCustomers !== null ? cloudCustomers : localCustomers;
+        if (Array.isArray(cleanCustomers)) {
+          cleanCustomers = cleanCustomers.filter(c => c && c.id && !['cust-1', 'cust-2', 'cust-3', 'cust-4'].includes(c.id));
+        }
+        setCustomers(cleanCustomers);
+        saveStoredData('customers', cleanCustomers);
+        if (cloudCustomers && Array.isArray(cloudCustomers) && cloudCustomers.some((c: any) => ['cust-1', 'cust-2', 'cust-3', 'cust-4'].includes(c.id))) {
+          syncDataToFirestore('customers_store', cleanCustomers);
         }
 
-        if (cloudExpenses !== null) {
-          setExpenses(cloudExpenses);
-        } else {
-          setExpenses(localExpenses);
+        // Lọc sạch chi phí mẫu
+        let cleanExpenses = cloudExpenses !== null ? cloudExpenses : localExpenses;
+        if (Array.isArray(cleanExpenses)) {
+          cleanExpenses = cleanExpenses.filter(e => e && e.id && !e.id.startsWith('mock-exp-') && !/^exp-[1-9]$/.test(e.id));
+        }
+        setExpenses(cleanExpenses);
+        saveStoredData('expenses', cleanExpenses);
+        if (cloudExpenses && Array.isArray(cloudExpenses) && cloudExpenses.some((e: any) => e.id && (e.id.startsWith('mock-exp-') || /^exp-[1-9]$/.test(e.id)))) {
+          syncDataToFirestore('expenses_store', cleanExpenses);
         }
 
         // Fetch bank config and custom payment QR from Cloud
@@ -1321,12 +1353,16 @@ export default function App() {
         : await fetchFullContractsFromFirestore().catch(() => null);
 
       let mergedCount = contracts.length;
+      let activeContracts = contracts.filter(c => !isMockContract(c));
       if (cloudContracts && Array.isArray(cloudContracts) && cloudContracts.length > 0) {
-        const rawContracts = (cloudContracts as RentalContract[]).map(c => ({ ...c, note: cleanSystemNote(c.note) }));
+        const rawContracts = (cloudContracts as RentalContract[])
+          .map(c => ({ ...c, note: cleanSystemNote(c.note) }))
+          .filter(c => !isMockContract(c));
         const { merged } = mergeContracts(contracts, rawContracts);
         setContracts(merged);
         saveStoredData('contracts', merged);
         mergedCount = merged.length;
+        activeContracts = merged;
       }
 
       // 3. Kéo cameras
@@ -1343,8 +1379,9 @@ export default function App() {
         ? await fetchFromSupabase('customers').catch(() => null)
         : await fetchDataFromFirestore('customers_store').catch(() => null);
       if (cloudCustomers && Array.isArray(cloudCustomers) && cloudCustomers.length > 0) {
-        setCustomers(cloudCustomers);
-        saveStoredData('customers', cloudCustomers);
+        const cleanCusts = cloudCustomers.filter((c: any) => c && c.id && !['cust-1', 'cust-2', 'cust-3', 'cust-4'].includes(c.id));
+        setCustomers(cleanCusts);
+        saveStoredData('customers', cleanCusts);
       }
 
       // 5. Kéo brand settings
@@ -1363,8 +1400,8 @@ export default function App() {
         if (cloudBrand.accountSectionTitle !== undefined) setAccountSectionTitle(cloudBrand.accountSectionTitle);
       }
 
-      // 6. Gửi bản mới nhất từ local lên Cloud để bảo đảm 2 chiều
-      await safeSyncContractsToFirestore(contracts);
+      // 6. Gửi bản mới nhất đã lọc sạch lên Cloud để bảo đảm 2 chiều
+      await forceSyncContractsToFirestore(activeContracts);
       if (cameras.length > 0) await syncDataToFirestore('cameras_store', cameras);
 
       addToast(

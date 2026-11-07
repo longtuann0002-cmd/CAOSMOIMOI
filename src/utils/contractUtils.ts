@@ -171,12 +171,41 @@ export function addDeletedContractIds(idsOrCodes: (string | undefined | null)[])
   } catch (e) {}
 }
 
+export const KNOWN_MOCK_CONTRACT_IDS = new Set<string>([
+  'con-1', 'con-2', 'con-3', 'con-4', 'con-5', 'con-6', 'con-7', 'con-8', 'con-9',
+  'mock-con-01', 'mock-con-02', 'mock-con-a1', 'mock-con-a2'
+]);
+
+export const KNOWN_MOCK_CONTRACT_CODES = new Set<string>([
+  'HD-2026-001', 'HD-2026-002', 'HD-2026-003', 'HD-2026-004', 'HD-2026-005',
+  'HD-2026-006', 'HD-2026-007', 'HD-2026-008', 'HD-2026-009',
+  'HD-2026-03-01', 'HD-2026-03-02', 'HD-2026-04-01', 'HD-2026-04-02'
+]);
+
+/**
+ * Kiểm tra xem một hợp đồng có phải là hợp đồng mẫu (mock data) hay không.
+ * Các hợp đồng ảo này tuyệt đối không được hiển thị hay lưu trữ.
+ */
+export function isMockContract(c: any): boolean {
+  if (!c) return false;
+  const id = typeof c.id === 'string' ? c.id.trim() : '';
+  const code = typeof c.contractCode === 'string' ? c.contractCode.trim().toUpperCase() : '';
+  if (id && KNOWN_MOCK_CONTRACT_IDS.has(id)) return true;
+  if (id && (id.startsWith('mock-con-') || /^con-[1-9]$/.test(id))) return true;
+  if (code && KNOWN_MOCK_CONTRACT_CODES.has(code)) {
+    if (id && (id.startsWith('mock-con-') || /^con-[1-9]$/.test(id))) return true;
+    if (c.customerId && ['cust-1', 'cust-2', 'cust-3', 'cust-4'].includes(c.customerId)) return true;
+  }
+  return false;
+}
+
 /**
  * Hợp nhất thông minh danh sách hợp đồng giữa 2 nguồn (ví dụ Local và Cloud/Thiết bị khác)
  * Đảm bảo:
  * 1. Tuyệt đối KHÔNG BAO GIỜ làm mất hợp đồng của bất kỳ bên nào (Union by id & contractCode).
- * 2. Nếu cùng 1 hợp đồng xuất hiện ở cả 2 nơi: ưu tiên bản có thông tin mới nhất.
- * 3. Tự động xử lý xung đột mã hợp đồng nếu 2 thiết bị tạo trùng mã cùng lúc.
+ * 2. Lọc sạch triệt để các đơn đã xóa vĩnh viễn (Tombstones) và các đơn ảo (Mock data).
+ * 3. Nếu cùng 1 hợp đồng xuất hiện ở cả 2 nơi: ưu tiên bản có thông tin mới nhất.
+ * 4. Tự động xử lý xung đột mã hợp đồng nếu 2 thiết bị tạo trùng mã cùng lúc.
  */
 export function mergeContracts(
   localList: RentalContract[],
@@ -186,12 +215,29 @@ export function mergeContracts(
   hasChanges: boolean;
   addedCount: number;
 } {
-  if (!Array.isArray(incomingList) || incomingList.length === 0) {
-    return { merged: localList || [], hasChanges: false, addedCount: 0 };
+  const deletedSet = getDeletedContractIds();
+
+  // Lọc sạch cả localList và incomingList trước khi hợp nhất
+  const cleanLocal = (localList || []).filter(c => 
+    c && c.id && 
+    !deletedSet.has(c.id) && 
+    !deletedSet.has((c.contractCode || '').trim().toUpperCase()) &&
+    !isMockContract(c)
+  );
+
+  const cleanIncoming = (incomingList || []).filter(c => 
+    c && c.id && 
+    !deletedSet.has(c.id) && 
+    !deletedSet.has((c.contractCode || '').trim().toUpperCase()) &&
+    !isMockContract(c)
+  );
+
+  if (cleanIncoming.length === 0) {
+    return { merged: cleanLocal, hasChanges: false, addedCount: 0 };
   }
 
-  if (!Array.isArray(localList) || localList.length === 0) {
-    const { deduplicated } = deduplicateContracts(incomingList);
+  if (cleanLocal.length === 0) {
+    const { deduplicated } = deduplicateContracts(cleanIncoming);
     return { merged: deduplicated, hasChanges: true, addedCount: deduplicated.length };
   }
 
@@ -200,7 +246,7 @@ export function mergeContracts(
 
   // Bản đồ theo ID
   const map = new Map<string, RentalContract>();
-  for (const item of localList) {
+  for (const item of cleanLocal) {
     if (item && item.id) {
       map.set(item.id, item);
     }
@@ -208,22 +254,14 @@ export function mergeContracts(
 
   // Tập hợp các contractCode hiện có
   const codeToIdMap = new Map<string, string>();
-  for (const item of localList) {
+  for (const item of cleanLocal) {
     if (item && item.contractCode) {
       codeToIdMap.set(item.contractCode.trim().toUpperCase(), item.id);
     }
   }
 
-  const deletedSet = getDeletedContractIds();
-
-  for (const inc of incomingList) {
+  for (const inc of cleanIncoming) {
     if (!inc || !inc.id) continue;
-
-    // BỎ QUA NẾU HỢP ĐỒNG ĐÃ BỊ XÓA VĨNH VIỄN
-    const incCode = (inc.contractCode || '').trim().toUpperCase();
-    if (deletedSet.has(inc.id) || (incCode && deletedSet.has(incCode))) {
-      continue;
-    }
 
     const existing = map.get(inc.id);
     if (!existing) {
