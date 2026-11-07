@@ -65,7 +65,7 @@ export default function CustomerManager({
 
   // Calculate customer debt and financials helper (smart matching via isContractOfCustomer)
   const getCustomerFinancials = (custOrPhone: Customer | string) => {
-    const cust = typeof custOrPhone === 'string' ? { phone: custOrPhone } : custOrPhone;
+    const cust: Partial<Customer> | null = typeof custOrPhone === 'string' ? { phone: custOrPhone } : custOrPhone;
     if (!cust || (!cust.phone && !cust.id && !cust.name)) {
       return {
         custContracts: [],

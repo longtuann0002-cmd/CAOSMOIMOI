@@ -435,13 +435,15 @@ export default function App() {
       if (alert.data && alert.data.type === 'CONTRACT_DELETED') {
         const delId = alert.data.contractId;
         const delCode = alert.data.contractCode;
-        if (delId || delCode) {
-          addDeletedContractIds([delId, delCode].filter(Boolean));
+        if (delId) {
+          isDeletingRef.current = true;
+          addDeletedContractIds([delId]);
           setContracts(prev => {
-            const next = prev.filter(c => c.id !== delId && c.contractCode !== delCode);
+            const next = prev.filter(c => c.id !== delId && (delCode ? c.contractCode !== delCode : true));
             saveStoredData('contracts', next);
             return next;
           });
+          setTimeout(() => { isDeletingRef.current = false; }, 1500);
         }
         return;
       }
@@ -450,9 +452,9 @@ export default function App() {
       if (alert.data && alert.data.type === 'CONTRACT_BULK_DELETED') {
         const delIds = alert.data.contractIds || [];
         const delCodes = alert.data.contractCodes || [];
-        const all = [...delIds, ...delCodes];
-        if (all.length > 0) {
-          addDeletedContractIds(all);
+        if (delIds.length > 0) {
+          isDeletingRef.current = true;
+          addDeletedContractIds(delIds);
           const delSet = new Set(delIds);
           const codeSet = new Set(delCodes.map((s: string) => s.toUpperCase()));
           setContracts(prev => {
@@ -460,6 +462,7 @@ export default function App() {
             saveStoredData('contracts', next);
             return next;
           });
+          setTimeout(() => { isDeletingRef.current = false; }, 1500);
         }
         return;
       }
@@ -540,8 +543,26 @@ export default function App() {
         setContracts(prev => {
           const next = prev.filter(c => !delSet.has(c.id));
           if (next.length !== prev.length) {
+            isDeletingRef.current = true;
             saveStoredData('contracts', next);
+            setTimeout(() => { isDeletingRef.current = false; }, 1500);
             return next;
+          }
+          return prev;
+        });
+      }
+    });
+
+    const unsubFirestoreContracts = subscribeToFirestoreDoc('contracts_store', (remoteList) => {
+      if (isDeletingRef.current) return;
+      if (Array.isArray(remoteList)) {
+        const deletedSet = getDeletedContractIds();
+        const cleanRemote = remoteList.filter(c => c && c.id && !deletedSet.has(c.id) && !isMockContract(c));
+        setContracts(prev => {
+          const { merged, hasChanges } = mergeContracts(prev, cleanRemote);
+          if (hasChanges) {
+            saveStoredData('contracts', merged);
+            return merged;
           }
           return prev;
         });
@@ -554,6 +575,7 @@ export default function App() {
       unsubFirestoreBrand();
       unsubFirestoreCameras();
       unsubFirestoreDeleted();
+      unsubFirestoreContracts();
     };
   }, []);
 
@@ -602,6 +624,7 @@ export default function App() {
   }, [loaded, pendingOrOverdueContractsCount]);
 
   const isInitialLoadRef = useRef(true);
+  const isDeletingRef = useRef(false);
 
   // Sync data states to local storage and Supabase/Firestore safely (Merge-before-write)
   useEffect(() => {
@@ -624,24 +647,18 @@ export default function App() {
 
     saveStoredData('contracts', contracts);
 
-    // Đồng bộ an toàn lên Cloud: Luôn kiểm tra và gộp với dữ liệu trên Cloud trước khi lưu
+    // Nếu đang trong quá trình xóa đơn, TUYỆT ĐỐI KHÔNG chạy safeSync vì safeSync sẽ gộp lại đơn vừa xóa
+    if (isDeletingRef.current) {
+      return;
+    }
+
     if (isSupabaseConfigured) {
-      safeSyncContractsToSupabase(contracts).then(({ success, mergedContracts }) => {
-        if (success && mergedContracts && mergedContracts.length > contracts.length) {
-          setContracts(mergedContracts);
-          saveStoredData('contracts', mergedContracts);
-        }
-      }).catch(err => {
+      safeSyncContractsToSupabase(contracts).catch(err => {
         console.warn('[Supabase Sync Guard] Error:', err);
       });
     }
 
-    safeSyncContractsToFirestore(contracts).then((mergedContracts) => {
-      if (mergedContracts && mergedContracts.length > contracts.length) {
-        setContracts(mergedContracts);
-        saveStoredData('contracts', mergedContracts);
-      }
-    }).catch(err => {
+    safeSyncContractsToFirestore(contracts).catch(err => {
       console.warn('[Firestore Sync Guard] Error:', err);
     });
   }, [loaded, contracts]);
@@ -1644,7 +1661,7 @@ export default function App() {
 
   const handleUpdateContractStatus = (id: string, status: ContractStatus, note?: string, paidAmount?: number) => {
     const targetContract = contracts.find(c => c.id === id);
-    let label = status;
+    let label: string = status;
     if (targetContract) {
       const statusLabels: Record<ContractStatus, string> = {
         'Pending': 'Chờ duyệt',
@@ -1858,39 +1875,42 @@ export default function App() {
     );
   };
 
-  const handleDeleteContract = (id: string) => {
+  const handleDeleteContract = async (id: string) => {
     const contractToDelete = contracts.find(c => c.id === id);
     if (!contractToDelete) return;
 
-    // 1. Ghi nhận ID vào danh sách đã xóa vĩnh viễn (Tombstones theo ID duy nhất)
-    addDeletedContractIds([contractToDelete.id]);
-    syncDataToFirestore('deleted_contracts_store', Array.from(getDeletedContractIds()));
+    isDeletingRef.current = true;
 
-    // 2. Xóa khỏi danh sách và lưu vào LocalStorage
-    const updatedContracts = contracts.filter(c => c.id !== id);
-    setContracts(updatedContracts);
-    saveStoredData('contracts', updatedContracts);
+    try {
+      // 1. Ghi nhận ID vào danh sách đã xóa vĩnh viễn (Tombstones theo ID duy nhất)
+      addDeletedContractIds([contractToDelete.id]);
+      await syncDataToFirestore('deleted_contracts_store', Array.from(getDeletedContractIds()));
 
-    // 3. Ghi đè trực tiếp danh sách đã xóa lên Cloud để không bao giờ bị khôi phục lại
-    if (isSupabaseConfigured) {
-      syncToSupabase('contracts', updatedContracts).catch(err => {
-        console.warn('[Supabase Delete Sync] Error:', err);
-      });
-    }
-    forceSyncContractsToFirestore(updatedContracts).catch(err => {
-      console.warn('[Firestore Delete Sync] Error:', err);
-    });
+      // 2. Xóa khỏi danh sách và lưu vào LocalStorage
+      const updatedContracts = contracts.filter(c => c.id !== id);
+      setContracts(updatedContracts);
+      saveStoredData('contracts', updatedContracts);
 
-    // 4. Phát tín hiệu realtime tới mọi thiết bị khác để đồng bộ xóa tức thì
-    broadcastToAllDevices(
-      'Hợp đồng đã bị xóa',
-      `Hợp đồng ${contractToDelete.contractCode} đã bị xóa khỏi hệ thống.`,
-      {
-        type: 'CONTRACT_DELETED',
-        contractId: contractToDelete.id,
-        contractCode: contractToDelete.contractCode
+      // 3. Ghi đè trực tiếp danh sách đã xóa lên Cloud để không bao giờ bị khôi phục lại
+      if (isSupabaseConfigured) {
+        syncToSupabase('contracts', updatedContracts).catch(err => {
+          console.warn('[Supabase Delete Sync] Error:', err);
+        });
       }
-    );
+      await forceSyncContractsToFirestore(updatedContracts).catch(err => {
+        console.warn('[Firestore Delete Sync] Error:', err);
+      });
+
+      // 4. Phát tín hiệu realtime tới mọi thiết bị khác để đồng bộ xóa tức thì
+      await broadcastToAllDevices(
+        'Hợp đồng đã bị xóa',
+        `Hợp đồng ${contractToDelete.contractCode} đã bị xóa khỏi hệ thống.`,
+        {
+          type: 'CONTRACT_DELETED',
+          contractId: contractToDelete.id,
+          contractCode: contractToDelete.contractCode
+        }
+      ).catch(() => null);
 
     // Adjust camera statuses based on remaining Active and Overdue contracts
     setCameras(prevCams =>
@@ -1951,43 +1971,51 @@ export default function App() {
         `Đã xóa hợp đồng ${contractToDelete.contractCode} và cập nhật lại thông tin khách hàng "${contractToDelete.customerName}".`
       );
     }
-  };
+  } finally {
+    setTimeout(() => {
+      isDeletingRef.current = false;
+    }, 1500);
+  }
+};
 
-  const handleDeleteContracts = (ids: string[]) => {
+  const handleDeleteContracts = async (ids: string[]) => {
     if (!ids || ids.length === 0) return;
     const idSet = new Set(ids);
     const contractsToDelete = contracts.filter(c => idSet.has(c.id));
     if (contractsToDelete.length === 0) return;
 
-    // 1. Ghi nhận toàn bộ ID vào danh sách đã xóa vĩnh viễn (Tombstones theo ID)
-    addDeletedContractIds(contractsToDelete.map(c => c.id));
-    syncDataToFirestore('deleted_contracts_store', Array.from(getDeletedContractIds()));
+    isDeletingRef.current = true;
 
-    // 2. Xóa khỏi danh sách và lưu vào LocalStorage
-    const updatedContracts = contracts.filter(c => !idSet.has(c.id));
-    setContracts(updatedContracts);
-    saveStoredData('contracts', updatedContracts);
+    try {
+      // 1. Ghi nhận toàn bộ ID vào danh sách đã xóa vĩnh viễn (Tombstones theo ID)
+      addDeletedContractIds(contractsToDelete.map(c => c.id));
+      await syncDataToFirestore('deleted_contracts_store', Array.from(getDeletedContractIds()));
 
-    // 3. Ghi đè trực tiếp danh sách đã xóa lên Cloud để chống khôi phục lại
-    if (isSupabaseConfigured) {
-      syncToSupabase('contracts', updatedContracts).catch(err => {
-        console.warn('[Supabase Bulk Delete Sync] Error:', err);
-      });
-    }
-    forceSyncContractsToFirestore(updatedContracts).catch(err => {
-      console.warn('[Firestore Bulk Delete Sync] Error:', err);
-    });
+      // 2. Xóa khỏi danh sách và lưu vào LocalStorage
+      const updatedContracts = contracts.filter(c => !idSet.has(c.id));
+      setContracts(updatedContracts);
+      saveStoredData('contracts', updatedContracts);
 
-    // 4. Phát tín hiệu realtime tới mọi thiết bị khác
-    broadcastToAllDevices(
-      'Hợp đồng đã bị xóa hàng loạt',
-      `Đã xóa ${contractsToDelete.length} hợp đồng khỏi hệ thống.`,
-      {
-        type: 'CONTRACT_BULK_DELETED',
-        contractIds: ids,
-        contractCodes: contractsToDelete.map(c => c.contractCode).filter(Boolean)
+      // 3. Ghi đè trực tiếp danh sách đã xóa lên Cloud để chống khôi phục lại
+      if (isSupabaseConfigured) {
+        syncToSupabase('contracts', updatedContracts).catch(err => {
+          console.warn('[Supabase Bulk Delete Sync] Error:', err);
+        });
       }
-    );
+      await forceSyncContractsToFirestore(updatedContracts).catch(err => {
+        console.warn('[Firestore Bulk Delete Sync] Error:', err);
+      });
+
+      // 4. Phát tín hiệu realtime tới mọi thiết bị khác
+      await broadcastToAllDevices(
+        'Hợp đồng đã bị xóa hàng loạt',
+        `Đã xóa ${contractsToDelete.length} hợp đồng khỏi hệ thống.`,
+        {
+          type: 'CONTRACT_BULK_DELETED',
+          contractIds: ids,
+          contractCodes: contractsToDelete.map(c => c.contractCode).filter(Boolean)
+        }
+      ).catch(() => null);
 
     // 5. Cập nhật trạng thái máy ảnh tương ứng
     setCameras(prevCams =>
@@ -2010,7 +2038,12 @@ export default function App() {
       'success',
       `Đã xóa vĩnh viễn ${contractsToDelete.length} hợp đồng thành công khỏi hệ thống.`
     );
-  };
+  } finally {
+    setTimeout(() => {
+      isDeletingRef.current = false;
+    }, 1500);
+  }
+};
 
   // Operations: CAMERAS
   const handleAddCamera = (newCam: Camera) => {
