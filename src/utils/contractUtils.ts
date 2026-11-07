@@ -139,13 +139,19 @@ const DELETED_CONTRACTS_KEY = 'camlease_deleted_contract_ids';
  * Lấy danh sách ID và Mã hợp đồng đã bị người dùng xóa vĩnh viễn (Tombstones).
  * Giúp ngăn chặn việc Cloud hoặc thiết bị khác tự động khôi phục lại các đơn đã xóa.
  */
+/**
+ * Lấy danh sách ID hợp đồng đã bị người dùng xóa vĩnh viễn (Tombstones).
+ * CHỈ lưu ID duy nhất (con-*), TUYỆT ĐỐI KHÔNG lưu mã hợp đồng (HD-*) để tránh chặn các đơn tạo mới.
+ */
 export function getDeletedContractIds(): Set<string> {
   try {
     const raw = localStorage.getItem(DELETED_CONTRACTS_KEY);
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) {
-        return new Set(arr);
+        // Tự động dọn sạch mọi mã HD-* ra khỏi tombstone, chỉ giữ lại ID duy nhất
+        const cleanIds = arr.filter(item => typeof item === 'string' && !item.toUpperCase().startsWith('HD-'));
+        return new Set(cleanIds);
       }
     }
   } catch (e) {}
@@ -153,7 +159,7 @@ export function getDeletedContractIds(): Set<string> {
 }
 
 /**
- * Ghi nhận các ID và Mã hợp đồng vừa bị xóa vào danh sách Tombstones
+ * Ghi nhận các ID vừa bị xóa vào danh sách Tombstones
  */
 export function addDeletedContractIds(idsOrCodes: (string | undefined | null)[]): void {
   try {
@@ -161,13 +167,35 @@ export function addDeletedContractIds(idsOrCodes: (string | undefined | null)[])
     for (const item of idsOrCodes) {
       if (item && typeof item === 'string') {
         const clean = item.trim();
-        if (clean) {
+        // Không lưu mã HD-* vào tombstone
+        if (clean && !clean.toUpperCase().startsWith('HD-')) {
           set.add(clean);
-          set.add(clean.toUpperCase());
         }
       }
     }
     localStorage.setItem(DELETED_CONTRACTS_KEY, JSON.stringify(Array.from(set)));
+  } catch (e) {}
+}
+
+/**
+ * Xóa một ID khỏi danh sách Tombstone (dùng khi người dùng cố ý tạo hoặc khôi phục đơn)
+ */
+export function removeDeletedContractIds(ids: (string | undefined | null)[]): void {
+  try {
+    const set = getDeletedContractIds();
+    let changed = false;
+    for (const id of ids) {
+      if (id && typeof id === 'string') {
+        const clean = id.trim();
+        if (set.has(clean)) {
+          set.delete(clean);
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      localStorage.setItem(DELETED_CONTRACTS_KEY, JSON.stringify(Array.from(set)));
+    }
   } catch (e) {}
 }
 
@@ -203,7 +231,7 @@ export function isMockContract(c: any): boolean {
  * Hợp nhất thông minh danh sách hợp đồng giữa 2 nguồn (ví dụ Local và Cloud/Thiết bị khác)
  * Đảm bảo:
  * 1. Tuyệt đối KHÔNG BAO GIỜ làm mất hợp đồng của bất kỳ bên nào (Union by id & contractCode).
- * 2. Lọc sạch triệt để các đơn đã xóa vĩnh viễn (Tombstones) và các đơn ảo (Mock data).
+ * 2. Lọc sạch triệt để các đơn đã xóa vĩnh viễn (Tombstones theo ID) và các đơn ảo (Mock data).
  * 3. Nếu cùng 1 hợp đồng xuất hiện ở cả 2 nơi: ưu tiên bản có thông tin mới nhất.
  * 4. Tự động xử lý xung đột mã hợp đồng nếu 2 thiết bị tạo trùng mã cùng lúc.
  */
@@ -217,18 +245,16 @@ export function mergeContracts(
 } {
   const deletedSet = getDeletedContractIds();
 
-  // Lọc sạch cả localList và incomingList trước khi hợp nhất
+  // Lọc sạch cả localList và incomingList trước khi hợp nhất (CHỈ lọc theo c.id, KHÔNG lọc theo contractCode)
   const cleanLocal = (localList || []).filter(c => 
     c && c.id && 
     !deletedSet.has(c.id) && 
-    !deletedSet.has((c.contractCode || '').trim().toUpperCase()) &&
     !isMockContract(c)
   );
 
   const cleanIncoming = (incomingList || []).filter(c => 
     c && c.id && 
     !deletedSet.has(c.id) && 
-    !deletedSet.has((c.contractCode || '').trim().toUpperCase()) &&
     !isMockContract(c)
   );
 

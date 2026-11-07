@@ -16,7 +16,7 @@ import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushN
 import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken, fetchFullContractsFromFirestore, safeSyncContractsToFirestore, forceSyncContractsToFirestore, syncDataToFirestore, fetchDataFromFirestore, subscribeToFirestoreDoc } from './utils/firebasePush';
 import { matchContract, matchCamera, matchCustomer } from './utils/searchUtils';
 import { compressImageFile } from './utils/imageUtils';
-import { deduplicateContracts, generateNextContractCode, mergeContracts, addDeletedContractIds, getDeletedContractIds, isMockContract, KNOWN_MOCK_CONTRACT_IDS } from './utils/contractUtils';
+import { deduplicateContracts, generateNextContractCode, mergeContracts, addDeletedContractIds, removeDeletedContractIds, getDeletedContractIds, isMockContract, KNOWN_MOCK_CONTRACT_IDS } from './utils/contractUtils';
 
 
 // Component imports
@@ -1425,19 +1425,26 @@ export default function App() {
       createdAt: newContract.createdAt || nowIso,
       updatedAt: nowIso
     };
+
+    // 0. Gỡ bỏ ID và mã khỏi tombstone (phòng trường hợp mã này từng bị đánh dấu xóa trước đó)
+    removeDeletedContractIds([contractToAdd.id, contractToAdd.contractCode]);
+
     if (contracts.some(c => c.contractCode === newContract.contractCode)) {
       const safeCode = generateNextContractCode(contracts, newContract.startDate);
       console.warn(`[Conflict-Guard] Mã ${newContract.contractCode} đã tồn tại! Tự động cấp mã mới: ${safeCode}`);
       contractToAdd = { ...contractToAdd, contractCode: safeCode };
+      removeDeletedContractIds([safeCode]);
     }
 
-    // 1. Cập nhật state local ngay lập tức và lưu vào localStorage
+    // 1. Cập nhật state local ngay lập tức và lưu vào localStorage (BẢO ĐẢM 100% ĐƯỢC THÊM)
     let nextContracts: RentalContract[] = [];
     setContracts(prev => {
-      const { merged } = mergeContracts(prev, [contractToAdd]);
-      nextContracts = merged;
-      saveStoredData('contracts', merged);
-      return merged;
+      const withoutSameId = prev.filter(c => c.id !== contractToAdd.id);
+      const combined = [contractToAdd, ...withoutSameId];
+      const { deduplicated } = deduplicateContracts(combined);
+      nextContracts = deduplicated;
+      saveStoredData('contracts', deduplicated);
+      return deduplicated;
     });
 
     // 2. Đồng bộ AN TOÀN TUYỆT ĐỐI lên Cloud Store (Merge-before-write, chống ghi đè)
@@ -1836,8 +1843,8 @@ export default function App() {
     const contractToDelete = contracts.find(c => c.id === id);
     if (!contractToDelete) return;
 
-    // 1. Ghi nhận ID & mã hợp đồng vào danh sách đã xóa vĩnh viễn (Tombstones)
-    addDeletedContractIds([contractToDelete.id, contractToDelete.contractCode]);
+    // 1. Ghi nhận ID vào danh sách đã xóa vĩnh viễn (Tombstones theo ID duy nhất)
+    addDeletedContractIds([contractToDelete.id]);
     syncDataToFirestore('deleted_contracts_store', Array.from(getDeletedContractIds()));
 
     // 2. Xóa khỏi danh sách và lưu vào LocalStorage
@@ -1933,13 +1940,8 @@ export default function App() {
     const contractsToDelete = contracts.filter(c => idSet.has(c.id));
     if (contractsToDelete.length === 0) return;
 
-    // 1. Ghi nhận toàn bộ ID & mã hợp đồng vào danh sách đã xóa vĩnh viễn (Tombstones)
-    const allIdsAndCodes: string[] = [];
-    contractsToDelete.forEach(c => {
-      allIdsAndCodes.push(c.id);
-      if (c.contractCode) allIdsAndCodes.push(c.contractCode);
-    });
-    addDeletedContractIds(allIdsAndCodes);
+    // 1. Ghi nhận toàn bộ ID vào danh sách đã xóa vĩnh viễn (Tombstones theo ID)
+    addDeletedContractIds(contractsToDelete.map(c => c.id));
     syncDataToFirestore('deleted_contracts_store', Array.from(getDeletedContractIds()));
 
     // 2. Xóa khỏi danh sách và lưu vào LocalStorage
