@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract, BankConfig, Customer } from '../types';
 import MoneyInput from './MoneyInput';
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check, Shield } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check, Shield, DollarSign } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours, getPrintPrice } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
@@ -767,18 +767,32 @@ export default function BookingCalendar({
     element.style.maxWidth = '420px';
     
     try {
+      // Safari/iOS cần gọi toPng 2 lần — lần đầu thường bị trắng do font chưa load
+      await toPng(element, { backgroundColor: '#ffffff', pixelRatio: 2, width: 420 });
       const dataUrl = await toPng(element, {
         backgroundColor: '#ffffff',
         pixelRatio: 2,
         width: 420,
       });
       
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // iOS Safari không hỗ trợ link.click() để download — dùng window.open()
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      if (isIOS) {
+        const newTab = window.open();
+        if (newTab) {
+          newTab.document.write(`<img src="${dataUrl}" style="max-width:100%;display:block;" /><p style="font-family:sans-serif;font-size:13px;color:#555;text-align:center;margin-top:8px;">Nhấn giữ ảnh để lưu về máy</p>`);
+          newTab.document.title = filename;
+        } else {
+          setCustomAlertMessage('Trình duyệt chặn cửa sổ mới. Vui lòng cho phép pop-up và thử lại!');
+        }
+      } else {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     } catch (err) {
       console.error('Lỗi khi xuất ảnh:', err);
       setCustomAlertMessage('Không thể tạo file ảnh. Vui lòng thử lại!');
