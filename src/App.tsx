@@ -538,7 +538,7 @@ export default function App() {
         addDeletedContractIds(delIds);
         const delSet = new Set(delIds);
         setContracts(prev => {
-          const next = prev.filter(c => !delSet.has(c.id) && !delSet.has((c.contractCode || '').trim().toUpperCase()));
+          const next = prev.filter(c => !delSet.has(c.id));
           if (next.length !== prev.length) {
             saveStoredData('contracts', next);
             return next;
@@ -1099,6 +1099,22 @@ export default function App() {
     const handleVisibilityOrFocus = async () => {
       if (document.visibilityState === 'visible') {
         try {
+          // 0. Đồng bộ ngay danh sách các đơn đã bị xóa từ Cloud (Tombstones) để xóa ngay trên máy tính
+          const cloudDeleted = await fetchDataFromFirestore('deleted_contracts_store').catch(() => null);
+          let currentDeletedSet = getDeletedContractIds();
+          if (cloudDeleted && Array.isArray(cloudDeleted) && cloudDeleted.length > 0) {
+            addDeletedContractIds(cloudDeleted);
+            currentDeletedSet = getDeletedContractIds();
+            setContracts(prev => {
+              const cleaned = prev.filter(c => !currentDeletedSet.has(c.id));
+              if (cleaned.length !== prev.length) {
+                saveStoredData('contracts', cleaned);
+                return cleaned;
+              }
+              return prev;
+            });
+          }
+
           // 1. Tự động kéo contracts mới nhất và gộp
           let cloudContracts: RentalContract[] | null = null;
           if (isSupabaseConfigured) {
@@ -1109,8 +1125,11 @@ export default function App() {
           }
 
           if (cloudContracts && Array.isArray(cloudContracts) && cloudContracts.length > 0) {
+            const rawContracts = (cloudContracts as RentalContract[])
+              .map(c => ({ ...c, note: cleanSystemNote(c.note) }))
+              .filter(c => !isMockContract(c) && !currentDeletedSet.has(c.id));
             setContracts(prev => {
-              const { merged, hasChanges } = mergeContracts(prev, cloudContracts!);
+              const { merged, hasChanges } = mergeContracts(prev, rawContracts);
               if (hasChanges) {
                 saveStoredData('contracts', merged);
                 return merged;
