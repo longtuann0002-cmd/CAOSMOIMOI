@@ -4,7 +4,7 @@ import { RentalContract, Camera, ContractStatus, BankConfig, ContractTemplate, C
 import MoneyInput from './MoneyInput';
 import { 
   Search, Plus, Filter, Calendar, FileText, Check, AlertCircle, RefreshCw, X, 
-  ShieldAlert, Phone, Briefcase, Trash2, CreditCard, Settings, Download, 
+  ShieldAlert, Shield, Phone, Briefcase, Trash2, CreditCard, Settings, Download, 
   Image as ImageIcon, ChevronLeft, ChevronRight, FileSpreadsheet, Copy, Edit2, 
   Save, Clock, DollarSign, User, AlertTriangle, CheckCircle2, Zap 
 } from 'lucide-react';
@@ -2266,7 +2266,7 @@ export default function ContractManager({
                     </div>
                   ) : null}
 
-                  {/* TỔNG TIỀN THANH TOÁN (GỒM PHÍ PHÁT SINH) */}
+                  {/* TỔNG TIỀN THANH TOÁN */}
                   <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 font-black text-gray-900 gap-2">
                     <span>Tổng tiền thanh toán:</span>
                     <span className="text-orange-700 text-base font-mono shrink-0">
@@ -2274,18 +2274,19 @@ export default function ContractManager({
                     </span>
                   </div>
 
+                  {/* ĐÃ CỌC / ĐÃ THU */}
                   <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
-                    <span>Trị giá cọc thế chấp (VNĐ cọc):</span>
-                    <span className="font-bold text-gray-800 font-mono shrink-0">{selectedContract.depositAmount.toLocaleString()}đ</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
-                    <span className="font-medium text-amber-900">Khách đã thanh toán / cọc trước:</span>
+                    <span className="font-medium text-amber-900">
+                      {selectedContract.status === 'Pending' ? 'Khách đã cọc (đặt trước):' : 'Khách đã thanh toán:'}
+                    </span>
                     <span className="font-bold text-emerald-700 font-mono shrink-0">{selectedContract.paidAmount.toLocaleString()}đ</span>
                   </div>
 
+                  {/* CÒN LẠI */}
                   <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-300 pt-2 font-bold text-gray-900 gap-2">
-                    <span>Còn lại cần thanh toán:</span>
+                    <span>
+                      {selectedContract.status === 'Pending' ? 'Còn lại khi nhận máy:' : 'Còn lại cần thanh toán:'}
+                    </span>
                     {(() => {
                       const remaining = Math.max(0, (selectedContract.totalPrice + (selectedContract.extraFee || 0)) - selectedContract.paidAmount);
                       return remaining === 0 ? (
@@ -2300,6 +2301,18 @@ export default function ContractManager({
                       );
                     })()}
                   </div>
+                </div>
+
+                {/* KHỐI TÀI SẢN THẾ CHẤP — tách riêng, không lẫn với tiền thuê */}
+                <div className="bg-gray-50/80 border border-gray-200 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Shield className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider leading-none mb-0.5">Tài sản thế chấp</p>
+                      <p className="text-xs text-gray-500 font-medium truncate">Hoàn trả khi trả máy</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-gray-700 font-mono text-sm shrink-0">{selectedContract.depositAmount.toLocaleString()}đ</span>
                 </div>
 
                 {/* LƯU Ý & NỘI QUY THUÊ MÁY (Được xuất trong ảnh hoá đơn & in ấn) */}

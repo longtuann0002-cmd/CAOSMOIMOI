@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract, BankConfig, Customer } from '../types';
 import MoneyInput from './MoneyInput';
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check, Shield } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours, getPrintPrice } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
@@ -2950,7 +2950,7 @@ export default function BookingCalendar({
                     </div>
                   ) : null}
 
-                  {/* TỔNG TIỀN THANH TOÁN (GỒM PHÍ PHÁT SINH) */}
+                  {/* TỔNG TIỀN THANH TOÁN */}
                   <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 font-black text-gray-900 gap-2">
                     <span>Tổng tiền thanh toán:</span>
                     <span className="text-orange-700 text-base font-mono shrink-0">
@@ -2958,18 +2958,19 @@ export default function BookingCalendar({
                     </span>
                   </div>
 
+                  {/* ĐÃ CỌC / ĐÃ THU */}
                   <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
-                    <span>Trị giá cọc thế chấp (VNĐ cọc):</span>
-                    <span className="font-bold text-gray-800 font-mono shrink-0">{quickReceiptContract.depositAmount.toLocaleString()}đ</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-200/60 pt-2 text-gray-700 gap-2">
-                    <span className="font-medium text-amber-900">Khách đã thanh toán / cọc trước:</span>
+                    <span className="font-medium text-amber-900">
+                      {quickReceiptContract.status === 'Pending' ? 'Khách đã cọc (đặt trước):' : 'Khách đã thanh toán:'}
+                    </span>
                     <span className="font-bold text-emerald-700 font-mono shrink-0">{quickReceiptContract.paidAmount.toLocaleString()}đ</span>
                   </div>
 
+                  {/* CÒN LẠI */}
                   <div className="flex justify-between items-center text-xs sm:text-sm border-t border-orange-300 pt-2 font-bold text-gray-900 gap-2">
-                    <span>Còn lại cần thanh toán:</span>
+                    <span>
+                      {quickReceiptContract.status === 'Pending' ? 'Còn lại khi nhận máy:' : 'Còn lại cần thanh toán:'}
+                    </span>
                     {(() => {
                       const remaining = Math.max(0, (quickReceiptContract.totalPrice + (quickReceiptContract.extraFee || 0)) - quickReceiptContract.paidAmount);
                       return remaining === 0 ? (
@@ -2984,6 +2985,18 @@ export default function BookingCalendar({
                       );
                     })()}
                   </div>
+                </div>
+
+                {/* KHỐI TÀI SẢN THẾ CHẤP — tách riêng, không lẫn với tiền thuê */}
+                <div className="bg-gray-50/80 border border-gray-200 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Shield className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider leading-none mb-0.5">Tài sản thế chấp</p>
+                      <p className="text-xs text-gray-500 font-medium truncate">Hoàn trả khi trả máy</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-gray-700 font-mono text-sm shrink-0">{quickReceiptContract.depositAmount.toLocaleString()}đ</span>
                 </div>
 
                 {/* LƯU Ý & NỘI QUY THUÊ MÁY (Được xuất trong ảnh hoá đơn & in ấn) */}
