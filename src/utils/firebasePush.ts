@@ -509,3 +509,69 @@ export async function syncContractsToCloud(contracts: any[]): Promise<any[]> {
   return safeSyncContractsToFirestore(contracts);
 }
 
+/**
+ * Đồng bộ bất kỳ dữ liệu nào (cameras, customers, brand, expenses, bank) lên Firestore
+ */
+export async function syncDataToFirestore(key: string, data: any): Promise<void> {
+  try {
+    const config = getFirebaseConfig();
+    const app = getApps().length > 0 ? getApp() : initializeApp(config);
+    const db = getFirestore(app);
+    await setDoc(doc(db, 'caos_cloud_data', key), {
+      data: JSON.stringify(data),
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn(`[Firestore] syncDataToFirestore error for "${key}":`, err);
+  }
+}
+
+/**
+ * Lấy dữ liệu từ Firestore theo key
+ */
+export async function fetchDataFromFirestore(key: string): Promise<any | null> {
+  try {
+    const config = getFirebaseConfig();
+    const app = getApps().length > 0 ? getApp() : initializeApp(config);
+    const db = getFirestore(app);
+    const snap = await getDoc(doc(db, 'caos_cloud_data', key));
+    if (snap.exists()) {
+      const val = snap.data();
+      if (val && val.data) {
+        return JSON.parse(val.data);
+      }
+    }
+  } catch (err) {
+    console.warn(`[Firestore] fetchDataFromFirestore error for "${key}":`, err);
+  }
+  return null;
+}
+
+/**
+ * Lắng nghe thay đổi thời gian thực của một tài liệu trên Firestore (Realtime Document Sync)
+ */
+export function subscribeToFirestoreDoc(key: string, onUpdate: (data: any) => void): () => void {
+  try {
+    const config = getFirebaseConfig();
+    const app = getApps().length > 0 ? getApp() : initializeApp(config);
+    const db = getFirestore(app);
+    return onSnapshot(doc(db, 'caos_cloud_data', key), (snap) => {
+      if (snap.exists()) {
+        const val = snap.data();
+        if (val && val.data) {
+          try {
+            const parsed = JSON.parse(val.data);
+            onUpdate(parsed);
+          } catch (e) {
+            console.warn(`[Firestore Realtime] Parse error for "${key}":`, e);
+          }
+        }
+      }
+    }, (err) => {
+      console.warn(`[Firestore Realtime] Subscription error for "${key}":`, err.message);
+    });
+  } catch (err) {
+    return () => {};
+  }
+}
+

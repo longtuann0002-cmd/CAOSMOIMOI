@@ -7,6 +7,7 @@ import { toPng } from 'html-to-image';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours, getPrintPrice } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase } from '../utils/supabase';
+import { syncDataToFirestore, fetchDataFromFirestore } from '../utils/firebasePush';
 import { formatDMY } from '../utils/dateUtils';
 import { VIET_BANKS, getBankBin, QrDisplay } from './ContractManager';
 import { useScrollLock } from '../utils/useScrollLock';
@@ -242,6 +243,20 @@ export default function BookingCalendar({
           saveStoredData('rental_bank_config', cloudBank);
         }
       });
+    } else {
+      fetchDataFromFirestore('custom_payment_qr_image').then(cloudQr => {
+        if (cloudQr && typeof cloudQr === 'string') {
+          setCustomQrImage(cloudQr);
+          saveStoredData('custom_payment_qr_image', cloudQr);
+        }
+      });
+      fetchDataFromFirestore('rental_bank_config').then(cloudBank => {
+        if (cloudBank && cloudBank.bankId && cloudBank.accountNo) {
+          setBankConfig(cloudBank);
+          setBankDraft(cloudBank);
+          saveStoredData('rental_bank_config', cloudBank);
+        }
+      });
     }
 
     const handleStorageChange = (e: StorageEvent) => {
@@ -268,6 +283,7 @@ export default function BookingCalendar({
       const base64 = reader.result as string;
       setCustomQrImage(base64);
       saveStoredData('custom_payment_qr_image', base64);
+      syncDataToFirestore('custom_payment_qr_image', base64);
       if (isSupabaseConfigured) {
         syncToSupabase('custom_payment_qr_image', base64);
       }
@@ -278,6 +294,7 @@ export default function BookingCalendar({
   const handleRemoveCustomQr = () => {
     setCustomQrImage('');
     saveStoredData('custom_payment_qr_image', '');
+    syncDataToFirestore('custom_payment_qr_image', '');
     if (isSupabaseConfigured) {
       syncToSupabase('custom_payment_qr_image', '');
     }
@@ -289,6 +306,7 @@ export default function BookingCalendar({
   const handleUpdateBankConfig = (newConfig: BankConfig) => {
     setBankConfig(newConfig);
     saveStoredData('rental_bank_config', newConfig);
+    syncDataToFirestore('rental_bank_config', newConfig);
     if (isSupabaseConfigured) {
       syncToSupabase('rental_bank_config', newConfig);
     }

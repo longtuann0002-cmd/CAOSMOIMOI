@@ -13,7 +13,7 @@ import {
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase, safeSyncContractsToSupabase, subscribeToSupabaseChanges } from './utils/supabase';
 import { formatDMY } from './utils/dateUtils';
 import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushNotification, updateAppBadge, clearAppBadge } from './utils/pushNotification';
-import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken, fetchFullContractsFromFirestore, safeSyncContractsToFirestore, forceSyncContractsToFirestore } from './utils/firebasePush';
+import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken, fetchFullContractsFromFirestore, safeSyncContractsToFirestore, forceSyncContractsToFirestore, syncDataToFirestore, fetchDataFromFirestore, subscribeToFirestoreDoc } from './utils/firebasePush';
 import { matchContract, matchCamera, matchCustomer } from './utils/searchUtils';
 import { compressImageFile } from './utils/imageUtils';
 import { deduplicateContracts, generateNextContractCode, mergeContracts, addDeletedContractIds, getDeletedContractIds } from './utils/contractUtils';
@@ -527,9 +527,48 @@ export default function App() {
       }
     });
 
+    // Lắng nghe thay đổi thời gian thực từ Firestore Cloud Docs (Đồng bộ đa thiết bị PC <-> Mobile)
+    const unsubFirestoreBrand = subscribeToFirestoreDoc('brand_settings_store', (brand) => {
+      if (brand) {
+        if (brand.logoText !== undefined) setLogoText(brand.logoText);
+        if (brand.logoFontSize !== undefined) setLogoFontSize(brand.logoFontSize);
+        if (brand.logoSubtitle !== undefined) setLogoSubtitle(brand.logoSubtitle);
+        if (brand.logoSubtitleCase !== undefined) setLogoSubtitleCase(brand.logoSubtitleCase);
+        if (brand.logoSubtitleFontSize !== undefined) setLogoSubtitleFontSize(brand.logoSubtitleFontSize);
+        if (brand.logoIconType !== undefined) setLogoIconType(brand.logoIconType);
+        if (brand.logoIconColor !== undefined) setLogoIconColor(brand.logoIconColor);
+        if (brand.logoBase64 !== undefined) setLogoBase64(brand.logoBase64);
+        if (brand.accountSectionTitle !== undefined) setAccountSectionTitle(brand.accountSectionTitle);
+      }
+    });
+
+    const unsubFirestoreCameras = subscribeToFirestoreDoc('cameras_store', (cams) => {
+      if (Array.isArray(cams) && cams.length > 0) {
+        setCameras(cams);
+      }
+    });
+
+    const unsubFirestoreDeleted = subscribeToFirestoreDoc('deleted_contracts_store', (delIds) => {
+      if (Array.isArray(delIds) && delIds.length > 0) {
+        addDeletedContractIds(delIds);
+        const delSet = new Set(delIds);
+        setContracts(prev => {
+          const next = prev.filter(c => !delSet.has(c.id) && !delSet.has((c.contractCode || '').trim().toUpperCase()));
+          if (next.length !== prev.length) {
+            saveStoredData('contracts', next);
+            return next;
+          }
+          return prev;
+        });
+      }
+    });
+
     return () => {
       unsubscribeAlerts();
       unsubscribeSupabase();
+      unsubFirestoreBrand();
+      unsubFirestoreCameras();
+      unsubFirestoreDeleted();
     };
   }, []);
 
@@ -583,6 +622,7 @@ export default function App() {
   useEffect(() => {
     if (!loaded) return;
     saveStoredData('cameras', cameras);
+    syncDataToFirestore('cameras_store', cameras);
     if (isSupabaseConfigured) {
       syncToSupabase('cameras', cameras);
     }
@@ -624,6 +664,7 @@ export default function App() {
   useEffect(() => {
     if (!loaded) return;
     saveStoredData('customers', customers);
+    syncDataToFirestore('customers_store', customers);
     if (isSupabaseConfigured) {
       syncToSupabase('customers', customers);
     }
@@ -710,6 +751,7 @@ export default function App() {
   useEffect(() => {
     if (!loaded) return;
     saveStoredData('expenses', expenses);
+    syncDataToFirestore('expenses_store', expenses);
     if (isSupabaseConfigured) {
       syncToSupabase('expenses', expenses);
     }
@@ -773,6 +815,7 @@ export default function App() {
       accountSectionTitle
     };
     saveStoredData('brand_settings', brandData);
+    syncDataToFirestore('brand_settings_store', brandData);
 
     if (isSupabaseConfigured) {
       syncToSupabase('brand_settings', brandData);
@@ -810,6 +853,7 @@ export default function App() {
   useEffect(() => {
     if (!loaded) return;
     saveStoredData('registeredUsers', registeredUsers);
+    syncDataToFirestore('registered_users_store', registeredUsers);
     if (isSupabaseConfigured) {
       syncToSupabase('registeredUsers', registeredUsers);
     }
@@ -856,6 +900,12 @@ export default function App() {
           cloudExpenses = cExp;
         }
 
+        // Lấy danh sách hợp đồng đã xóa từ Cloud để không bao giờ khôi phục đơn đã bị xóa
+        const cloudDeleted = await fetchDataFromFirestore('deleted_contracts_store').catch(() => null);
+        if (cloudDeleted && Array.isArray(cloudDeleted) && cloudDeleted.length > 0) {
+          addDeletedContractIds(cloudDeleted);
+        }
+
         // 2. Fallback / Redundant sync: Thử lấy contracts từ Firestore Cloud Doc
         if (!cloudContracts || !Array.isArray(cloudContracts) || cloudContracts.length === 0) {
           const firestoreContracts = await fetchFullContractsFromFirestore().catch(() => null);
@@ -864,7 +914,29 @@ export default function App() {
           }
         }
 
-        // 3. HỢP NHẤT THÔNG MINH (Smart Merge) - Tuyệt đối không làm mất hợp đồng của bất kỳ thiết bị nào
+        // 3. Fallback lấy cameras, customers, expenses từ Firestore nếu Supabase không có
+        if (!cloudCameras) {
+          const fsCams = await fetchDataFromFirestore('cameras_store').catch(() => null);
+          if (fsCams && Array.isArray(fsCams) && fsCams.length > 0) {
+            cloudCameras = fsCams;
+          }
+        }
+
+        if (!cloudCustomers) {
+          const fsCusts = await fetchDataFromFirestore('customers_store').catch(() => null);
+          if (fsCusts && Array.isArray(fsCusts) && fsCusts.length > 0) {
+            cloudCustomers = fsCusts;
+          }
+        }
+
+        if (!cloudExpenses) {
+          const fsExps = await fetchDataFromFirestore('expenses_store').catch(() => null);
+          if (fsExps && Array.isArray(fsExps) && fsExps.length > 0) {
+            cloudExpenses = fsExps;
+          }
+        }
+
+        // 4. HỢP NHẤT THÔNG MINH (Smart Merge) - Tuyệt đối không làm mất hợp đồng của bất kỳ thiết bị nào
         if (cloudContracts && Array.isArray(cloudContracts) && cloudContracts.length > 0) {
           const rawContracts = (cloudContracts as RentalContract[]).map(c => ({ ...c, note: cleanSystemNote(c.note) }));
           const { merged, addedCount } = mergeContracts(localContracts, rawContracts);
@@ -896,45 +968,66 @@ export default function App() {
           setExpenses(localExpenses);
         }
 
-        // Fetch bank config and custom payment QR from Supabase cloud
+        // Fetch bank config and custom payment QR from Cloud
+        let cloudBankConfig: any = null;
+        let cloudCustomQr: any = null;
+        let cloudBrand: any = null;
+        let cloudUsers: any = null;
+
         if (isSupabaseConfigured) {
-          const cloudBankConfig = await fetchFromSupabase('rental_bank_config').catch(() => null);
-          if (cloudBankConfig) {
-            saveStoredData('rental_bank_config', cloudBankConfig);
-          }
-          const cloudCustomQr = await fetchFromSupabase('custom_payment_qr_image').catch(() => null);
-          if (cloudCustomQr) {
-            saveStoredData('custom_payment_qr_image', cloudCustomQr);
-          }
+          [cloudBankConfig, cloudCustomQr, cloudBrand, cloudUsers] = await Promise.all([
+            fetchFromSupabase('rental_bank_config').catch(() => null),
+            fetchFromSupabase('custom_payment_qr_image').catch(() => null),
+            fetchFromSupabase('brand_settings').catch(() => null),
+            fetchFromSupabase('registeredUsers').catch(() => null)
+          ]);
+        }
 
-          // Fetch Brand & Store Identity settings from Supabase
-          const cloudBrand = await fetchFromSupabase('brand_settings').catch(() => null);
-          if (cloudBrand) {
-            if (cloudBrand.logoText !== undefined) { setLogoText(cloudBrand.logoText); saveStoredData('logoText', cloudBrand.logoText); }
-            if (cloudBrand.logoFontSize !== undefined) { setLogoFontSize(cloudBrand.logoFontSize); saveStoredData('logoFontSize', cloudBrand.logoFontSize); }
-            if (cloudBrand.logoSubtitle !== undefined) { setLogoSubtitle(cloudBrand.logoSubtitle); saveStoredData('logoSubtitle', cloudBrand.logoSubtitle); }
-            if (cloudBrand.logoSubtitleCase !== undefined) { setLogoSubtitleCase(cloudBrand.logoSubtitleCase); saveStoredData('logoSubtitleCase', cloudBrand.logoSubtitleCase); }
-            if (cloudBrand.logoSubtitleFontSize !== undefined) { setLogoSubtitleFontSize(cloudBrand.logoSubtitleFontSize); saveStoredData('logoSubtitleFontSize', cloudBrand.logoSubtitleFontSize); }
-            if (cloudBrand.logoIconType !== undefined) { setLogoIconType(cloudBrand.logoIconType); saveStoredData('logoIconType', cloudBrand.logoIconType); }
-            if (cloudBrand.logoIconColor !== undefined) { setLogoIconColor(cloudBrand.logoIconColor); saveStoredData('logoIconColor', cloudBrand.logoIconColor); }
-            if (cloudBrand.logoBase64 !== undefined) { setLogoBase64(cloudBrand.logoBase64); saveStoredData('logoBase64', cloudBrand.logoBase64); }
-            if (cloudBrand.accountSectionTitle !== undefined) { setAccountSectionTitle(cloudBrand.accountSectionTitle); saveStoredData('accountSectionTitle', cloudBrand.accountSectionTitle); }
-          }
+        if (!cloudBankConfig) {
+          cloudBankConfig = await fetchDataFromFirestore('rental_bank_config').catch(() => null);
+        }
+        if (cloudBankConfig) {
+          saveStoredData('rental_bank_config', cloudBankConfig);
+        }
 
-          // Fetch Registered User Accounts from Supabase
-          const cloudUsers = await fetchFromSupabase('registeredUsers').catch(() => null);
-          if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
-            setRegisteredUsers(cloudUsers);
-            saveStoredData('registeredUsers', cloudUsers);
+        if (!cloudCustomQr) {
+          cloudCustomQr = await fetchDataFromFirestore('custom_payment_qr_image').catch(() => null);
+        }
+        if (cloudCustomQr) {
+          saveStoredData('custom_payment_qr_image', cloudCustomQr);
+        }
 
-            // Update active session currentUser if info changed in cloud
-            const savedCurrent = loadStoredData('currentUser', null);
-            if (savedCurrent) {
-              const matched = cloudUsers.find((u: any) => u.id === savedCurrent.id || u.username.toLowerCase() === savedCurrent.username.toLowerCase());
-              if (matched) {
-                setCurrentUser(matched);
-                saveStoredData('currentUser', matched);
-              }
+        // Fetch Brand & Store Identity settings from Cloud
+        if (!cloudBrand) {
+          cloudBrand = await fetchDataFromFirestore('brand_settings_store').catch(() => null);
+        }
+        if (cloudBrand) {
+          if (cloudBrand.logoText !== undefined) { setLogoText(cloudBrand.logoText); saveStoredData('logoText', cloudBrand.logoText); }
+          if (cloudBrand.logoFontSize !== undefined) { setLogoFontSize(cloudBrand.logoFontSize); saveStoredData('logoFontSize', cloudBrand.logoFontSize); }
+          if (cloudBrand.logoSubtitle !== undefined) { setLogoSubtitle(cloudBrand.logoSubtitle); saveStoredData('logoSubtitle', cloudBrand.logoSubtitle); }
+          if (cloudBrand.logoSubtitleCase !== undefined) { setLogoSubtitleCase(cloudBrand.logoSubtitleCase); saveStoredData('logoSubtitleCase', cloudBrand.logoSubtitleCase); }
+          if (cloudBrand.logoSubtitleFontSize !== undefined) { setLogoSubtitleFontSize(cloudBrand.logoSubtitleFontSize); saveStoredData('logoSubtitleFontSize', cloudBrand.logoSubtitleFontSize); }
+          if (cloudBrand.logoIconType !== undefined) { setLogoIconType(cloudBrand.logoIconType); saveStoredData('logoIconType', cloudBrand.logoIconType); }
+          if (cloudBrand.logoIconColor !== undefined) { setLogoIconColor(cloudBrand.logoIconColor); saveStoredData('logoIconColor', cloudBrand.logoIconColor); }
+          if (cloudBrand.logoBase64 !== undefined) { setLogoBase64(cloudBrand.logoBase64); saveStoredData('logoBase64', cloudBrand.logoBase64); }
+          if (cloudBrand.accountSectionTitle !== undefined) { setAccountSectionTitle(cloudBrand.accountSectionTitle); saveStoredData('accountSectionTitle', cloudBrand.accountSectionTitle); }
+        }
+
+        // Fetch Registered User Accounts from Cloud
+        if (!cloudUsers) {
+          cloudUsers = await fetchDataFromFirestore('registered_users_store').catch(() => null);
+        }
+        if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+          setRegisteredUsers(cloudUsers);
+          saveStoredData('registeredUsers', cloudUsers);
+
+          // Update active session currentUser if info changed in cloud
+          const savedCurrent = loadStoredData('currentUser', null);
+          if (savedCurrent) {
+            const matched = cloudUsers.find((u: any) => u.id === savedCurrent.id || u.username.toLowerCase() === savedCurrent.username.toLowerCase());
+            if (matched) {
+              setCurrentUser(matched);
+              saveStoredData('currentUser', matched);
             }
           }
         }
@@ -1015,31 +1108,51 @@ export default function App() {
             });
           }
 
-          // 2. Kéo brand và user info
+          // 2. Kéo brand, cameras và user info
+          let cloudBrand: any = null;
+          let cloudUsers: any = null;
+          let cloudCameras: any = null;
+
           if (isSupabaseConfigured) {
-            const [cloudBrand, cloudUsers] = await Promise.all([
+            [cloudBrand, cloudUsers, cloudCameras] = await Promise.all([
               fetchFromSupabase('brand_settings').catch(() => null),
-              fetchFromSupabase('registeredUsers').catch(() => null)
+              fetchFromSupabase('registeredUsers').catch(() => null),
+              fetchFromSupabase('cameras').catch(() => null)
             ]);
-            if (cloudBrand) {
-              if (cloudBrand.logoText !== undefined) setLogoText(cloudBrand.logoText);
-              if (cloudBrand.logoFontSize !== undefined) setLogoFontSize(cloudBrand.logoFontSize);
-              if (cloudBrand.logoSubtitle !== undefined) setLogoSubtitle(cloudBrand.logoSubtitle);
-              if (cloudBrand.logoSubtitleCase !== undefined) setLogoSubtitleCase(cloudBrand.logoSubtitleCase);
-              if (cloudBrand.logoSubtitleFontSize !== undefined) setLogoSubtitleFontSize(cloudBrand.logoSubtitleFontSize);
-              if (cloudBrand.logoIconType !== undefined) setLogoIconType(cloudBrand.logoIconType);
-              if (cloudBrand.logoIconColor !== undefined) setLogoIconColor(cloudBrand.logoIconColor);
-              if (cloudBrand.logoBase64 !== undefined) setLogoBase64(cloudBrand.logoBase64);
-              if (cloudBrand.accountSectionTitle !== undefined) setAccountSectionTitle(cloudBrand.accountSectionTitle);
-            }
-            if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
-              setRegisteredUsers(cloudUsers);
-              setCurrentUser(prev => {
-                if (!prev) return null;
-                const matched = cloudUsers.find((u: any) => u.id === prev.id || u.username.toLowerCase() === prev.username.toLowerCase());
-                return matched || prev;
-              });
-            }
+          }
+
+          if (!cloudBrand) {
+            cloudBrand = await fetchDataFromFirestore('brand_settings_store').catch(() => null);
+          }
+          if (cloudBrand) {
+            if (cloudBrand.logoText !== undefined) setLogoText(cloudBrand.logoText);
+            if (cloudBrand.logoFontSize !== undefined) setLogoFontSize(cloudBrand.logoFontSize);
+            if (cloudBrand.logoSubtitle !== undefined) setLogoSubtitle(cloudBrand.logoSubtitle);
+            if (cloudBrand.logoSubtitleCase !== undefined) setLogoSubtitleCase(cloudBrand.logoSubtitleCase);
+            if (cloudBrand.logoSubtitleFontSize !== undefined) setLogoSubtitleFontSize(cloudBrand.logoSubtitleFontSize);
+            if (cloudBrand.logoIconType !== undefined) setLogoIconType(cloudBrand.logoIconType);
+            if (cloudBrand.logoIconColor !== undefined) setLogoIconColor(cloudBrand.logoIconColor);
+            if (cloudBrand.logoBase64 !== undefined) setLogoBase64(cloudBrand.logoBase64);
+            if (cloudBrand.accountSectionTitle !== undefined) setAccountSectionTitle(cloudBrand.accountSectionTitle);
+          }
+
+          if (!cloudUsers) {
+            cloudUsers = await fetchDataFromFirestore('registered_users_store').catch(() => null);
+          }
+          if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+            setRegisteredUsers(cloudUsers);
+            setCurrentUser(prev => {
+              if (!prev) return null;
+              const matched = cloudUsers.find((u: any) => u.id === prev.id || u.username.toLowerCase() === prev.username.toLowerCase());
+              return matched || prev;
+            });
+          }
+
+          if (!cloudCameras) {
+            cloudCameras = await fetchDataFromFirestore('cameras_store').catch(() => null);
+          }
+          if (cloudCameras && Array.isArray(cloudCameras) && cloudCameras.length > 0) {
+            setCameras(cloudCameras);
           }
         } catch (err) {
           console.warn('Visibility live sync error:', err);
@@ -1576,6 +1689,7 @@ export default function App() {
 
     // 1. Ghi nhận ID & mã hợp đồng vào danh sách đã xóa vĩnh viễn (Tombstones)
     addDeletedContractIds([contractToDelete.id, contractToDelete.contractCode]);
+    syncDataToFirestore('deleted_contracts_store', Array.from(getDeletedContractIds()));
 
     // 2. Xóa khỏi danh sách và lưu vào LocalStorage
     const updatedContracts = contracts.filter(c => c.id !== id);
@@ -1677,6 +1791,7 @@ export default function App() {
       if (c.contractCode) allIdsAndCodes.push(c.contractCode);
     });
     addDeletedContractIds(allIdsAndCodes);
+    syncDataToFirestore('deleted_contracts_store', Array.from(getDeletedContractIds()));
 
     // 2. Xóa khỏi danh sách và lưu vào LocalStorage
     const updatedContracts = contracts.filter(c => !idSet.has(c.id));
