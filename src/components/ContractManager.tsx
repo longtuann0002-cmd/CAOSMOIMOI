@@ -6,7 +6,7 @@ import {
   Search, Plus, Filter, Calendar, FileText, Check, AlertCircle, RefreshCw, X, 
   ShieldAlert, Shield, Phone, Briefcase, Trash2, CreditCard, Settings, Download, 
   Image as ImageIcon, ChevronLeft, ChevronRight, FileSpreadsheet, Copy, Edit2, 
-  Save, Clock, DollarSign, User, AlertTriangle, CheckCircle2, Zap 
+  Save, Clock, DollarSign, User, AlertTriangle, CheckCircle2, Zap, Share2 
 } from 'lucide-react';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours, getPrintPrice } from '../utils/pricing';
 import { loadStoredData, saveStoredData, cleanSystemNote } from '../utils/mockData';
@@ -313,8 +313,10 @@ export default function ContractManager({
   const [qrAmountOption, setQrAmountOption] = useState<'remaining' | 'deposit50' | 'full' | 'custom'>('remaining');
   const [customQrAmount, setCustomQrAmount] = useState<number | null>(null);
 
+  const [previewReceiptImage, setPreviewReceiptImage] = useState<{ url: string; filename: string } | null>(null);
+
   // Lock body scroll whenever any modal is open (placed after all related state declarations)
-  useScrollLock(Boolean(selectedContract || showAddModal || deleteConfirmId || customAlertMessage || showBankSettings));
+  useScrollLock(Boolean(selectedContract || showAddModal || deleteConfirmId || customAlertMessage || showBankSettings || previewReceiptImage));
 
   const [customQrImage, setCustomQrImage] = useState<string>(getStoredCustomQr);
   const [vietQrBase64, setVietQrBase64] = useState<string>('');
@@ -411,6 +413,32 @@ export default function ContractManager({
 
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
+  const handleShareOrDownload = async (dataUrl: string, filename: string) => {
+    try {
+      if (navigator.share && navigator.canShare) {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], filename, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: filename,
+          });
+          return;
+        }
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return;
+    }
+
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleExportImage = async (elementId: string, filename: string) => {
     const element = document.getElementById(elementId);
     if (!element) {
@@ -447,17 +475,8 @@ export default function ContractManager({
         width: 420,
       });
       
-      // iOS Safari không hỗ trợ link.click() để download — dùng window.open()
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-      if (isIOS) {
-        const newTab = window.open();
-        if (newTab) {
-          newTab.document.write(`<img src="${dataUrl}" style="max-width:100%;display:block;" /><p style="font-family:sans-serif;font-size:13px;color:#555;text-align:center;margin-top:8px;">Nhấn giữ ảnh để lưu về máy</p>`);
-          newTab.document.title = filename;
-        } else {
-          setCustomAlertMessage('Trình duyệt chặn cửa sổ mới. Vui lòng cho phép pop-up và thử lại!');
-        }
-      } else {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+      if (!isMobile) {
         const link = document.createElement('a');
         link.download = filename;
         link.href = dataUrl;
@@ -465,6 +484,9 @@ export default function ContractManager({
         link.click();
         document.body.removeChild(link);
       }
+
+      // Luôn mở popup xem ảnh trong app (có nút Đóng và Chia sẻ rõ ràng, không bị kẹt)
+      setPreviewReceiptImage({ url: dataUrl, filename });
     } catch (err) {
       console.error('Lỗi khi xuất ảnh:', err);
       setCustomAlertMessage('Không thể tạo file ảnh. Vui lòng thử lại!');
@@ -3838,6 +3860,67 @@ export default function ContractManager({
                 className="flex-1 px-4 py-2 text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1"
               >
                 <Save className="w-3.5 h-3.5" /> Lưu số tài khoản
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Popup Xem & Lưu Ảnh Hợp Đồng Cho Mobile & Desktop */}
+      {previewReceiptImage && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[99999] flex flex-col items-center justify-center p-3 sm:p-4 animate-fade-in"
+          onClick={() => setPreviewReceiptImage(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-md w-full flex flex-col max-h-[92vh] shadow-2xl border border-gray-100 overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-150 bg-gradient-to-r from-orange-50/60 to-white">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-orange-600" />
+                <h3 className="font-extrabold text-sm sm:text-base text-gray-900">Ảnh Hóa đơn Hợp đồng</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewReceiptImage(null)}
+                className="p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                title="Đóng"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Image Preview Area */}
+            <div className="overflow-y-auto p-3 bg-gray-50 flex-1 flex flex-col items-center">
+              <img 
+                src={previewReceiptImage.url} 
+                alt="Hóa đơn" 
+                className="w-full max-w-[380px] rounded-xl shadow border border-gray-200 block"
+              />
+              <p className="text-[11px] text-gray-500 mt-2.5 text-center px-2">
+                💡 <b>Mẹo trên iPhone:</b> Nhấn giữ vào ảnh trên để chọn <b>"Lưu vào Ảnh"</b> hoặc bấm nút chia sẻ bên dưới
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="p-3 bg-white border-t border-gray-150 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleShareOrDownload(previewReceiptImage.url, previewReceiptImage.filename)}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white font-bold text-xs sm:text-sm py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Chia sẻ / Lưu ảnh</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewReceiptImage(null)}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl transition cursor-pointer"
+              >
+                Đóng
               </button>
             </div>
           </div>
