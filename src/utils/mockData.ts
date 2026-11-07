@@ -1,6 +1,12 @@
 import { Camera, RentalContract, Customer, Expense } from '../types';
 
-export const INITIAL_CAMERAS: Camera[] = [
+// ⚠️ INITIAL_CAMERAS = [] — Không tự inject dữ liệu mẫu vào thiết bị mới.
+// Dữ liệu thiết bị thực tế được lưu trữ trên Firestore và localStorage.
+// Dữ liệu demo (nếu cần) nằm trong DEMO_CAMERAS bên dưới.
+export const INITIAL_CAMERAS: Camera[] = [];
+
+// Dữ liệu demo — chỉ dùng khi cần seed thủ công, không được inject tự động
+export const DEMO_CAMERAS: Camera[] = [
   {
     id: 'cam-1',
     name: 'Canon EOS R50',
@@ -109,7 +115,10 @@ export const INITIAL_CAMERAS: Camera[] = [
   }
 ];
 
-export const INITIAL_CUSTOMERS: Customer[] = [
+// ⚠️ INITIAL_CUSTOMERS = [] — Không tự inject khách hàng mẫu vào thiết bị mới.
+export const INITIAL_CUSTOMERS: Customer[] = [];
+
+export const DEMO_CUSTOMERS: Customer[] = [
   {
     id: 'cust-1',
     name: 'Nguyễn Văn Hải',
@@ -156,9 +165,10 @@ export const INITIAL_CUSTOMERS: Customer[] = [
   }
 ];
 
-// Let's seed initial contracts covering the schedule from May 2026 as shown in the screenshot.
-// Remember current date in Vietnamese locale is 2026-06-17, so May 2026 is last month.
-export const INITIAL_CONTRACTS: RentalContract[] = [
+// ⚠️ INITIAL_CONTRACTS = [] — Không tự inject hợp đồng mẫu vào thiết bị mới.
+export const INITIAL_CONTRACTS: RentalContract[] = [];
+
+export const DEMO_CONTRACTS: RentalContract[] = [
   {
     id: 'con-1',
     contractCode: 'HD-2026-001',
@@ -419,7 +429,10 @@ export const INITIAL_CONTRACTS: RentalContract[] = [
   }
 ];
 
-export const INITIAL_EXPENSES: Expense[] = [
+// ⚠️ INITIAL_EXPENSES = [] — Không tự inject chi phí mẫu vào thiết bị mới.
+export const INITIAL_EXPENSES: Expense[] = [];
+
+export const DEMO_EXPENSES: Expense[] = [
   {
     id: 'mock-exp-m1',
     category: 'Maintenance',
@@ -512,16 +525,6 @@ export function loadStoredData<T>(key: string, defaultVal: T): T {
           ...c,
           note: cleanSystemNote(c.note)
         })) as unknown as T;
-      }
-      if (key === 'cameras' && Array.isArray(parsed)) {
-        const hasPrinter = parsed.some((c: any) => c.category === 'Printer' || c.id === 'cam-printer-1');
-        if (!hasPrinter) {
-          const defaultPrinter = INITIAL_CAMERAS.find(c => c.id === 'cam-printer-1');
-          if (defaultPrinter) {
-            return [...parsed, defaultPrinter] as unknown as T;
-          }
-        }
-        return parsed;
       }
       return parsed;
     }

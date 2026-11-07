@@ -248,19 +248,8 @@ export default function App() {
   );
   const [contracts, setContracts] = useState<RentalContract[]>(() => {
     const loaded = loadStoredData('contracts', INITIAL_CONTRACTS);
-    const migrationKey = 'camlease_historical_contracts_migrated_v1';
-    let baseContracts = loaded;
-    if (!localStorage.getItem(migrationKey)) {
-      localStorage.setItem(migrationKey, 'true');
-      const missingMockContracts = INITIAL_CONTRACTS.filter(
-        item => item.id.startsWith('mock-con-') && !loaded.some(loadedItem => loadedItem.id === item.id)
-      );
-      if (missingMockContracts.length > 0) {
-        baseContracts = [...loaded, ...missingMockContracts];
-      }
-    }
     const deletedSet = getDeletedContractIds();
-    const cleanContracts = baseContracts.filter(c => 
+    const cleanContracts = (loaded || []).filter(c => 
       c && c.id && !deletedSet.has(c.id) && !deletedSet.has((c.contractCode || '').trim().toUpperCase())
     );
     const { deduplicated } = deduplicateContracts(cleanContracts);
@@ -270,18 +259,7 @@ export default function App() {
     loadStoredData('customers', INITIAL_CUSTOMERS)
   );
   const [expenses, setExpenses] = useState<Expense[]>(() => {
-    const loaded = loadStoredData('expenses', INITIAL_EXPENSES);
-    const migrationKey = 'camlease_historical_expenses_migrated_v1';
-    if (!localStorage.getItem(migrationKey)) {
-      localStorage.setItem(migrationKey, 'true');
-      const missingMockExpenses = INITIAL_EXPENSES.filter(
-        item => item.id.startsWith('mock-exp-') && !loaded.some(loadedItem => loadedItem.id === item.id)
-      );
-      if (missingMockExpenses.length > 0) {
-        return [...loaded, ...missingMockExpenses];
-      }
-    }
-    return loaded;
+    return loadStoredData('expenses', INITIAL_EXPENSES) || [];
   });
 
   // Active view tab state (default to 'calendar' as shown in screenshot)
