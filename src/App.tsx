@@ -73,7 +73,8 @@ import {
   Bell,
   Palette,
   ChevronDown,
-  Plus
+  Plus,
+  Cloud
 } from 'lucide-react';
 
 const DEFAULT_USERS = [
@@ -1320,6 +1321,85 @@ export default function App() {
   const handleDeleteSnapshot = (id: string, name: string) => {
     setSnapshots(prev => prev.filter(s => s.id !== id));
     addToast('Đã xóa bản ghi sao lưu', 'info', `Yêu cầu gỡ bỏ "${name}" đã được thực hiện.`);
+  };
+
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
+
+  const handleManualCloudSync = async () => {
+    if (isSyncingCloud) return;
+    setIsSyncingCloud(true);
+    addToast('Đang đồng bộ Cloud...', 'info', 'Đang kết nối và kéo dữ liệu mới nhất từ máy chủ.');
+
+    try {
+      // 1. Tải danh sách đơn đã xóa (Tombstones)
+      const cloudDeleted = await fetchDataFromFirestore('deleted_contracts_store').catch(() => null);
+      if (cloudDeleted && Array.isArray(cloudDeleted) && cloudDeleted.length > 0) {
+        addDeletedContractIds(cloudDeleted);
+      }
+
+      // 2. Kéo contracts
+      const cloudContracts = isSupabaseConfigured
+        ? await fetchFromSupabase('contracts').catch(() => null)
+        : await fetchFullContractsFromFirestore().catch(() => null);
+
+      let mergedCount = contracts.length;
+      if (cloudContracts && Array.isArray(cloudContracts) && cloudContracts.length > 0) {
+        const rawContracts = (cloudContracts as RentalContract[]).map(c => ({ ...c, note: cleanSystemNote(c.note) }));
+        const { merged } = mergeContracts(contracts, rawContracts);
+        setContracts(merged);
+        saveStoredData('contracts', merged);
+        mergedCount = merged.length;
+      }
+
+      // 3. Kéo cameras
+      const cloudCameras = isSupabaseConfigured
+        ? await fetchFromSupabase('cameras').catch(() => null)
+        : await fetchDataFromFirestore('cameras_store').catch(() => null);
+      if (cloudCameras && Array.isArray(cloudCameras) && cloudCameras.length > 0) {
+        setCameras(cloudCameras);
+        saveStoredData('cameras', cloudCameras);
+      }
+
+      // 4. Kéo customers
+      const cloudCustomers = isSupabaseConfigured
+        ? await fetchFromSupabase('customers').catch(() => null)
+        : await fetchDataFromFirestore('customers_store').catch(() => null);
+      if (cloudCustomers && Array.isArray(cloudCustomers) && cloudCustomers.length > 0) {
+        setCustomers(cloudCustomers);
+        saveStoredData('customers', cloudCustomers);
+      }
+
+      // 5. Kéo brand settings
+      const cloudBrand = isSupabaseConfigured
+        ? await fetchFromSupabase('brand_settings').catch(() => null)
+        : await fetchDataFromFirestore('brand_settings_store').catch(() => null);
+      if (cloudBrand) {
+        if (cloudBrand.logoText !== undefined) setLogoText(cloudBrand.logoText);
+        if (cloudBrand.logoFontSize !== undefined) setLogoFontSize(cloudBrand.logoFontSize);
+        if (cloudBrand.logoSubtitle !== undefined) setLogoSubtitle(cloudBrand.logoSubtitle);
+        if (cloudBrand.logoSubtitleCase !== undefined) setLogoSubtitleCase(cloudBrand.logoSubtitleCase);
+        if (cloudBrand.logoSubtitleFontSize !== undefined) setLogoSubtitleFontSize(cloudBrand.logoSubtitleFontSize);
+        if (cloudBrand.logoIconType !== undefined) setLogoIconType(cloudBrand.logoIconType);
+        if (cloudBrand.logoIconColor !== undefined) setLogoIconColor(cloudBrand.logoIconColor);
+        if (cloudBrand.logoBase64 !== undefined) setLogoBase64(cloudBrand.logoBase64);
+        if (cloudBrand.accountSectionTitle !== undefined) setAccountSectionTitle(cloudBrand.accountSectionTitle);
+      }
+
+      // 6. Gửi bản mới nhất từ local lên Cloud để bảo đảm 2 chiều
+      await safeSyncContractsToFirestore(contracts);
+      if (cameras.length > 0) await syncDataToFirestore('cameras_store', cameras);
+
+      addToast(
+        'Đồng bộ hoàn tất!',
+        'success',
+        `Đã kết nối thành công với Cloud. Hiện có ${mergedCount} hợp đồng trong hệ thống.`
+      );
+    } catch (err: any) {
+      console.error('[Manual Sync Error]:', err);
+      addToast('Lỗi đồng bộ Cloud', 'error', err?.message || 'Không thể kết nối đến máy chủ.');
+    } finally {
+      setIsSyncingCloud(false);
+    }
   };
 
   // Operations: CONTRACTS
@@ -3524,6 +3604,19 @@ export default function App() {
               <span className="text-slate-400 font-medium">Hôm nay:</span>
               <span className="font-mono font-black text-slate-800">{formatDMY(systemDate)}</span>
             </div>
+
+            {/* Cloud Sync Button (PC <-> Mobile) */}
+            <button
+              type="button"
+              onClick={handleManualCloudSync}
+              disabled={isSyncingCloud}
+              className={`w-10 h-10 sm:w-9 sm:h-9 rounded-xl border border-slate-200/80 flex items-center justify-center transition cursor-pointer shadow-3xs group active:scale-95 ${
+                isSyncingCloud ? 'bg-orange-50 text-orange-600 border-orange-300' : 'bg-slate-50/60 hover:bg-slate-100 text-slate-500 hover:text-slate-900'
+              }`}
+              title="Đồng bộ tức thì với Cloud (PC <-> Mobile)"
+            >
+              <Cloud className={`w-4 h-4 ${isSyncingCloud ? 'animate-pulse text-orange-600' : 'text-emerald-600 group-hover:scale-110'}`} />
+            </button>
 
             {/* Clean Minimal Search Button (Spotlight Trigger) */}
             <button
