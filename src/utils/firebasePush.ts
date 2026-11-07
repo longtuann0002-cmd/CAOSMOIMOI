@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { syncToSupabase, fetchFromSupabase, isSupabaseConfigured } from './supabase';
 import { isIOS, isStandalone, isNotificationSupported } from './pushNotification';
-import { mergeContracts } from './contractUtils';
+import { mergeContracts, getDeletedContractIds } from './contractUtils';
 
 export interface FirebaseConfig {
   apiKey: string;
@@ -414,6 +414,7 @@ export async function safeSyncContractsToFirestore(contracts: any[]): Promise<an
 
     // 1. Đọc doc hiện tại từ Firestore để gộp (không bao giờ đè mất đơn người khác)
     let merged = contracts;
+    const deletedSet = getDeletedContractIds();
     try {
       const snap = await getDoc(doc(db, 'caos_cloud_data', 'contracts_store'));
       if (snap.exists()) {
@@ -421,7 +422,11 @@ export async function safeSyncContractsToFirestore(contracts: any[]): Promise<an
         if (val && val.data) {
           const remoteList = JSON.parse(val.data);
           if (Array.isArray(remoteList) && remoteList.length > 0) {
-            const { merged: m } = mergeContracts(contracts, remoteList);
+            // Lọc bỏ bất kỳ hợp đồng nào đã bị người dùng xóa vĩnh viễn trước khi gộp
+            const cleanRemote = remoteList.filter((c: any) => 
+              c && c.id && !deletedSet.has(c.id) && !deletedSet.has((c.contractCode || '').trim().toUpperCase())
+            );
+            const { merged: m } = mergeContracts(contracts, cleanRemote);
             merged = m;
           }
         }
@@ -459,6 +464,42 @@ export async function safeSyncContractsToFirestore(contracts: any[]): Promise<an
   } catch (err) {
     console.warn('[Firestore] safeSyncContractsToFirestore error:', err);
     return contracts;
+  }
+}
+
+/**
+ * Ghi đè trực tiếp danh sách hợp đồng lên Firestore (dùng khi xóa hợp đồng, chống bị khôi phục lại)
+ */
+export async function forceSyncContractsToFirestore(contracts: any[]): Promise<void> {
+  try {
+    const config = getFirebaseConfig();
+    const app = getApps().length > 0 ? getApp() : initializeApp(config);
+    const db = getFirestore(app);
+
+    const lightweight = (contracts || []).map(c => ({
+      id: c.id,
+      customerName: c.customerName,
+      customerPhone: c.customerPhone,
+      startDate: c.startDate,
+      endDate: c.endDate,
+      status: c.status,
+      startTime: c.startTime,
+      returnTime: c.returnTime,
+      is6Hours: c.is6Hours
+    }));
+
+    await Promise.all([
+      setDoc(doc(db, 'caos_cloud_data', 'contracts'), {
+        data: JSON.stringify(lightweight),
+        updatedAt: new Date().toISOString()
+      }),
+      setDoc(doc(db, 'caos_cloud_data', 'contracts_store'), {
+        data: JSON.stringify(contracts),
+        updatedAt: new Date().toISOString()
+      })
+    ]);
+  } catch (err) {
+    console.warn('[Firestore] forceSyncContractsToFirestore error:', err);
   }
 }
 

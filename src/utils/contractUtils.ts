@@ -133,6 +133,44 @@ export function deduplicateContracts(contracts: RentalContract[]): {
   };
 }
 
+const DELETED_CONTRACTS_KEY = 'camlease_deleted_contract_ids';
+
+/**
+ * Lấy danh sách ID và Mã hợp đồng đã bị người dùng xóa vĩnh viễn (Tombstones).
+ * Giúp ngăn chặn việc Cloud hoặc thiết bị khác tự động khôi phục lại các đơn đã xóa.
+ */
+export function getDeletedContractIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_CONTRACTS_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        return new Set(arr);
+      }
+    }
+  } catch (e) {}
+  return new Set();
+}
+
+/**
+ * Ghi nhận các ID và Mã hợp đồng vừa bị xóa vào danh sách Tombstones
+ */
+export function addDeletedContractIds(idsOrCodes: (string | undefined | null)[]): void {
+  try {
+    const set = getDeletedContractIds();
+    for (const item of idsOrCodes) {
+      if (item && typeof item === 'string') {
+        const clean = item.trim();
+        if (clean) {
+          set.add(clean);
+          set.add(clean.toUpperCase());
+        }
+      }
+    }
+    localStorage.setItem(DELETED_CONTRACTS_KEY, JSON.stringify(Array.from(set)));
+  } catch (e) {}
+}
+
 /**
  * Hợp nhất thông minh danh sách hợp đồng giữa 2 nguồn (ví dụ Local và Cloud/Thiết bị khác)
  * Đảm bảo:
@@ -176,8 +214,16 @@ export function mergeContracts(
     }
   }
 
+  const deletedSet = getDeletedContractIds();
+
   for (const inc of incomingList) {
     if (!inc || !inc.id) continue;
+
+    // BỎ QUA NẾU HỢP ĐỒNG ĐÃ BỊ XÓA VĨNH VIỄN
+    const incCode = (inc.contractCode || '').trim().toUpperCase();
+    if (deletedSet.has(inc.id) || (incCode && deletedSet.has(incCode))) {
+      continue;
+    }
 
     const existing = map.get(inc.id);
     if (!existing) {

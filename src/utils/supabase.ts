@@ -1,5 +1,5 @@
 import { createClient, RealtimeChannel } from '@supabase/supabase-js';
-import { mergeContracts } from './contractUtils';
+import { mergeContracts, getDeletedContractIds } from './contractUtils';
 import { RentalContract } from '../types';
 
 // Retrieve Supabase environment credentials using safe typing
@@ -98,9 +98,14 @@ export async function safeSyncContractsToSupabase(
     // 1. Đọc dữ liệu đang có trên Cloud
     const cloudContracts = await fetchFromSupabase('contracts');
     let finalContracts = contracts;
+    const deletedSet = getDeletedContractIds();
 
     if (Array.isArray(cloudContracts) && cloudContracts.length > 0) {
-      const { merged } = mergeContracts(contracts, cloudContracts);
+      // Lọc bỏ các hợp đồng đã bị người dùng xóa vĩnh viễn
+      const cleanCloud = cloudContracts.filter((c: any) => 
+        c && c.id && !deletedSet.has(c.id) && !deletedSet.has((c.contractCode || '').trim().toUpperCase())
+      );
+      const { merged } = mergeContracts(contracts, cleanCloud);
       finalContracts = merged;
     }
 

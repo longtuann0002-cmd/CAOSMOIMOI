@@ -13,10 +13,10 @@ import {
 import { isSupabaseConfigured, syncToSupabase, fetchFromSupabase, safeSyncContractsToSupabase, subscribeToSupabaseChanges } from './utils/supabase';
 import { formatDMY } from './utils/dateUtils';
 import { sendOrderCreatedNotification, checkAndTriggerMorningBriefing, showPushNotification, updateAppBadge, clearAppBadge } from './utils/pushNotification';
-import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken, fetchFullContractsFromFirestore, safeSyncContractsToFirestore } from './utils/firebasePush';
+import { broadcastToAllDevices, listenToCrossDeviceAlerts, initFirebaseMessaging, syncContractsToCloud, registerDeviceFCMToken, fetchFullContractsFromFirestore, safeSyncContractsToFirestore, forceSyncContractsToFirestore } from './utils/firebasePush';
 import { matchContract, matchCamera, matchCustomer } from './utils/searchUtils';
 import { compressImageFile } from './utils/imageUtils';
-import { deduplicateContracts, generateNextContractCode, mergeContracts } from './utils/contractUtils';
+import { deduplicateContracts, generateNextContractCode, mergeContracts, addDeletedContractIds, getDeletedContractIds } from './utils/contractUtils';
 
 
 // Component imports
@@ -258,7 +258,11 @@ export default function App() {
         baseContracts = [...loaded, ...missingMockContracts];
       }
     }
-    const { deduplicated } = deduplicateContracts(baseContracts);
+    const deletedSet = getDeletedContractIds();
+    const cleanContracts = baseContracts.filter(c => 
+      c && c.id && !deletedSet.has(c.id) && !deletedSet.has((c.contractCode || '').trim().toUpperCase())
+    );
+    const { deduplicated } = deduplicateContracts(cleanContracts);
     return deduplicated;
   });
   const [customers, setCustomers] = useState<Customer[]>(() =>
@@ -441,6 +445,21 @@ export default function App() {
     const unsubscribeAlerts = listenToCrossDeviceAlerts(async (alert) => {
       // App is OPEN: show in-app toast
       addToast(alert.title, 'info', alert.body);
+
+      // Xử lý sự kiện XÓA HỢP ĐỒNG từ thiết bị khác
+      if (alert.data && alert.data.type === 'CONTRACT_DELETED') {
+        const delId = alert.data.contractId;
+        const delCode = alert.data.contractCode;
+        if (delId || delCode) {
+          addDeletedContractIds([delId, delCode].filter(Boolean));
+          setContracts(prev => {
+            const next = prev.filter(c => c.id !== delId && c.contractCode !== delCode);
+            saveStoredData('contracts', next);
+            return next;
+          });
+        }
+        return;
+      }
 
       // TỰ ĐỘNG HỢP NHẤT DỮ LIỆU ĐƠN HÀNG THỜI GIAN THỰC (Chống lưu đè khi nhiều thiết bị dùng chung)
       if (alert.data && alert.data.type === 'CONTRACT_CREATED' && alert.data.contract) {
@@ -1537,9 +1556,34 @@ export default function App() {
     const contractToDelete = contracts.find(c => c.id === id);
     if (!contractToDelete) return;
 
-    // Remove the contract from the list
+    // 1. Ghi nhận ID & mã hợp đồng vào danh sách đã xóa vĩnh viễn (Tombstones)
+    addDeletedContractIds([contractToDelete.id, contractToDelete.contractCode]);
+
+    // 2. Xóa khỏi danh sách và lưu vào LocalStorage
     const updatedContracts = contracts.filter(c => c.id !== id);
     setContracts(updatedContracts);
+    saveStoredData('contracts', updatedContracts);
+
+    // 3. Ghi đè trực tiếp danh sách đã xóa lên Cloud để không bao giờ bị khôi phục lại
+    if (isSupabaseConfigured) {
+      syncToSupabase('contracts', updatedContracts).catch(err => {
+        console.warn('[Supabase Delete Sync] Error:', err);
+      });
+    }
+    forceSyncContractsToFirestore(updatedContracts).catch(err => {
+      console.warn('[Firestore Delete Sync] Error:', err);
+    });
+
+    // 4. Phát tín hiệu realtime tới mọi thiết bị khác để đồng bộ xóa tức thì
+    broadcastToAllDevices(
+      'Hợp đồng đã bị xóa',
+      `Hợp đồng ${contractToDelete.contractCode} đã bị xóa khỏi hệ thống.`,
+      {
+        type: 'CONTRACT_DELETED',
+        contractId: contractToDelete.id,
+        contractCode: contractToDelete.contractCode
+      }
+    );
 
     // Adjust camera statuses based on remaining Active and Overdue contracts
     setCameras(prevCams =>
