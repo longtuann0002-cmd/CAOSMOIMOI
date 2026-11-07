@@ -40,6 +40,18 @@ try {
     const title = payload.notification?.title || payload.data?.title || '🔔 Tiệm Ảnh Nhà Caos';
     const body = payload.notification?.body || payload.data?.body || 'Bạn có thông báo mới!';
 
+    // Broadcast realtime event to all open tabs/windows
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'FCM_PUSH_RECEIVED',
+          title: title,
+          body: body,
+          data: payload.data
+        });
+      });
+    }).catch(() => {});
+
     // Update app icon badge if supported (iOS 16.4+ PWA / Android)
     if ('setAppBadge' in self.navigator) {
       const badgeCount = payload.data?.badge ? parseInt(payload.data.badge, 10) : 1;

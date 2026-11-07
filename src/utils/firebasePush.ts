@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { syncToSupabase, fetchFromSupabase, isSupabaseConfigured } from './supabase';
 import { isIOS, isStandalone, isNotificationSupported } from './pushNotification';
-import { mergeContracts, getDeletedContractIds } from './contractUtils';
+import { mergeContracts, getDeletedContractIds, isMockContract } from './contractUtils';
 
 export interface FirebaseConfig {
   apiKey: string;
@@ -88,6 +88,27 @@ export function isFirebaseConfigured(): boolean {
 // Initialize Firebase Messaging safely
 let messagingInstance: Messaging | null = null;
 
+type AlertCallback = (alert: { title: string; body: string; data?: any }) => void;
+const alertCallbacks = new Set<AlertCallback>();
+
+export function dispatchCrossDeviceAlert(alert: { title: string; body: string; data?: any }) {
+  alertCallbacks.forEach(cb => {
+    try { cb(alert); } catch (e) { console.warn('Alert dispatch error:', e); }
+  });
+}
+
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'FCM_PUSH_RECEIVED') {
+      dispatchCrossDeviceAlert({
+        title: event.data.title,
+        body: event.data.body,
+        data: event.data.data
+      });
+    }
+  });
+}
+
 export function initFirebaseMessaging(): Messaging | null {
   if (typeof window === 'undefined' || !isNotificationSupported()) return null;
   const config = getFirebaseConfig();
@@ -100,11 +121,14 @@ export function initFirebaseMessaging(): Messaging | null {
       
       // Setup foreground message listener
       onMessage(messagingInstance, (payload) => {
-        // When app is in FOREGROUND: FCM delivers here (not to SW)
-        // Do NOT call reg.showNotification() here — it would duplicate
-        // the notification that Firestore cross-device listener already shows.
-        // Just log for debugging.
         console.log('[FCM foreground] Received push:', payload.notification?.title || payload.data?.title);
+        const title = payload.notification?.title || payload.data?.title || 'Thông báo';
+        const body = payload.notification?.body || payload.data?.body || '';
+        let data = payload.data || {};
+        if (typeof data.data === 'string') {
+          try { data = JSON.parse(data.data); } catch (e) {}
+        }
+        dispatchCrossDeviceAlert({ title, body, data });
       });
     }
     return messagingInstance;
@@ -302,6 +326,9 @@ export async function broadcastToAllDevices(
 export function listenToCrossDeviceAlerts(
   onAlert: (alert: { title: string; body: string; data?: any }) => void
 ): () => void {
+  // Đăng ký nhận thông báo realtime từ FCM và các kênh khác
+  alertCallbacks.add(onAlert);
+
   // Record the time the listener was set up — only fire alerts AFTER this point
   const listenStartTime = Date.now();
 
@@ -377,6 +404,7 @@ export function listenToCrossDeviceAlerts(
   window.addEventListener('storage', storageListener);
 
   return () => {
+    alertCallbacks.delete(onAlert);
     if (unsubscribeFirestore) unsubscribeFirestore();
     if (channel) channel.close();
     window.removeEventListener('storage', storageListener);
@@ -385,84 +413,34 @@ export function listenToCrossDeviceAlerts(
 
 // Fetch full contracts from Firestore cloud doc
 export async function fetchFullContractsFromFirestore(): Promise<any[] | null> {
-  try {
-    const config = getFirebaseConfig();
-    const app = getApps().length > 0 ? getApp() : initializeApp(config);
-    const db = getFirestore(app);
-    const snap = await getDoc(doc(db, 'caos_cloud_data', 'contracts_store'));
-    if (snap.exists()) {
-      const val = snap.data();
-      if (val && val.data) {
-        const parsed = JSON.parse(val.data);
-        if (Array.isArray(parsed)) {
-          return parsed;
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('[Firestore] fetchFullContractsFromFirestore failed:', err);
-  }
-  return null;
+  return fetchDataFromFirestore('contracts_store');
 }
 
 // Đồng bộ danh sách hợp đồng an toàn lên Firestore (Merge-before-write, chống ghi đè)
 export async function safeSyncContractsToFirestore(contracts: any[]): Promise<any[]> {
   try {
-    const config = getFirebaseConfig();
-    const app = getApps().length > 0 ? getApp() : initializeApp(config);
-    const db = getFirestore(app);
-
-    // 1. Đọc doc hiện tại từ Firestore để gộp (không bao giờ đè mất đơn người khác)
+    // 1. Đọc doc hiện tại từ Firestore qua API Master Admin để gộp (không bao giờ đè mất đơn người khác)
     let merged = contracts;
     const deletedSet = getDeletedContractIds();
     try {
-      const snap = await getDoc(doc(db, 'caos_cloud_data', 'contracts_store'));
-      if (snap.exists()) {
-        const val = snap.data();
-        if (val && val.data) {
-          const remoteList = JSON.parse(val.data);
-          if (Array.isArray(remoteList) && remoteList.length > 0) {
-            // Lọc bỏ bất kỳ hợp đồng nào đã bị người dùng xóa vĩnh viễn trước khi gộp
-            const cleanRemote = remoteList.filter((c: any) => 
-              c && c.id && !deletedSet.has(c.id) && !deletedSet.has((c.contractCode || '').trim().toUpperCase())
-            );
-            const { merged: m } = mergeContracts(contracts, cleanRemote);
-            merged = m;
-          }
-        }
+      const remoteList = await fetchDataFromFirestore('contracts_store');
+      if (Array.isArray(remoteList) && remoteList.length > 0) {
+        // Lọc bỏ bất kỳ hợp đồng nào đã bị người dùng xóa vĩnh viễn trước khi gộp
+        const cleanRemote = remoteList.filter((c: any) => 
+          c && c.id && !deletedSet.has(c.id) && !isMockContract(c)
+        );
+        const { merged: m } = mergeContracts(contracts, cleanRemote);
+        merged = m;
       }
     } catch (readErr) {
-      console.warn('[Firestore] Pre-save read error, preserving current:', readErr);
+      console.warn('[Cloud Sync] Pre-save read error, preserving current:', readErr);
     }
 
-    // 2. Chuẩn bị lightweight cho Vercel Cron
-    const lightweight = (merged || []).map(c => ({
-      id: c.id,
-      customerName: c.customerName,
-      customerPhone: c.customerPhone,
-      startDate: c.startDate,
-      endDate: c.endDate,
-      status: c.status,
-      startTime: c.startTime,
-      returnTime: c.returnTime,
-      is6Hours: c.is6Hours
-    }));
-
-    // 3. Ghi đồng thời cả 2 doc: lightweight và full
-    await Promise.all([
-      setDoc(doc(db, 'caos_cloud_data', 'contracts'), {
-        data: JSON.stringify(lightweight),
-        updatedAt: new Date().toISOString()
-      }),
-      setDoc(doc(db, 'caos_cloud_data', 'contracts_store'), {
-        data: JSON.stringify(merged),
-        updatedAt: new Date().toISOString()
-      })
-    ]);
-
+    // 2. Ghi đồng thời lên Cloud qua API Master Admin
+    await forceSyncContractsToFirestore(merged);
     return merged;
   } catch (err) {
-    console.warn('[Firestore] safeSyncContractsToFirestore error:', err);
+    console.warn('[Cloud Sync] safeSyncContractsToFirestore error:', err);
     return contracts;
   }
 }
@@ -472,10 +450,6 @@ export async function safeSyncContractsToFirestore(contracts: any[]): Promise<an
  */
 export async function forceSyncContractsToFirestore(contracts: any[]): Promise<void> {
   try {
-    const config = getFirebaseConfig();
-    const app = getApps().length > 0 ? getApp() : initializeApp(config);
-    const db = getFirestore(app);
-
     const lightweight = (contracts || []).map(c => ({
       id: c.id,
       customerName: c.customerName,
@@ -489,17 +463,11 @@ export async function forceSyncContractsToFirestore(contracts: any[]): Promise<v
     }));
 
     await Promise.all([
-      setDoc(doc(db, 'caos_cloud_data', 'contracts'), {
-        data: JSON.stringify(lightweight),
-        updatedAt: new Date().toISOString()
-      }),
-      setDoc(doc(db, 'caos_cloud_data', 'contracts_store'), {
-        data: JSON.stringify(contracts),
-        updatedAt: new Date().toISOString()
-      })
+      syncDataToFirestore('contracts', lightweight),
+      syncDataToFirestore('contracts_store', contracts)
     ]);
   } catch (err) {
-    console.warn('[Firestore] forceSyncContractsToFirestore error:', err);
+    console.warn('[Cloud Sync] forceSyncContractsToFirestore error:', err);
   }
 }
 
@@ -510,9 +478,22 @@ export async function syncContractsToCloud(contracts: any[]): Promise<any[]> {
 }
 
 /**
- * Đồng bộ bất kỳ dữ liệu nào (cameras, customers, brand, expenses, bank) lên Firestore
+ * Đồng bộ bất kỳ dữ liệu nào (cameras, customers, brand, expenses, bank) lên Cloud Firestore
  */
 export async function syncDataToFirestore(key: string, data: any): Promise<void> {
+  // 1. Ghi qua Vercel API /api/cloud-sync (Admin Service Account - không bao giờ bị Permission Denied)
+  try {
+    const res = await fetch('/api/cloud-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, data })
+    });
+    if (res.ok) return;
+  } catch (apiErr) {
+    // Continue to fallback if fetch fails
+  }
+
+  // 2. Fallback qua Firestore Web Client SDK
   try {
     const config = getFirebaseConfig();
     const app = getApps().length > 0 ? getApp() : initializeApp(config);
@@ -522,7 +503,7 @@ export async function syncDataToFirestore(key: string, data: any): Promise<void>
       updatedAt: new Date().toISOString()
     });
   } catch (err) {
-    console.warn(`[Firestore] syncDataToFirestore error for "${key}":`, err);
+    console.warn(`[Firestore] syncDataToFirestore fallback error for "${key}":`, err);
   }
 }
 
@@ -530,6 +511,20 @@ export async function syncDataToFirestore(key: string, data: any): Promise<void>
  * Lấy dữ liệu từ Firestore theo key
  */
 export async function fetchDataFromFirestore(key: string): Promise<any | null> {
+  // 1. Thử qua Vercel API /api/cloud-sync (Admin Service Account - vượt qua mọi giới hạn Rules)
+  try {
+    const res = await fetch(`/api/cloud-sync?key=${encodeURIComponent(key)}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.exists && json.data !== undefined) {
+        return json.data;
+      }
+    }
+  } catch (apiErr) {
+    // Continue to fallback if fetch fails
+  }
+
+  // 2. Fallback qua Firestore Web Client SDK
   try {
     const config = getFirebaseConfig();
     const app = getApps().length > 0 ? getApp() : initializeApp(config);
@@ -542,7 +537,7 @@ export async function fetchDataFromFirestore(key: string): Promise<any | null> {
       }
     }
   } catch (err) {
-    console.warn(`[Firestore] fetchDataFromFirestore error for "${key}":`, err);
+    console.warn(`[Firestore] fetchDataFromFirestore fallback error for "${key}":`, err);
   }
   return null;
 }
