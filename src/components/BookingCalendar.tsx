@@ -2663,12 +2663,12 @@ export default function BookingCalendar({
                         ) : (
                           <div className="space-y-1 text-xs">
                             <div className="flex items-center justify-between gap-1">
-                              <span className="text-gray-500 font-medium text-[11px]">Bắt đầu:</span>
-                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs">{formatDMY(quickReceiptContract.startDate)}</strong>
+                              <span className="text-gray-500 font-medium text-[11px] whitespace-nowrap shrink-0">Bắt đầu:</span>
+                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs whitespace-nowrap">{formatDMY(quickReceiptContract.startDate)}</strong>
                             </div>
                             <div className="flex items-center justify-between gap-1">
-                              <span className="text-gray-500 font-medium text-[11px]">Hạn trả máy:</span>
-                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs">
+                              <span className="text-gray-500 font-medium text-[11px] whitespace-nowrap shrink-0">Hạn trả máy:</span>
+                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs whitespace-nowrap">
                                 {quickReceiptContract.is6Hours ? `Gói 6h (${quickReceiptContract.startTime || '08:00'} - ${quickReceiptContract.returnTime || '14:00'})` : formatDMY(quickReceiptContract.endDate)}
                               </strong>
                             </div>

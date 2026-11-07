@@ -1979,12 +1979,12 @@ export default function ContractManager({
                         ) : (
                           <div className="space-y-1 text-xs">
                             <div className="flex items-center justify-between gap-1">
-                              <span className="text-gray-500 font-medium text-[11px]">Bắt đầu:</span>
-                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs">{formatDMY(selectedContract.startDate)}</strong>
+                              <span className="text-gray-500 font-medium text-[11px] whitespace-nowrap shrink-0">Bắt đầu:</span>
+                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs whitespace-nowrap">{formatDMY(selectedContract.startDate)}</strong>
                             </div>
                             <div className="flex items-center justify-between gap-1">
-                              <span className="text-gray-500 font-medium text-[11px]">Hạn trả máy:</span>
-                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs">
+                              <span className="text-gray-500 font-medium text-[11px] whitespace-nowrap shrink-0">Hạn trả máy:</span>
+                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs whitespace-nowrap">
                                 {selectedContract.is6Hours ? `Gói 6h (${selectedContract.startTime || '08:00'} - ${selectedContract.returnTime || '14:00'})` : formatDMY(selectedContract.endDate)}
                               </strong>
                             </div>
