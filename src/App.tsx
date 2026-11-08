@@ -3674,19 +3674,6 @@ export default function App() {
               <span className="font-mono font-black text-slate-800">{formatDMY(systemDate)}</span>
             </div>
 
-            {/* Cloud Sync Button (PC <-> Mobile) */}
-            <button
-              type="button"
-              onClick={handleManualCloudSync}
-              disabled={isSyncingCloud}
-              className={`w-10 h-10 sm:w-9 sm:h-9 rounded-xl border border-slate-200/80 flex items-center justify-center transition cursor-pointer shadow-3xs group active:scale-95 ${
-                isSyncingCloud ? 'bg-orange-50 text-orange-600 border-orange-300' : 'bg-slate-50/60 hover:bg-slate-100 text-slate-500 hover:text-slate-900'
-              }`}
-              title="Đồng bộ tức thì với Cloud (PC <-> Mobile)"
-            >
-              <Cloud className={`w-4 h-4 ${isSyncingCloud ? 'animate-pulse text-orange-600' : 'text-emerald-600 group-hover:scale-110'}`} />
-            </button>
-
             {/* Clean Minimal Search Button (Spotlight Trigger) */}
             <button
               type="button"
