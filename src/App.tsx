@@ -4032,220 +4032,46 @@ export default function App() {
               
               {/* BRAND LOGO PREVIEW BOX */}
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200/60 text-center flex flex-col items-center">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">Xem trước hiển thị (Header)</span>
-                <div className="bg-white border border-gray-150 p-4 rounded-xl shadow-sm inline-flex items-center gap-3.5 min-w-[240px] justify-center">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">Xem trước biểu tượng Logo</span>
+                <div className="bg-white border border-gray-150 p-3 rounded-2xl shadow-xs inline-flex items-center justify-center">
                   {logoIconType === 'upload' && logoBase64 ? (
-                    <div className="w-14 h-14 rounded-full overflow-hidden border border-gray-150 flex items-center justify-center bg-white shrink-0 shadow-xs">
+                    <div className="w-16 h-16 rounded-full overflow-hidden border border-gray-200 flex items-center justify-center bg-white shrink-0 shadow-sm">
                       <img src={logoBase64} alt="Preview" className="w-full h-full object-cover" />
                     </div>
                   ) : (
                     <span 
-                      className="w-14 h-14 rounded-full text-white shrink-0 flex items-center justify-center font-bold shadow-xs"
+                      className="w-16 h-16 rounded-full text-white shrink-0 flex items-center justify-center font-bold shadow-sm"
                       style={{ backgroundColor: logoIconColor }}
                     >
-                      {logoIconType === 'aperture' && <Aperture className="w-8 h-8" />}
-                      {logoIconType === 'film' && <Film className="w-8 h-8" />}
-                      {logoIconType === 'sparkles' && <Sparkles className="w-8 h-8 text-yellow-200" />}
-                      {logoIconType === 'smile' && <Smile className="w-8 h-8" />}
-                      {logoIconType === 'image' && <ImageIcon className="w-8 h-8" />}
-                      {(logoIconType === 'camera' || logoIconType === 'upload') && <CameraIcon className="w-8 h-8" />}
+                      {logoIconType === 'aperture' && <Aperture className="w-9 h-9" />}
+                      {logoIconType === 'film' && <Film className="w-9 h-9" />}
+                      {logoIconType === 'sparkles' && <Sparkles className="w-9 h-9 text-yellow-200" />}
+                      {logoIconType === 'smile' && <Smile className="w-9 h-9" />}
+                      {logoIconType === 'image' && <ImageIcon className="w-9 h-9" />}
+                      {(logoIconType === 'camera' || logoIconType === 'upload') && <CameraIcon className="w-9 h-9" />}
                     </span>
                   )}
-                  <div className="leading-tight text-left min-w-0">
-                    <span 
-                      className="font-display font-black text-gray-950 tracking-tight block uppercase leading-snug break-words"
-                      style={{ fontSize: `${logoFontSize || 15.5}px` }}
-                    >
-                      {logoText || 'TIỆM ẢNH NHÀ CAOS'}
-                    </span>
-                    <span 
-                      className={`text-gray-400 font-normal block tracking-wide mt-0.5 ${
-                        logoSubtitleCase === 'uppercase' ? 'uppercase' : logoSubtitleCase === 'lowercase' ? 'lowercase' : ''
-                      }`}
-                      style={{ fontSize: `${logoSubtitleFontSize || 9.5}px` }}
-                    >
-                      {logoSubtitle || 'cho thuê máy ảnh giá rẻ'}
-                    </span>
-                  </div>
                 </div>
+                <span className="text-[10px] text-gray-400 mt-2">Biểu tượng tròn đại diện hiển thị ở đầu thanh điều hướng sidebar</span>
               </div>
 
               {/* Form entries */}
               <div className="space-y-4">
                 
-                {/* Brand Name Input & Font Size Control */}
-                <div className="space-y-2.5">
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Tên thương hiệu chính</label>
+                {/* Brand Name Input */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Tên thương hiệu quán</label>
                   <input
                     type="text"
-                    maxLength={25}
+                    maxLength={30}
                     value={logoText}
                     onChange={(e) => setLogoText(e.target.value)}
-                    placeholder="ví dụ: TIỆM ẢNH NHÀ CAOS"
+                    placeholder="ví dụ: Tiệm ảnh nhà Caos"
                     className="w-full px-3 py-2 text-sm border border-gray-250 rounded-lg focus:outline-hidden focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-semibold"
                   />
-
-                  {/* Font Size Adjustment Slider & Presets */}
-                  <div className="bg-gray-50/90 p-3 rounded-xl border border-gray-200/90 space-y-2.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-gray-700 uppercase tracking-wider text-[10.5px]">
-                        Điều chỉnh cỡ chữ thương hiệu
-                      </span>
-                      <span className="font-mono font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200 text-xs">
-                        {logoFontSize || 15.5}px
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-gray-400 font-bold">11px</span>
-                      <input
-                        type="range"
-                        min={11}
-                        max={24}
-                        step={0.5}
-                        value={logoFontSize || 15.5}
-                        onChange={(e) => setLogoFontSize(parseFloat(e.target.value))}
-                        className="flex-1 accent-orange-600 h-2 bg-gray-200 rounded-lg cursor-pointer"
-                      />
-                      <span className="text-[10px] text-gray-400 font-bold">24px</span>
-                    </div>
-
-                    {/* Quick Presets */}
-                    <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto scrollbar-none">
-                      {[
-                        { label: 'Nhỏ', size: 12 },
-                        { label: 'Vừa', size: 14 },
-                        { label: 'Chuẩn', size: 15.5 },
-                        { label: 'Lớn', size: 18 },
-                        { label: 'Rất lớn', size: 21 },
-                      ].map((preset) => (
-                        <button
-                          key={preset.size}
-                          type="button"
-                          onClick={() => setLogoFontSize(preset.size)}
-                          className={`px-2.5 py-1 rounded-md text-[10.5px] font-bold border transition cursor-pointer shrink-0 ${
-                            logoFontSize === preset.size
-                              ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
-                              : 'bg-white text-gray-650 hover:bg-gray-100 hover:text-gray-900 border-gray-200'
-                          }`}
-                        >
-                          {preset.label} ({preset.size}px)
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tagline / Subtitle Input & Controls */}
-                <div className="space-y-2.5">
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Dòng chữ phụ (Subtitle / Slogan)
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={35}
-                    value={logoSubtitle}
-                    onChange={(e) => setLogoSubtitle(e.target.value)}
-                    placeholder="ví dụ: cho thuê máy ảnh hà nội"
-                    className="w-full px-3 py-2 text-sm border border-gray-250 rounded-lg focus:outline-hidden focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-medium text-gray-700 text-xs"
-                  />
-
-                  {/* Subtitle Style: Viết hoa / Viết thường & Cỡ chữ */}
-                  <div className="bg-gray-50/90 p-3 rounded-xl border border-gray-200/90 space-y-3">
-                    {/* Kiểu hiển thị chữ hoa / thường */}
-                    <div>
-                      <span className="block font-bold text-gray-700 uppercase tracking-wider text-[10.5px] mb-1.5">
-                        Kiểu viết hoa / thường dòng phụ
-                      </span>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setLogoSubtitleCase('lowercase')}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1 ${
-                            logoSubtitleCase === 'lowercase'
-                              ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
-                              : 'bg-white text-gray-650 hover:bg-gray-100 border-gray-200'
-                          }`}
-                        >
-                          <span className="font-mono">abc</span>
-                          <span className="text-[10px] font-normal opacity-90">(Viết thường)</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setLogoSubtitleCase('uppercase')}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1 ${
-                            logoSubtitleCase === 'uppercase'
-                              ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
-                              : 'bg-white text-gray-650 hover:bg-gray-100 border-gray-200'
-                          }`}
-                        >
-                          <span className="font-mono font-black">ABC</span>
-                          <span className="text-[10px] font-normal opacity-90">(Viết hoa)</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setLogoSubtitleCase('normal')}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1 ${
-                            logoSubtitleCase === 'normal'
-                              ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
-                              : 'bg-white text-gray-650 hover:bg-gray-100 border-gray-200'
-                          }`}
-                        >
-                          <span className="font-mono font-bold">Aa</span>
-                          <span className="text-[10px] font-normal opacity-90">(Theo ý gõ)</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Cỡ chữ dòng phụ */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-gray-700 uppercase tracking-wider text-[10.5px]">
-                          Điều chỉnh cỡ chữ dòng phụ
-                        </span>
-                        <span className="font-mono font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200 text-xs">
-                          {logoSubtitleFontSize || 9}px
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] text-gray-400 font-bold">8px</span>
-                        <input
-                          type="range"
-                          min={8}
-                          max={13}
-                          step={0.5}
-                          value={logoSubtitleFontSize || 9}
-                          onChange={(e) => setLogoSubtitleFontSize(parseFloat(e.target.value))}
-                          className="flex-1 accent-orange-600 h-2 bg-gray-200 rounded-lg cursor-pointer"
-                        />
-                        <span className="text-[10px] text-gray-400 font-bold">13px</span>
-                      </div>
-
-                      {/* Quick Presets */}
-                      <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto scrollbar-none">
-                        {[
-                          { label: 'Cực nhỏ', size: 8 },
-                          { label: 'Nhỏ (Chuẩn)', size: 9 },
-                          { label: 'Vừa', size: 10 },
-                          { label: 'Lớn', size: 11.5 },
-                        ].map((preset) => (
-                          <button
-                            key={preset.size}
-                            type="button"
-                            onClick={() => setLogoSubtitleFontSize(preset.size)}
-                            className={`px-2.5 py-1 rounded-md text-[10.5px] font-bold border transition cursor-pointer shrink-0 ${
-                              logoSubtitleFontSize === preset.size
-                                ? 'bg-orange-600 text-white border-orange-600 shadow-3xs'
-                                : 'bg-white text-gray-650 hover:bg-gray-100 hover:text-gray-900 border-gray-200'
-                            }`}
-                          >
-                            {preset.label} ({preset.size}px)
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  <p className="text-[10.5px] text-gray-400 mt-1">
+                    Dùng cho tiêu đề tab trình duyệt, màn hình đăng nhập và thanh chỉ mục.
+                  </p>
                 </div>
 
                 {/* Account Section Title */}
@@ -4256,10 +4082,10 @@ export default function App() {
                     maxLength={20}
                     value={accountSectionTitle}
                     onChange={(e) => setAccountSectionTitle(e.target.value)}
-                    placeholder="ví dụ: Tài khoản, Account, ..."
+                    placeholder="ví dụ: Tài khoản"
                     className="w-full px-3 py-2 text-sm border border-gray-250 rounded-lg focus:outline-hidden focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-medium text-gray-700 text-xs"
                   />
-                  <p className="text-[10px] text-gray-400 mt-1">Nhãn hiển thị phía trên khu vực tài khoản trong sidebar.</p>
+                  <p className="text-[10.5px] text-gray-400 mt-1">Nhãn tiêu đề nhỏ hiển thị phía trên hồ sơ nhân viên trong sidebar.</p>
                 </div>
 
                 {/* Icon option selector */}
