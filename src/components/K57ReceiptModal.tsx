@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Printer, Download, X, Eye } from 'lucide-react';
 import QRCode from 'qrcode';
 import { toPng } from 'html-to-image';
@@ -79,7 +80,7 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
     }).then(url => setQrDataUrl(url)).catch(() => {});
   }, [contract, bankConfig, customQrImage]);
 
-  if (!isOpen || !contract) return null;
+  if (!isOpen || !contract || typeof document === 'undefined') return null;
 
   // Format dates
   const formatDateVN = (dateStr?: string) => {
@@ -132,15 +133,20 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
 
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '58mm';
+    iframe.style.height = '100px';
     iframe.style.border = '0';
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow?.document;
-    if (!doc) return;
+    if (!doc) {
+      window.print();
+      return;
+    }
+
+    const receiptHtml = printContainerRef.current.innerHTML;
 
     doc.open();
     doc.write(`
@@ -152,15 +158,15 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
           <style>
             @page {
               size: 58mm auto;
-              margin: 0mm;
+              margin: 0mm !important;
             }
             @media print {
               html, body {
-                width: 58mm;
+                width: 58mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                background: #ffffff;
-                color: #000000;
+                background: #ffffff !important;
+                color: #000000 !important;
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", Courier, monospace;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -170,7 +176,7 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
               width: 48mm;
               max-width: 48mm;
               margin: 0 auto;
-              padding: 2.5mm 1mm;
+              padding: 2mm 1mm;
               box-sizing: border-box;
               font-size: 11px;
               line-height: 1.35;
@@ -206,21 +212,29 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
           </style>
         </head>
         <body>
-          ${printContainerRef.current.innerHTML}
+          ${receiptHtml}
         </body>
       </html>
     `);
     doc.close();
 
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 1500);
-    }, 350);
+    const triggerPrint = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (e) {
+        console.warn('Iframe print failed, falling back to window.print', e);
+        window.print();
+      } finally {
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 1500);
+      }
+    };
+
+    setTimeout(triggerPrint, 300);
   };
 
   // Export receipt image for mobile / Bluetooth thermal printer app
@@ -247,9 +261,12 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col my-auto border border-gray-200 animate-in fade-in zoom-in-95 duration-150">
+  return createPortal(
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+      <div 
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col my-auto border border-gray-200 animate-in fade-in zoom-in-95 duration-150 relative z-10"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
         <div className="bg-gray-900 text-white px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -259,7 +276,7 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 transition"
+            className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -446,6 +463,7 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
