@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, Download, X, Eye, Share2, Check } from 'lucide-react';
+import { Printer, Download, X, Eye, Share2, Check, Bluetooth, Loader2 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { toPng } from 'html-to-image';
 import { RentalContract, BankConfig } from '../types';
@@ -25,9 +25,10 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
 }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [isBtPrinting, setIsBtPrinting] = useState<boolean>(false);
+  const [btStatus, setBtStatus] = useState<string>('');
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const printContainerRef = useRef<HTMLDivElement>(null);
-  const exportContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-detect brand name cleanly without quotes
   const getCleanShopName = (rawName?: string): string => {
@@ -151,7 +152,160 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
   const remaining = Math.max(0, finalTotal - contract.paidAmount);
   const bankName = VIET_BANKS.find(b => b.id === bankConfig.bankId)?.name?.split('(')[0]?.trim() || bankConfig.bankId;
 
-  // Print handler with full iOS Safari / AirPrint support & centered margins
+  // Reusable receipt content with 100% INLINE STYLES (never breaks in iframe or PDF)
+  // High-impact bold typography tuned for 58mm thermal printers (384 dots width)
+  const renderReceiptContent = () => (
+    <div style={{ 
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', 
+      fontSize: '19px', 
+      lineHeight: '1.4', 
+      color: '#000000', 
+      fontWeight: '800', 
+      boxSizing: 'border-box', 
+      width: '100%',
+      letterSpacing: '-0.2px'
+    }}>
+      {/* Header */}
+      <div style={{ textAlign: 'center', fontWeight: '900', fontSize: '26px', textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: '1.2' }}>
+        {effectiveShopName}
+      </div>
+      <div style={{ textAlign: 'center', fontWeight: '900', fontSize: '18px', marginTop: '4px', letterSpacing: '0.2px' }}>
+        HÓA ĐƠN BÀN GIAO &amp; THANH TOÁN
+      </div>
+
+      <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800' }}>
+        <span>Mã HĐ:</span>
+        <span style={{ fontWeight: '900', fontSize: '21px' }}>{contract.contractCode}</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '17px', color: '#000000', fontWeight: '800', marginTop: '2px' }}>
+        <span>Ngày lập:</span>
+        <span>{formatDateTimeVN(contract.createdAt)}</span>
+      </div>
+
+      <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
+
+      {/* Customer details */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', marginBottom: '3px' }}>
+        <span>Khách:</span>
+        <span style={{ fontWeight: '900', fontSize: '21px', textAlign: 'right' }}>{contract.customerName}</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', marginBottom: '3px' }}>
+        <span>SĐT:</span>
+        <span style={{ fontWeight: '900', fontSize: '21px', textAlign: 'right' }}>{contract.customerPhone}</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', fontSize: '18px', fontWeight: '800', marginBottom: '3px' }}>
+        <span style={{ flexShrink: 0 }}>Thế chấp:</span>
+        <span style={{ fontWeight: '900', fontSize: '19px', textAlign: 'right', marginLeft: '8px' }}>{docText}</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', fontSize: '18px', fontWeight: '800' }}>
+        <span style={{ flexShrink: 0 }}>Thời hạn:</span>
+        <span style={{ fontWeight: '900', fontSize: '19px', textAlign: 'right', marginLeft: '8px' }}>{timeRangeText}</span>
+      </div>
+
+      <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
+
+      {/* Items List - Camera specific formatting */}
+      <div style={{ fontWeight: '900', fontSize: '21px', marginBottom: '6px', textAlign: 'left', width: '100%' }}>DANH SÁCH THIẾT BỊ:</div>
+      {contract.items && contract.items.length > 0 ? (
+        contract.items.map((item, idx) => (
+          <div key={idx} style={{ marginBottom: '8px', width: '100%', textAlign: 'left' }}>
+            <div style={{ fontWeight: '900', fontSize: '21px' }}>
+              {idx + 1}. {item.cameraName}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', color: '#000000', fontWeight: '800', paddingLeft: '10px', marginTop: '2px' }}>
+              <span>
+                {item.printCount
+                  ? `In ảnh: ${item.printCount} tấm`
+                  : `SL: ${item.quantity || 1}`}
+              </span>
+              <span style={{ fontWeight: '900', fontSize: '21px' }}>
+                {item.dailyRate
+                  ? (item.dailyRate * (item.quantity || 1)).toLocaleString('vi-VN') + 'đ'
+                  : ''}
+              </span>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div style={{ fontStyle: 'italic', color: '#000000', fontWeight: '800' }}>Chưa có thiết bị</div>
+      )}
+
+      <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
+
+      {/* Financial Calculation */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', marginBottom: '3px' }}>
+        <span>Tiền thuê thiết bị:</span>
+        <span style={{ fontWeight: '900' }}>{contract.totalPrice.toLocaleString('vi-VN')}đ</span>
+      </div>
+
+      {Boolean(contract.discountPercent) && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', color: '#000000', marginBottom: '3px' }}>
+          <span>Giảm giá:</span>
+          <span style={{ fontWeight: '900' }}>-{contract.discountPercent}%</span>
+        </div>
+      )}
+
+      {Boolean(contract.extraFee) && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', color: '#000000', marginBottom: '3px' }}>
+          <span>Phụ phí:</span>
+          <span style={{ fontWeight: '900' }}>+{contract.extraFee?.toLocaleString('vi-VN')}đ</span>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', marginBottom: '3px' }}>
+        <span>Cọc thế chấp:</span>
+        <span style={{ fontWeight: '900' }}>{(contract.depositAmount || 0).toLocaleString('vi-VN')}đ</span>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '20px', fontWeight: '900', marginBottom: '3px' }}>
+        <span>Đã thanh toán:</span>
+        <span style={{ fontWeight: '900', fontSize: '21px' }}>{contract.paidAmount.toLocaleString('vi-VN')}đ</span>
+      </div>
+
+      <div style={{ borderTop: '3px solid #000000', margin: '10px 0', width: '100%' }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontWeight: '900', fontSize: '22px' }}>
+        <span>CÒN LẠI CẦN THU:</span>
+        <span style={{ fontSize: '23px' }}>
+          {remaining > 0 ? `${remaining.toLocaleString('vi-VN')}đ` : '0đ (ĐÃ THU ĐỦ)'}
+        </span>
+      </div>
+
+      {/* QR Code */}
+      {qrDataUrl && (
+        <>
+          <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
+          <div style={{ textAlign: 'center', width: '100%' }}>
+            <div style={{ fontWeight: '900', fontSize: '18px', marginBottom: '4px', letterSpacing: '0.2px' }}>QUÉT MÃ VIETQR THANH TOÁN</div>
+            <img
+              src={qrDataUrl}
+              alt="VietQR"
+              style={{ width: '200px', height: '200px', margin: '6px auto', display: 'block', border: '1px solid rgba(0,0,0,0.1)' }}
+            />
+            <div style={{ fontWeight: '900', fontSize: '20px', marginTop: '4px' }}>
+              {bankConfig.accountNo} • {bankName}
+            </div>
+            <div style={{ fontSize: '18px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '900', color: '#000000', marginTop: '2px' }}>
+              {bankConfig.accountName}
+            </div>
+          </div>
+        </>
+      )}
+
+      <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
+
+      {/* Footer Note */}
+      <div style={{ textAlign: 'center', fontSize: '16px', fontStyle: 'italic', fontWeight: '800', color: '#000000', width: '100%', lineHeight: '1.4' }}>
+        * Quý khách vui lòng kiểm tra kỹ thiết bị &amp; phụ kiện khi nhận bàn giao.
+        <br />
+        Cảm ơn Quý Khách!
+      </div>
+    </div>
+  );
+
+  // Print handler with strict single-page 58mm thermal print styles
   const handlePrint = () => {
     if (!printContainerRef.current) return;
 
@@ -160,7 +314,7 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
       return;
     }
 
-    // On PC / Android: print via dedicated hidden iframe with balanced center margins
+    // On PC / Android: print via dedicated hidden iframe with complete standalone CSS
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.top = '-9999px';
@@ -188,57 +342,42 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
           <style>
             @page {
               size: 58mm auto;
-              margin: 0mm !important;
+              margin: 0 !important;
             }
             @media print {
               html, body {
                 width: 58mm !important;
-                margin: 0 auto !important;
+                margin: 0 !important;
                 padding: 0 !important;
                 background: #ffffff !important;
                 color: #000000 !important;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", Courier, monospace;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+                font-weight: 700 !important;
+              }
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                color: #000000 !important;
               }
             }
             body {
-              width: 54mm;
-              max-width: 54mm;
+              width: 52mm;
+              max-width: 52mm;
               margin: 0 auto;
-              padding: 2.5mm 3mm;
+              padding: 2mm 1mm;
               box-sizing: border-box;
-              font-size: 11px;
-              line-height: 1.35;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+              font-size: 13px;
+              font-weight: 700;
+              line-height: 1.45;
               color: #000000;
+              background: #ffffff;
             }
             * {
               box-sizing: border-box;
-            }
-            .text-center { text-align: center; }
-            .text-right { text-align: right; }
-            .font-bold { font-weight: 700; }
-            .font-black { font-weight: 900; }
-            .divider {
-              border-top: 1px dashed #000000;
-              margin: 4px 0;
-            }
-            .divider-double {
-              border-top: 2px solid #000000;
-              margin: 5px 0;
-            }
-            .row {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              gap: 4px;
-              width: 100%;
-            }
-            .qr-img {
-              display: block;
-              margin: 3px auto;
-              width: 36mm;
-              height: 36mm;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
             }
           </style>
         </head>
@@ -268,21 +407,49 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
     setTimeout(triggerPrint, 300);
   };
 
-  // Method 1: Export using Off-Screen Isolated Container (100% immune to mobile margin offset / cut-off)
+  // Exact 1:1 Image Export matching the preview card
   const handleExportImage = async () => {
-    const element = exportContainerRef.current || printContainerRef.current;
-    if (!element) return;
+    const sourceEl = printContainerRef.current;
+    if (!sourceEl) return;
 
     try {
       setIsExporting(true);
-      const targetWidth = 330;
 
-      const dataUrl = await toPng(element, {
+      // Clone the live preview element so it matches 100% what the user sees
+      const clone = sourceEl.cloneNode(true) as HTMLElement;
+      clone.id = 'k57-export-clone';
+      clone.style.position = 'fixed';
+      clone.style.left = '0px';
+      clone.style.top = '0px';
+      clone.style.margin = '0px';
+      clone.style.width = '340px';
+      clone.style.minWidth = '340px';
+      clone.style.maxWidth = '340px';
+      clone.style.boxSizing = 'border-box';
+      clone.style.padding = '18px 16px';
+      clone.style.borderRadius = '8px';
+      clone.style.border = '1px solid #d1d5db';
+      clone.style.boxShadow = 'none';
+      clone.style.transform = 'none';
+      clone.style.zIndex = '-99999';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.color = '#000000';
+      document.body.appendChild(clone);
+
+      // Wait a tick for DOM and fonts to settle
+      await new Promise(r => setTimeout(r, 60));
+
+      const targetHeight = clone.scrollHeight || clone.offsetHeight;
+
+      const dataUrl = await toPng(clone, {
         backgroundColor: '#ffffff',
-        pixelRatio: isIOS ? 2 : 2.5,
-        width: targetWidth,
+        pixelRatio: isIOS ? 2.5 : 3,
+        width: 340,
+        height: targetHeight,
         cacheBust: true,
       });
+
+      document.body.removeChild(clone);
 
       const filename = `Bill_K57_${contract.contractCode}.png`;
 
@@ -325,148 +492,249 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
     }
   };
 
-  // Reusable receipt content for both On-Screen Preview and Off-Screen Isolation Render
-  const renderReceiptContent = () => (
-    <>
-      {/* Header */}
-      <div className="text-center font-black text-xs uppercase tracking-tight">
-        {effectiveShopName}
-      </div>
-      <div className="text-center font-bold text-[10.5px] mt-0.5">
-        HÓA ĐƠN BÀN GIAO &amp; THANH TOÁN
-      </div>
+  // List of standard BLE thermal printer services
+  const BT_PRINTER_SERVICES = [
+    '000018f0-0000-1000-8000-00805f9b34fb',
+    '0000fff0-0000-1000-8000-00805f9b34fb',
+    '0000ffe0-0000-1000-8000-00805f9b34fb',
+    '0000ff00-0000-1000-8000-00805f9b34fb',
+    '0000ffe5-0000-1000-8000-00805f9b34fb',
+    '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+    'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+    '0000fee7-0000-1000-8000-00805f9b34fb',
+    '0000ae00-0000-1000-8000-00805f9b34fb',
+    '0000af00-0000-1000-8000-00805f9b34fb'
+  ];
 
-      <div className="border-t border-dashed border-black my-2" />
+  // Convert canvas to ESC/POS GS v 0 raster bit image
+  const convertCanvasToRasterGSv0 = (canvas: HTMLCanvasElement): Uint8Array => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return new Uint8Array(0);
 
-      <div className="flex justify-between items-center w-full">
-        <span>Mã HĐ:</span>
-        <span className="font-bold">{contract.contractCode}</span>
-      </div>
-      <div className="flex justify-between items-center w-full text-[10px] text-gray-700">
-        <span>Ngày lập:</span>
-        <span>{formatDateTimeVN(contract.createdAt)}</span>
-      </div>
+    const width = canvas.width;
+    const height = canvas.height;
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const pixels = imgData.data;
 
-      <div className="border-t border-dashed border-black my-2" />
+    const bytesPerRow = Math.ceil(width / 8);
+    const rasterData = new Uint8Array(bytesPerRow * height);
 
-      {/* Customer details */}
-      <div className="flex justify-between items-center w-full">
-        <span>Khách:</span>
-        <span className="font-bold text-right">{contract.customerName}</span>
-      </div>
-      <div className="flex justify-between items-center w-full">
-        <span>SĐT:</span>
-        <span className="font-bold text-right">{contract.customerPhone}</span>
-      </div>
-      <div className="flex justify-between items-start w-full">
-        <span className="shrink-0">Thế chấp:</span>
-        <span className="font-bold text-right ml-2">{docText}</span>
-      </div>
-      <div className="flex justify-between items-start w-full">
-        <span className="shrink-0">Thời hạn:</span>
-        <span className="font-bold text-right ml-2">{timeRangeText}</span>
-      </div>
+    let byteIndex = 0;
+    for (let y = 0; y < height; y++) {
+      for (let xBytes = 0; xBytes < bytesPerRow; xBytes++) {
+        let currentByte = 0;
+        for (let bit = 0; bit < 8; bit++) {
+          const x = xBytes * 8 + bit;
+          if (x < width) {
+            const offset = (y * width + x) * 4;
+            const r = pixels[offset];
+            const g = pixels[offset + 1];
+            const b = pixels[offset + 2];
+            const a = pixels[offset + 3];
 
-      <div className="border-t border-dashed border-black my-2" />
+            // Threshold: luminance < 185 for rich, dark thermal printing
+            const luminance = r * 0.299 + g * 0.587 + b * 0.114;
+            const isBlack = a > 128 && luminance < 185;
 
-      {/* Items List - Camera / Equipment specific formatting */}
-      <div className="font-bold mb-1.5 text-left w-full">DANH SÁCH THIẾT BỊ:</div>
-      {contract.items && contract.items.length > 0 ? (
-        contract.items.map((item, idx) => (
-          <div key={idx} className="mb-2 w-full text-left">
-            <div className="font-bold text-[11px]">
-              {idx + 1}. {item.cameraName}
-            </div>
-            <div className="flex justify-between items-center w-full text-[10.5px] text-gray-800 pl-2 mt-0.5">
-              <span>
-                {item.printCount
-                  ? `In ảnh: ${item.printCount} tấm`
-                  : `SL: ${item.quantity || 1}`}
-              </span>
-              <span className="font-bold">
-                {item.dailyRate
-                  ? (item.dailyRate * (item.quantity || 1)).toLocaleString('vi-VN') + 'đ'
-                  : ''}
-              </span>
-            </div>
-          </div>
-        ))
-      ) : (
-        <div className="italic text-gray-500">Chưa có thiết bị</div>
-      )}
+            if (isBlack) {
+              currentByte |= 1 << (7 - bit);
+            }
+          }
+        }
+        rasterData[byteIndex++] = currentByte;
+      }
+    }
 
-      <div className="border-t border-dashed border-black my-2" />
+    const xL = bytesPerRow % 256;
+    const xH = Math.floor(bytesPerRow / 256);
+    const yL = height % 256;
+    const yH = Math.floor(height / 256);
 
-      {/* Financial Calculation */}
-      <div className="flex justify-between items-center w-full">
-        <span>Tiền thuê thiết bị:</span>
-        <span>{contract.totalPrice.toLocaleString('vi-VN')}đ</span>
-      </div>
+    const header = new Uint8Array([
+      0x1d, 0x76, 0x30, 0x00,
+      xL, xH,
+      yL, yH
+    ]);
 
-      {Boolean(contract.discountPercent) && (
-        <div className="flex justify-between items-center w-full text-gray-700">
-          <span>Giảm giá:</span>
-          <span>-{contract.discountPercent}%</span>
-        </div>
-      )}
+    const fullPacket = new Uint8Array(header.length + rasterData.length);
+    fullPacket.set(header, 0);
+    fullPacket.set(rasterData, header.length);
+    return fullPacket;
+  };
 
-      {Boolean(contract.extraFee) && (
-        <div className="flex justify-between items-center w-full text-gray-700">
-          <span>Phụ phí:</span>
-          <span>+{contract.extraFee?.toLocaleString('vi-VN')}đ</span>
-        </div>
-      )}
+  // Direct Web Bluetooth printing for Bluefy (iOS) and Chrome (Android/PC)
+  const handleBluetoothPrint = async () => {
+    const nav = navigator as any;
+    if (!nav.bluetooth) {
+      alert('Trình duyệt hiện tại chưa mở tính năng Web Bluetooth.\n\n👉 Nếu dùng iPhone, bạn hãy mở trang web này bằng trình duyệt Bluefy để in trực tiếp qua Bluetooth nhé!');
+      return;
+    }
 
-      <div className="flex justify-between items-center w-full">
-        <span>Cọc thế chấp:</span>
-        <span>{(contract.depositAmount || 0).toLocaleString('vi-VN')}đ</span>
-      </div>
+    const sourceEl = printContainerRef.current;
+    if (!sourceEl) return;
 
-      <div className="flex justify-between items-center w-full font-bold">
-        <span>Đã thanh toán:</span>
-        <span>{contract.paidAmount.toLocaleString('vi-VN')}đ</span>
-      </div>
+    try {
+      setIsBtPrinting(true);
+      setBtStatus('Đang chuẩn bị bill...');
 
-      <div className="border-t-2 border-black my-2" />
+      // 1. Render high-res snapshot of receipt for 384-dot K57 printer (edge-to-edge)
+      const clone = sourceEl.cloneNode(true) as HTMLElement;
+      clone.id = 'k57-bt-clone';
+      clone.style.position = 'fixed';
+      clone.style.left = '0px';
+      clone.style.top = '0px';
+      clone.style.margin = '0px';
+      clone.style.width = '384px';
+      clone.style.minWidth = '384px';
+      clone.style.maxWidth = '384px';
+      clone.style.boxSizing = 'border-box';
+      clone.style.padding = '4px 2px';
+      clone.style.borderRadius = '0px';
+      clone.style.border = 'none';
+      clone.style.boxShadow = 'none';
+      clone.style.transform = 'none';
+      clone.style.zIndex = '-99999';
+      clone.style.backgroundColor = '#ffffff';
+      clone.style.color = '#000000';
+      document.body.appendChild(clone);
 
-      <div className="flex justify-between items-center w-full font-black text-xs">
-        <span>CÒN LẠI CẦN THU:</span>
-        <span>
-          {remaining > 0 ? `${remaining.toLocaleString('vi-VN')}đ` : '0đ (ĐÃ THU ĐỦ)'}
-        </span>
-      </div>
+      await new Promise(r => setTimeout(r, 60));
 
-      {/* QR Code */}
-      {qrDataUrl && (
-        <>
-          <div className="border-t border-dashed border-black my-2" />
-          <div className="text-center w-full">
-            <div className="font-bold text-[9.5px]">QUÉT MÃ VIETQR THANH TOÁN</div>
-            <img
-              src={qrDataUrl}
-              alt="VietQR"
-              className="w-[130px] h-[130px] mx-auto my-1.5 border border-black/10"
-            />
-            <div className="font-bold text-[9.5px]">
-              {bankConfig.accountNo} • {bankName}
-            </div>
-            <div className="text-[9px] uppercase tracking-wider text-gray-800">
-              {bankConfig.accountName}
-            </div>
-          </div>
-        </>
-      )}
+      const targetHeight = clone.scrollHeight || clone.offsetHeight;
+      const dataUrl = await toPng(clone, {
+        backgroundColor: '#ffffff',
+        width: 384,
+        height: targetHeight,
+        pixelRatio: 1,
+        cacheBust: true,
+      });
 
-      <div className="border-t border-dashed border-black my-2" />
+      document.body.removeChild(clone);
 
-      {/* Footer Note - No signature section as requested */}
-      <div className="text-center text-[9.5px] italic text-gray-700 w-full">
-        * Quý khách vui lòng kiểm tra kỹ thiết bị &amp; phụ kiện khi nhận bàn giao.
-        <br />
-        Cảm ơn Quý Khách!
-      </div>
-    </>
-  );
+      // 2. Load into canvas to create raster ESC/POS bytes
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 384;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Không thể tạo canvas');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const rasterBytes = convertCanvasToRasterGSv0(canvas);
+
+      // 3. Request Bluetooth device
+      setBtStatus('Đang tìm máy in...');
+      const device = await nav.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: BT_PRINTER_SERVICES
+      });
+
+      if (!device) {
+        setIsBtPrinting(false);
+        setBtStatus('');
+        return;
+      }
+
+      setBtStatus(`Đang kết nối: ${device.name || 'Máy in'}...`);
+      const server = await device.gatt.connect();
+
+      // Find writable characteristic
+      let writableChar: any = null;
+
+      try {
+        const services = await server.getPrimaryServices();
+        for (const service of services) {
+          try {
+            const characteristics = await service.getCharacteristics();
+            for (const char of characteristics) {
+              if (char.properties.writeWithoutResponse || char.properties.write) {
+                writableChar = char;
+                break;
+              }
+            }
+          } catch {}
+          if (writableChar) break;
+        }
+      } catch {}
+
+      if (!writableChar) {
+        for (const serviceUuid of BT_PRINTER_SERVICES) {
+          try {
+            const service = await server.getPrimaryService(serviceUuid);
+            const characteristics = await service.getCharacteristics();
+            for (const char of characteristics) {
+              if (char.properties.writeWithoutResponse || char.properties.write) {
+                writableChar = char;
+                break;
+              }
+            }
+          } catch {}
+          if (writableChar) break;
+        }
+      }
+
+      if (!writableChar) {
+        throw new Error('Đã kết nối nhưng không tìm thấy cổng ghi dữ liệu in (ESC/POS) của máy in này.');
+      }
+
+      // 4. Send print data
+      setBtStatus('Đang gửi lệnh in...');
+
+      // ESC @ init
+      const initCmd = new Uint8Array([0x1b, 0x40]);
+      if (writableChar.properties.writeWithoutResponse) {
+        await writableChar.writeValueWithoutResponse(initCmd);
+      } else {
+        await writableChar.writeValue(initCmd);
+      }
+      await new Promise(r => setTimeout(r, 40));
+
+      // Send raster data in chunks
+      const CHUNK_SIZE = 120;
+      const totalChunks = Math.ceil(rasterBytes.length / CHUNK_SIZE);
+      for (let i = 0; i < rasterBytes.length; i += CHUNK_SIZE) {
+        const chunk = rasterBytes.slice(i, i + CHUNK_SIZE);
+        if (writableChar.properties.writeWithoutResponse) {
+          await writableChar.writeValueWithoutResponse(chunk);
+        } else {
+          await writableChar.writeValue(chunk);
+        }
+        const pct = Math.min(100, Math.round(((Math.floor(i / CHUNK_SIZE) + 1) / totalChunks) * 100));
+        setBtStatus(`Đang in... ${pct}%`);
+        await new Promise(r => setTimeout(r, 20));
+      }
+
+      // Feed paper 4 lines
+      const feedCmd = new Uint8Array([0x1b, 0x64, 0x04]);
+      if (writableChar.properties.writeWithoutResponse) {
+        await writableChar.writeValueWithoutResponse(feedCmd);
+      } else {
+        await writableChar.writeValue(feedCmd);
+      }
+
+      setBtStatus('In thành công! ✅');
+      setTimeout(() => {
+        setIsBtPrinting(false);
+        setBtStatus('');
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('Bluetooth Print Error:', err);
+      if (err.name !== 'NotFoundError' && !err.message?.includes('cancelled')) {
+        alert('Lỗi in Bluetooth: ' + (err.message || err));
+      }
+      setIsBtPrinting(false);
+      setBtStatus('');
+    }
+  };
 
   return createPortal(
     <>
@@ -491,10 +759,11 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
             width: 52mm !important;
             max-width: 52mm !important;
             margin: 0 auto !important;
-            padding: 2mm 3mm !important;
+            padding: 2mm 1mm !important;
             box-shadow: none !important;
             border: none !important;
-            font-size: 11px !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
             color: #000000 !important;
             box-sizing: border-box !important;
           }
@@ -504,44 +773,8 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
         }
       `}</style>
 
-      {/* METHOD 1: OFF-SCREEN ISOLATED CAPTURE CONTAINER
-          - Zero margins, fixed coordinate origin (0,0), exactly 330px width
-          - Perfectly immune to mobile viewport offset, zoom, or mx-auto shifting */}
-      <div
-        style={{
-          position: 'fixed',
-          left: '-9999px',
-          top: '0px',
-          width: '330px',
-          margin: 0,
-          padding: 0,
-          zIndex: -100,
-          pointerEvents: 'none',
-          backgroundColor: '#ffffff',
-        }}
-        aria-hidden="true"
-      >
-        <div
-          ref={exportContainerRef}
-          style={{
-            width: '330px',
-            maxWidth: '330px',
-            boxSizing: 'border-box',
-            padding: '16px 14px',
-            margin: 0,
-            backgroundColor: '#ffffff',
-            color: '#000000',
-            fontFamily: '"Courier New", Courier, monospace, -apple-system, sans-serif',
-            fontSize: '11px',
-            lineHeight: 1.4,
-          }}
-        >
-          {renderReceiptContent()}
-        </div>
-      </div>
-
       {/* Main Modal Overlay */}
-      <div id="k57-print-root" className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+      <div id="k57-print-root" className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto">
         <div 
           className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col my-auto border border-gray-200 animate-in fade-in zoom-in-95 duration-150 relative z-10"
           onClick={(e) => e.stopPropagation()}
@@ -562,7 +795,7 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
           </div>
 
           {/* Modal Body: Scrollable Preview */}
-          <div className="p-4 bg-gray-100 flex flex-col items-center max-h-[75vh] overflow-y-auto">
+          <div className="p-3 sm:p-4 bg-gray-100 flex flex-col items-center max-h-[75vh] overflow-y-auto">
             <div className="text-[11px] text-gray-500 mb-2 flex items-center gap-1 no-print">
               <Eye className="w-3.5 h-3.5 text-gray-400" />
               <span>Xem trước cuộn in nhiệt 58mm (không kèm chữ ký):</span>
@@ -572,7 +805,7 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
             <div 
               id="k57-printable-receipt" 
               ref={printContainerRef}
-              className="w-[300px] max-w-[300px] bg-white text-black px-4 py-4 shadow-md border border-gray-300 rounded-sm font-mono text-[11px] leading-[1.4] box-border select-none mx-auto"
+              className="w-[360px] max-w-full bg-white text-black px-2 py-3 shadow-md border border-gray-300 rounded-sm leading-[1.4] box-border select-none mx-auto"
               style={{ boxSizing: 'border-box' }}
             >
               {renderReceiptContent()}
@@ -583,9 +816,20 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
           <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex flex-wrap gap-2 justify-end items-center no-print">
             <button
               type="button"
+              onClick={handleBluetoothPrint}
+              disabled={isBtPrinting || isExporting}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+              title="In trực tiếp qua Bluetooth trên Bluefy hoặc Chrome"
+            >
+              {isBtPrinting ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <Bluetooth className="w-3.5 h-3.5 text-blue-100" />}
+              <span>{isBtPrinting ? (btStatus || 'Đang in...') : 'In Bluetooth (Bluefy)'}</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleExportImage}
-              disabled={isExporting}
-              className="bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 font-bold text-xs px-3 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+              disabled={isExporting || isBtPrinting}
+              className="bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
             >
               {isIOS ? <Share2 className="w-3.5 h-3.5 text-orange-600" /> : <Download className="w-3.5 h-3.5 text-orange-600" />}
               <span>{isExporting ? 'Đang tạo...' : isIOS ? 'Chia sẻ / Lưu ảnh' : 'Tải ảnh Bill K57'}</span>
@@ -594,16 +838,17 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
             <button
               type="button"
               onClick={handlePrint}
-              className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+              disabled={isBtPrinting || isExporting}
+              className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>In ra máy in (K57)</span>
+              <span>In máy tính (USB)</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="bg-gray-800 hover:bg-gray-900 text-white font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer"
+              className="bg-gray-800 hover:bg-gray-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer"
             >
               Đóng
             </button>
@@ -635,7 +880,7 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
               <img 
                 src={previewImageUrl} 
                 alt="Bill K57" 
-                className="max-w-[280px] w-full h-auto rounded shadow-sm select-auto"
+                className="max-w-[360px] w-full h-auto rounded shadow-sm select-auto"
                 style={{ WebkitTouchCallout: 'default' }}
               />
             </div>
