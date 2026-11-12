@@ -3654,6 +3654,7 @@ export default function App() {
                   selectedDate={selectedDate}
                   setSelectedDate={setSelectedDate}
                   systemDate={systemDate}
+                  shopName={logoText}
                 />
               </TabErrorBoundary>
             )}
@@ -3675,6 +3676,7 @@ export default function App() {
                   systemDate={systemDate}
                   isAdmin={currentUser?.role === 'admin'}
                   onFixDuplicateContracts={currentUser?.role === 'admin' ? handleFixDuplicateContracts : undefined}
+                  shopName={logoText}
                 />
               </TabErrorBoundary>
             )}

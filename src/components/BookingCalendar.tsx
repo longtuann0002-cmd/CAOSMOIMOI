@@ -74,6 +74,7 @@ interface BookingCalendarProps {
   selectedDate: string;
   setSelectedDate: (date: string) => void;
   systemDate: string;
+  shopName?: string;
 }
 
 // Hàm tính toán lại giá và tiền cọc khi sửa lịch hoặc thêm/bớt thiết bị
@@ -136,7 +137,8 @@ export default function BookingCalendar({
   onDeleteContract,
   selectedDate,
   setSelectedDate,
-  systemDate
+  systemDate,
+  shopName
 }: BookingCalendarProps) {
   // Calendar focuses on a target year and month. Initialize to match selectedDate (closest booking on startup)
   const [currentYear, setCurrentYear] = useState<number>(() => {
@@ -3386,6 +3388,7 @@ export default function BookingCalendar({
         contract={quickReceiptContract}
         bankConfig={bankConfig}
         customQrImage={customQrImage}
+        shopName={shopName}
       />
 
       {/* Delete Confirmation Modal */}

@@ -28,8 +28,25 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const printContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-detect brand name from props or storage
-  const effectiveShopName = (shopName || localStorage.getItem('logoText') || 'TIỆM NHÀ CAO').trim().toUpperCase();
+  // Auto-detect brand name cleanly without quotes
+  const getCleanShopName = (rawName?: string): string => {
+    let name = rawName || '';
+    if (!name) {
+      const fromStorage = localStorage.getItem('logoText');
+      if (fromStorage) {
+        try {
+          const parsed = JSON.parse(fromStorage);
+          name = typeof parsed === 'string' ? parsed : fromStorage;
+        } catch {
+          name = fromStorage;
+        }
+      }
+    }
+    name = (name || '').replace(/^["'“”«»\s]+|["'“”«»\s]+$/g, '').trim();
+    return (name || 'TIỆM ẢNH NHÀ CAOS').toUpperCase();
+  };
+
+  const effectiveShopName = getCleanShopName(shopName);
 
   // Detect iOS Safari
   const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -128,8 +145,8 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
           : ''
       }`;
 
-  const surcharge = contract.surchargeAmount || 0;
-  const finalTotal = contract.totalPrice + surcharge;
+  const extraFee = contract.extraFee || 0;
+  const finalTotal = contract.totalPrice + extraFee;
   const remaining = Math.max(0, finalTotal - contract.paidAmount);
   const bankName = VIET_BANKS.find(b => b.id === bankConfig.bankId)?.name?.split('(')[0]?.trim() || bankConfig.bankId;
 
@@ -138,7 +155,6 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
     if (!printContainerRef.current) return;
 
     if (isIOS) {
-      // On iOS Safari, iframe print fails silently. window.print() is the only working way.
       window.print();
       return;
     }
@@ -279,7 +295,6 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
             return;
           }
         } catch (shareErr) {
-          // User cancelled or share dismissed
           console.log('Share dismissed or unsupported:', shareErr);
         }
       }
@@ -407,23 +422,20 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
 
                 <div className="border-t border-dashed border-black my-1.5" />
 
-                {/* Items List - Clothing specific formatting */}
-                <div className="font-bold mb-1">DANH SÁCH TRANG PHỤC:</div>
+                {/* Items List - Camera / Equipment specific formatting */}
+                <div className="font-bold mb-1">DANH SÁCH THIẾT BỊ:</div>
                 {contract.items && contract.items.length > 0 ? (
                   contract.items.map((item, idx) => (
                     <div key={idx} className="mb-1.5">
                       <div className="font-bold">
                         {idx + 1}. {item.cameraName}
                       </div>
-                      {(item.size || item.color) && (
-                        <div className="text-[10px] text-gray-700 pl-2">
-                          {item.size && <span>Size: {item.size}</span>}
-                          {item.size && item.color && <span> • </span>}
-                          {item.color && <span>Màu: {item.color}</span>}
-                        </div>
-                      )}
                       <div className="flex justify-between text-[10px] text-gray-800 pl-2">
-                        <span>SL: {item.quantity || 1}</span>
+                        <span>
+                          {item.printCount
+                            ? `In ảnh: ${item.printCount} tấm`
+                            : `SL: ${item.quantity || 1}`}
+                        </span>
                         <span className="font-bold">
                           {item.dailyRate
                             ? (item.dailyRate * (item.quantity || 1)).toLocaleString('vi-VN') + 'đ'
@@ -433,14 +445,14 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
                     </div>
                   ))
                 ) : (
-                  <div className="italic text-gray-500">Chưa có trang phục</div>
+                  <div className="italic text-gray-500">Chưa có thiết bị</div>
                 )}
 
                 <div className="border-t border-dashed border-black my-1.5" />
 
                 {/* Financial Calculation */}
                 <div className="flex justify-between">
-                  <span>Tiền thuê đồ:</span>
+                  <span>Tiền thuê thiết bị:</span>
                   <span>{contract.totalPrice.toLocaleString('vi-VN')}đ</span>
                 </div>
 
@@ -451,10 +463,10 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
                   </div>
                 )}
 
-                {Boolean(contract.surchargeAmount) && (
+                {Boolean(contract.extraFee) && (
                   <div className="flex justify-between text-gray-700">
-                    <span>Phụ thu:</span>
-                    <span>+{contract.surchargeAmount?.toLocaleString('vi-VN')}đ</span>
+                    <span>Phụ phí:</span>
+                    <span>+{contract.extraFee?.toLocaleString('vi-VN')}đ</span>
                   </div>
                 )}
 
@@ -502,7 +514,7 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
 
                 {/* Footer Note - No signature section as requested */}
                 <div className="text-center text-[9.5px] italic text-gray-700">
-                  * Quý khách vui lòng kiểm tra kỹ trang phục khi nhận bàn giao.
+                  * Quý khách vui lòng kiểm tra kỹ thiết bị & phụ kiện khi nhận bàn giao.
                   <br />
                   Cảm ơn Quý Khách!
                 </div>
