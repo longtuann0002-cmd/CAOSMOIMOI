@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract, BankConfig, Customer } from '../types';
 import MoneyInput from './MoneyInput';
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check, Shield, DollarSign, Share2 } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check, Shield, DollarSign, Share2, Printer } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours, getPrintPrice } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
@@ -12,6 +12,7 @@ import { formatDMY } from '../utils/dateUtils';
 import { VIET_BANKS, getBankBin, QrDisplay } from './ContractManager';
 import { useScrollLock } from '../utils/useScrollLock';
 import { generateNextContractCode } from '../utils/contractUtils';
+import { K57ReceiptModal } from './K57ReceiptModal';
 
 // 20 fully distinct vivid palettes — ordered so adjacent entries look maximally different
 const CAMERA_COLOR_PALETTES = [
@@ -760,9 +761,10 @@ export default function BookingCalendar({
   };
 
   const [previewReceiptImage, setPreviewReceiptImage] = useState<{ url: string; filename: string } | null>(null);
+  const [showK57Modal, setShowK57Modal] = useState<boolean>(false);
 
   // Lock body scroll whenever any modal is open to prevent background scrolling on mobile
-  useScrollLock(Boolean(showAddQuickModal || quickReceiptContract || deleteConfirmId || customAlertMessage || showBankSettings || previewReceiptImage));
+  useScrollLock(Boolean(showAddQuickModal || quickReceiptContract || deleteConfirmId || customAlertMessage || showBankSettings || previewReceiptImage || showK57Modal));
 
   const handleShareOrDownload = async (dataUrl: string, filename: string) => {
     try {
@@ -3347,10 +3349,12 @@ export default function BookingCalendar({
             <div className="bg-gray-50 px-4 sm:px-5 py-3.5 flex flex-wrap gap-2.5 justify-center items-center border-t border-gray-150 shrink-0">
               <button
                 type="button"
-                className="bg-white hover:bg-gray-100 border border-gray-250 text-gray-750 font-bold text-xs px-3.5 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs min-h-[38px]"
-                onClick={() => setCustomAlertMessage(`Đang chuẩn bị in hợp đồng ${quickReceiptContract.contractCode}... Vui lòng kết nối máy in để in bản cứng kèm chữ ký.`)}
+                className="bg-white hover:bg-gray-100 border border-gray-300 text-gray-800 font-bold text-xs px-3.5 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-4xs min-h-[38px]"
+                onClick={() => setShowK57Modal(true)}
+                title="In hóa đơn khổ nhiệt K57 (58mm)"
               >
-                In Hợp Đồng (Bản cứng)
+                <Printer className="w-4 h-4 text-gray-700" />
+                <span>In Bill K57</span>
               </button>
 
               <button
@@ -3374,6 +3378,15 @@ export default function BookingCalendar({
         </div>,
         document.body
       )}
+
+      {/* K57 Thermal Receipt Modal */}
+      <K57ReceiptModal
+        isOpen={showK57Modal}
+        onClose={() => setShowK57Modal(false)}
+        contract={quickReceiptContract}
+        bankConfig={bankConfig}
+        customQrImage={customQrImage}
+      />
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && typeof document !== 'undefined' && createPortal(
