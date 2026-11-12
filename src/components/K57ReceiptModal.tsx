@@ -27,6 +27,7 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const printContainerRef = useRef<HTMLDivElement>(null);
+  const exportContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-detect brand name cleanly without quotes
   const getCleanShopName = (rawName?: string): string => {
@@ -267,18 +268,20 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
     setTimeout(triggerPrint, 300);
   };
 
-  // Export receipt image with balanced left/right padding and perfectly centered
+  // Method 1: Export using Off-Screen Isolated Container (100% immune to mobile margin offset / cut-off)
   const handleExportImage = async () => {
-    if (!printContainerRef.current) return;
+    const element = exportContainerRef.current || printContainerRef.current;
+    if (!element) return;
+
     try {
       setIsExporting(true);
-      const element = printContainerRef.current;
-      const targetWidth = element.offsetWidth || 300;
+      const targetWidth = 330;
 
       const dataUrl = await toPng(element, {
         backgroundColor: '#ffffff',
         pixelRatio: isIOS ? 2 : 2.5,
         width: targetWidth,
+        cacheBust: true,
       });
 
       const filename = `Bill_K57_${contract.contractCode}.png`;
@@ -322,6 +325,149 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
     }
   };
 
+  // Reusable receipt content for both On-Screen Preview and Off-Screen Isolation Render
+  const renderReceiptContent = () => (
+    <>
+      {/* Header */}
+      <div className="text-center font-black text-xs uppercase tracking-tight">
+        {effectiveShopName}
+      </div>
+      <div className="text-center font-bold text-[10.5px] mt-0.5">
+        HÓA ĐƠN BÀN GIAO &amp; THANH TOÁN
+      </div>
+
+      <div className="border-t border-dashed border-black my-2" />
+
+      <div className="flex justify-between items-center w-full">
+        <span>Mã HĐ:</span>
+        <span className="font-bold">{contract.contractCode}</span>
+      </div>
+      <div className="flex justify-between items-center w-full text-[10px] text-gray-700">
+        <span>Ngày lập:</span>
+        <span>{formatDateTimeVN(contract.createdAt)}</span>
+      </div>
+
+      <div className="border-t border-dashed border-black my-2" />
+
+      {/* Customer details */}
+      <div className="flex justify-between items-center w-full">
+        <span>Khách:</span>
+        <span className="font-bold text-right">{contract.customerName}</span>
+      </div>
+      <div className="flex justify-between items-center w-full">
+        <span>SĐT:</span>
+        <span className="font-bold text-right">{contract.customerPhone}</span>
+      </div>
+      <div className="flex justify-between items-start w-full">
+        <span className="shrink-0">Thế chấp:</span>
+        <span className="font-bold text-right ml-2">{docText}</span>
+      </div>
+      <div className="flex justify-between items-start w-full">
+        <span className="shrink-0">Thời hạn:</span>
+        <span className="font-bold text-right ml-2">{timeRangeText}</span>
+      </div>
+
+      <div className="border-t border-dashed border-black my-2" />
+
+      {/* Items List - Camera / Equipment specific formatting */}
+      <div className="font-bold mb-1.5 text-left w-full">DANH SÁCH THIẾT BỊ:</div>
+      {contract.items && contract.items.length > 0 ? (
+        contract.items.map((item, idx) => (
+          <div key={idx} className="mb-2 w-full text-left">
+            <div className="font-bold text-[11px]">
+              {idx + 1}. {item.cameraName}
+            </div>
+            <div className="flex justify-between items-center w-full text-[10.5px] text-gray-800 pl-2 mt-0.5">
+              <span>
+                {item.printCount
+                  ? `In ảnh: ${item.printCount} tấm`
+                  : `SL: ${item.quantity || 1}`}
+              </span>
+              <span className="font-bold">
+                {item.dailyRate
+                  ? (item.dailyRate * (item.quantity || 1)).toLocaleString('vi-VN') + 'đ'
+                  : ''}
+              </span>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="italic text-gray-500">Chưa có thiết bị</div>
+      )}
+
+      <div className="border-t border-dashed border-black my-2" />
+
+      {/* Financial Calculation */}
+      <div className="flex justify-between items-center w-full">
+        <span>Tiền thuê thiết bị:</span>
+        <span>{contract.totalPrice.toLocaleString('vi-VN')}đ</span>
+      </div>
+
+      {Boolean(contract.discountPercent) && (
+        <div className="flex justify-between items-center w-full text-gray-700">
+          <span>Giảm giá:</span>
+          <span>-{contract.discountPercent}%</span>
+        </div>
+      )}
+
+      {Boolean(contract.extraFee) && (
+        <div className="flex justify-between items-center w-full text-gray-700">
+          <span>Phụ phí:</span>
+          <span>+{contract.extraFee?.toLocaleString('vi-VN')}đ</span>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center w-full">
+        <span>Cọc thế chấp:</span>
+        <span>{(contract.depositAmount || 0).toLocaleString('vi-VN')}đ</span>
+      </div>
+
+      <div className="flex justify-between items-center w-full font-bold">
+        <span>Đã thanh toán:</span>
+        <span>{contract.paidAmount.toLocaleString('vi-VN')}đ</span>
+      </div>
+
+      <div className="border-t-2 border-black my-2" />
+
+      <div className="flex justify-between items-center w-full font-black text-xs">
+        <span>CÒN LẠI CẦN THU:</span>
+        <span>
+          {remaining > 0 ? `${remaining.toLocaleString('vi-VN')}đ` : '0đ (ĐÃ THU ĐỦ)'}
+        </span>
+      </div>
+
+      {/* QR Code */}
+      {qrDataUrl && (
+        <>
+          <div className="border-t border-dashed border-black my-2" />
+          <div className="text-center w-full">
+            <div className="font-bold text-[9.5px]">QUÉT MÃ VIETQR THANH TOÁN</div>
+            <img
+              src={qrDataUrl}
+              alt="VietQR"
+              className="w-[130px] h-[130px] mx-auto my-1.5 border border-black/10"
+            />
+            <div className="font-bold text-[9.5px]">
+              {bankConfig.accountNo} • {bankName}
+            </div>
+            <div className="text-[9px] uppercase tracking-wider text-gray-800">
+              {bankConfig.accountName}
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="border-t border-dashed border-black my-2" />
+
+      {/* Footer Note - No signature section as requested */}
+      <div className="text-center text-[9.5px] italic text-gray-700 w-full">
+        * Quý khách vui lòng kiểm tra kỹ thiết bị &amp; phụ kiện khi nhận bàn giao.
+        <br />
+        Cảm ơn Quý Khách!
+      </div>
+    </>
+  );
+
   return createPortal(
     <>
       {/* Global Print Styles for iOS Safari AirPrint */}
@@ -358,6 +504,43 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
         }
       `}</style>
 
+      {/* METHOD 1: OFF-SCREEN ISOLATED CAPTURE CONTAINER
+          - Zero margins, fixed coordinate origin (0,0), exactly 330px width
+          - Perfectly immune to mobile viewport offset, zoom, or mx-auto shifting */}
+      <div
+        style={{
+          position: 'fixed',
+          left: '-9999px',
+          top: '0px',
+          width: '330px',
+          margin: 0,
+          padding: 0,
+          zIndex: -100,
+          pointerEvents: 'none',
+          backgroundColor: '#ffffff',
+        }}
+        aria-hidden="true"
+      >
+        <div
+          ref={exportContainerRef}
+          style={{
+            width: '330px',
+            maxWidth: '330px',
+            boxSizing: 'border-box',
+            padding: '16px 14px',
+            margin: 0,
+            backgroundColor: '#ffffff',
+            color: '#000000',
+            fontFamily: '"Courier New", Courier, monospace, -apple-system, sans-serif',
+            fontSize: '11px',
+            lineHeight: 1.4,
+          }}
+        >
+          {renderReceiptContent()}
+        </div>
+      </div>
+
+      {/* Main Modal Overlay */}
       <div id="k57-print-root" className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
         <div 
           className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col my-auto border border-gray-200 animate-in fade-in zoom-in-95 duration-150 relative z-10"
@@ -385,150 +568,14 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
               <span>Xem trước cuộn in nhiệt 58mm (không kèm chữ ký):</span>
             </div>
 
-            {/* Thermal Paper Bill: perfectly centered with balanced 16px left/right padding */}
+            {/* Thermal Paper Bill On-Screen Display */}
             <div 
               id="k57-printable-receipt" 
               ref={printContainerRef}
               className="w-[300px] max-w-[300px] bg-white text-black px-4 py-4 shadow-md border border-gray-300 rounded-sm font-mono text-[11px] leading-[1.4] box-border select-none mx-auto"
               style={{ boxSizing: 'border-box' }}
             >
-              {/* Header */}
-              <div className="text-center font-black text-xs uppercase tracking-tight">
-                {effectiveShopName}
-              </div>
-              <div className="text-center font-bold text-[10.5px] mt-0.5">
-                HÓA ĐƠN BÀN GIAO &amp; THANH TOÁN
-              </div>
-
-              <div className="border-t border-dashed border-black my-2" />
-
-              <div className="flex justify-between items-center w-full">
-                <span>Mã HĐ:</span>
-                <span className="font-bold">{contract.contractCode}</span>
-              </div>
-              <div className="flex justify-between items-center w-full text-[10px] text-gray-700">
-                <span>Ngày lập:</span>
-                <span>{formatDateTimeVN(contract.createdAt)}</span>
-              </div>
-
-              <div className="border-t border-dashed border-black my-2" />
-
-              {/* Customer details */}
-              <div className="flex justify-between items-center w-full">
-                <span>Khách:</span>
-                <span className="font-bold text-right">{contract.customerName}</span>
-              </div>
-              <div className="flex justify-between items-center w-full">
-                <span>SĐT:</span>
-                <span className="font-bold text-right">{contract.customerPhone}</span>
-              </div>
-              <div className="flex justify-between items-start w-full">
-                <span className="shrink-0">Thế chấp:</span>
-                <span className="font-bold text-right ml-2">{docText}</span>
-              </div>
-              <div className="flex justify-between items-start w-full">
-                <span className="shrink-0">Thời hạn:</span>
-                <span className="font-bold text-right ml-2">{timeRangeText}</span>
-              </div>
-
-              <div className="border-t border-dashed border-black my-2" />
-
-              {/* Items List - Camera / Equipment specific formatting */}
-              <div className="font-bold mb-1.5 text-left w-full">DANH SÁCH THIẾT BỊ:</div>
-              {contract.items && contract.items.length > 0 ? (
-                contract.items.map((item, idx) => (
-                  <div key={idx} className="mb-2 w-full text-left">
-                    <div className="font-bold text-[11px]">
-                      {idx + 1}. {item.cameraName}
-                    </div>
-                    <div className="flex justify-between items-center w-full text-[10.5px] text-gray-800 pl-2 mt-0.5">
-                      <span>
-                        {item.printCount
-                          ? `In ảnh: ${item.printCount} tấm`
-                          : `SL: ${item.quantity || 1}`}
-                      </span>
-                      <span className="font-bold">
-                        {item.dailyRate
-                          ? (item.dailyRate * (item.quantity || 1)).toLocaleString('vi-VN') + 'đ'
-                          : ''}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="italic text-gray-500">Chưa có thiết bị</div>
-              )}
-
-              <div className="border-t border-dashed border-black my-2" />
-
-              {/* Financial Calculation */}
-              <div className="flex justify-between items-center w-full">
-                <span>Tiền thuê thiết bị:</span>
-                <span>{contract.totalPrice.toLocaleString('vi-VN')}đ</span>
-              </div>
-
-              {Boolean(contract.discountPercent) && (
-                <div className="flex justify-between items-center w-full text-gray-700">
-                  <span>Giảm giá:</span>
-                  <span>-{contract.discountPercent}%</span>
-                </div>
-              )}
-
-              {Boolean(contract.extraFee) && (
-                <div className="flex justify-between items-center w-full text-gray-700">
-                  <span>Phụ phí:</span>
-                  <span>+{contract.extraFee?.toLocaleString('vi-VN')}đ</span>
-                </div>
-              )}
-
-              <div className="flex justify-between items-center w-full">
-                <span>Cọc thế chấp:</span>
-                <span>{(contract.depositAmount || 0).toLocaleString('vi-VN')}đ</span>
-              </div>
-
-              <div className="flex justify-between items-center w-full font-bold">
-                <span>Đã thanh toán:</span>
-                <span>{contract.paidAmount.toLocaleString('vi-VN')}đ</span>
-              </div>
-
-              <div className="border-t-2 border-black my-2" />
-
-              <div className="flex justify-between items-center w-full font-black text-xs">
-                <span>CÒN LẠI CẦN THU:</span>
-                <span>
-                  {remaining > 0 ? `${remaining.toLocaleString('vi-VN')}đ` : '0đ (ĐÃ THU ĐỦ)'}
-                </span>
-              </div>
-
-              {/* QR Code */}
-              {qrDataUrl && (
-                <>
-                  <div className="border-t border-dashed border-black my-2" />
-                  <div className="text-center w-full">
-                    <div className="font-bold text-[9.5px]">QUÉT MÃ VIETQR THANH TOÁN</div>
-                    <img
-                      src={qrDataUrl}
-                      alt="VietQR"
-                      className="w-[130px] h-[130px] mx-auto my-1.5 border border-black/10"
-                    />
-                    <div className="font-bold text-[9.5px]">
-                      {bankConfig.accountNo} • {bankName}
-                    </div>
-                    <div className="text-[9px] uppercase tracking-wider text-gray-800">
-                      {bankConfig.accountName}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div className="border-t border-dashed border-black my-2" />
-
-              {/* Footer Note - No signature section as requested */}
-              <div className="text-center text-[9.5px] italic text-gray-700 w-full">
-                * Quý khách vui lòng kiểm tra kỹ thiết bị &amp; phụ kiện khi nhận bàn giao.
-                <br />
-                Cảm ơn Quý Khách!
-              </div>
+              {renderReceiptContent()}
             </div>
           </div>
 
