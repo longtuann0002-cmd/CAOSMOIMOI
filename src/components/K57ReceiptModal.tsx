@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import { toPng } from 'html-to-image';
 import { RentalContract, BankConfig } from '../types';
 import { getBankBin, VIET_BANKS, renderDocTypeLabel } from './ContractManager';
+import { CAOS_LOGO_BASE64 } from './caosLogoBase64';
 
 interface K57ReceiptModalProps {
   isOpen: boolean;
@@ -153,74 +154,84 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
   const bankName = VIET_BANKS.find(b => b.id === bankConfig.bankId)?.name?.split('(')[0]?.trim() || bankConfig.bankId;
 
   // Reusable receipt content with 100% INLINE STYLES (never breaks in iframe or PDF)
-  // High-impact bold typography tuned for 58mm thermal printers (384 dots width)
+  // Bold, clear POS thermal receipt typography matching high-contrast fuel/store receipts
   const renderReceiptContent = () => (
     <div style={{ 
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', 
-      fontSize: '19px', 
-      lineHeight: '1.4', 
+      fontSize: '20px', 
+      lineHeight: '1.35', 
       color: '#000000', 
-      fontWeight: '800', 
+      fontWeight: '900', 
+      WebkitTextStroke: '0.45px #000000',
       boxSizing: 'border-box', 
       width: '100%',
-      letterSpacing: '-0.2px'
+      letterSpacing: '0.2px'
     }}>
+      {/* CAOS Typographic Logo */}
+      <div style={{ textAlign: 'center', width: '100%', marginBottom: '8px' }}>
+        <img
+          src={CAOS_LOGO_BASE64}
+          alt="CAOS"
+          style={{ width: '180px', height: 'auto', display: 'block', margin: '0 auto' }}
+        />
+      </div>
+
       {/* Header */}
-      <div style={{ textAlign: 'center', fontWeight: '900', fontSize: '26px', textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: '1.2' }}>
+      <div style={{ textAlign: 'center', fontWeight: '900', fontSize: '28px', textTransform: 'uppercase', letterSpacing: '0.8px', lineHeight: '1.2' }}>
         {effectiveShopName}
       </div>
-      <div style={{ textAlign: 'center', fontWeight: '900', fontSize: '18px', marginTop: '4px', letterSpacing: '0.2px' }}>
+      <div style={{ textAlign: 'center', fontWeight: '900', fontSize: '18px', marginTop: '4px', letterSpacing: '0.4px' }}>
         HÓA ĐƠN BÀN GIAO &amp; THANH TOÁN
       </div>
 
-      <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
+      <div style={{ borderTop: '2px dotted #000000', margin: '9px 0', width: '100%' }} />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '20px', fontWeight: '900' }}>
         <span>Mã HĐ:</span>
-        <span style={{ fontWeight: '900', fontSize: '21px' }}>{contract.contractCode}</span>
+        <span style={{ fontSize: '21px' }}>{contract.contractCode}</span>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '17px', color: '#000000', fontWeight: '800', marginTop: '2px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '18px', color: '#000000', fontWeight: '900', marginTop: '2px' }}>
         <span>Ngày lập:</span>
         <span>{formatDateTimeVN(contract.createdAt)}</span>
       </div>
 
-      <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
+      <div style={{ borderTop: '2px dotted #000000', margin: '9px 0', width: '100%' }} />
 
       {/* Customer details */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', marginBottom: '3px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '20px', fontWeight: '900', marginBottom: '3px' }}>
         <span>Khách:</span>
-        <span style={{ fontWeight: '900', fontSize: '21px', textAlign: 'right' }}>{contract.customerName}</span>
+        <span style={{ fontSize: '21px', textAlign: 'right' }}>{contract.customerName}</span>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', marginBottom: '3px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '20px', fontWeight: '900', marginBottom: '3px' }}>
         <span>SĐT:</span>
-        <span style={{ fontWeight: '900', fontSize: '21px', textAlign: 'right' }}>{contract.customerPhone}</span>
+        <span style={{ fontSize: '21px', textAlign: 'right' }}>{contract.customerPhone}</span>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', fontSize: '18px', fontWeight: '800', marginBottom: '3px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', fontSize: '19px', fontWeight: '900', marginBottom: '3px' }}>
         <span style={{ flexShrink: 0 }}>Thế chấp:</span>
-        <span style={{ fontWeight: '900', fontSize: '19px', textAlign: 'right', marginLeft: '8px' }}>{docText}</span>
+        <span style={{ textAlign: 'right', marginLeft: '8px' }}>{docText}</span>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', fontSize: '18px', fontWeight: '800' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', fontSize: '19px', fontWeight: '900' }}>
         <span style={{ flexShrink: 0 }}>Thời hạn:</span>
-        <span style={{ fontWeight: '900', fontSize: '19px', textAlign: 'right', marginLeft: '8px' }}>{timeRangeText}</span>
+        <span style={{ textAlign: 'right', marginLeft: '8px' }}>{timeRangeText}</span>
       </div>
 
-      <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
+      <div style={{ borderTop: '2px dotted #000000', margin: '9px 0', width: '100%' }} />
 
       {/* Items List - Camera specific formatting */}
-      <div style={{ fontWeight: '900', fontSize: '21px', marginBottom: '6px', textAlign: 'left', width: '100%' }}>DANH SÁCH THIẾT BỊ:</div>
+      <div style={{ fontWeight: '900', fontSize: '21px', marginBottom: '6px', textAlign: 'left', width: '100%', letterSpacing: '0.3px' }}>DANH SÁCH THIẾT BỊ:</div>
       {contract.items && contract.items.length > 0 ? (
         contract.items.map((item, idx) => (
           <div key={idx} style={{ marginBottom: '8px', width: '100%', textAlign: 'left' }}>
-            <div style={{ fontWeight: '900', fontSize: '21px' }}>
+            <div style={{ fontWeight: '900', fontSize: '21px', lineHeight: '1.25' }}>
               {idx + 1}. {item.cameraName}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', color: '#000000', fontWeight: '800', paddingLeft: '10px', marginTop: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '20px', color: '#000000', fontWeight: '900', paddingLeft: '8px', marginTop: '2px' }}>
               <span>
                 {item.printCount
                   ? `In ảnh: ${item.printCount} tấm`
                   : `SL: ${item.quantity || 1}`}
               </span>
-              <span style={{ fontWeight: '900', fontSize: '21px' }}>
+              <span style={{ fontSize: '21px' }}>
                 {item.dailyRate
                   ? (item.dailyRate * (item.quantity || 1)).toLocaleString('vi-VN') + 'đ'
                   : ''}
@@ -229,79 +240,81 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
           </div>
         ))
       ) : (
-        <div style={{ fontStyle: 'italic', color: '#000000', fontWeight: '800' }}>Chưa có thiết bị</div>
+        <div style={{ fontStyle: 'italic', color: '#000000', fontWeight: '900' }}>Chưa có thiết bị</div>
       )}
 
-      <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
+      <div style={{ borderTop: '2px dotted #000000', margin: '9px 0', width: '100%' }} />
 
       {/* Financial Calculation */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', marginBottom: '3px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '20px', fontWeight: '900', marginBottom: '3px' }}>
         <span>Tiền thuê thiết bị:</span>
-        <span style={{ fontWeight: '900' }}>{contract.totalPrice.toLocaleString('vi-VN')}đ</span>
+        <span style={{ fontSize: '24px' }}>{contract.totalPrice.toLocaleString('vi-VN')}đ</span>
       </div>
 
       {Boolean(contract.discountPercent) && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', color: '#000000', marginBottom: '3px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '20px', fontWeight: '900', color: '#000000', marginBottom: '3px' }}>
           <span>Giảm giá:</span>
-          <span style={{ fontWeight: '900' }}>-{contract.discountPercent}%</span>
+          <span style={{ fontSize: '24px' }}>-{contract.discountPercent}%</span>
         </div>
       )}
 
       {Boolean(contract.extraFee) && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', color: '#000000', marginBottom: '3px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '20px', fontWeight: '900', color: '#000000', marginBottom: '3px' }}>
           <span>Phụ phí:</span>
-          <span style={{ fontWeight: '900' }}>+{contract.extraFee?.toLocaleString('vi-VN')}đ</span>
+          <span style={{ fontSize: '24px' }}>+{contract.extraFee?.toLocaleString('vi-VN')}đ</span>
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '19px', fontWeight: '800', marginBottom: '3px' }}>
-        <span>Cọc thế chấp:</span>
-        <span style={{ fontWeight: '900' }}>{(contract.depositAmount || 0).toLocaleString('vi-VN')}đ</span>
-      </div>
-
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '20px', fontWeight: '900', marginBottom: '3px' }}>
-        <span>Đã thanh toán:</span>
-        <span style={{ fontWeight: '900', fontSize: '21px' }}>{contract.paidAmount.toLocaleString('vi-VN')}đ</span>
+        <span>Cọc thế chấp:</span>
+        <span style={{ fontSize: '24px' }}>{(contract.depositAmount || 0).toLocaleString('vi-VN')}đ</span>
       </div>
 
-      <div style={{ borderTop: '3px solid #000000', margin: '10px 0', width: '100%' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '21px', fontWeight: '900', marginBottom: '3px' }}>
+        <span>Đã thanh toán:</span>
+        <span style={{ fontSize: '24px' }}>{contract.paidAmount.toLocaleString('vi-VN')}đ</span>
+      </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontWeight: '900', fontSize: '22px' }}>
-        <span>CÒN LẠI CẦN THU:</span>
-        <span style={{ fontSize: '23px' }}>
-          {remaining > 0 ? `${remaining.toLocaleString('vi-VN')}đ` : '0đ (ĐÃ THU ĐỦ)'}
-        </span>
+      {/* Double border highlight for Còn lại cần thu like POS standard */}
+      <div style={{ borderTop: '2.5px solid #000000', borderBottom: '2.5px solid #000000', padding: '7px 0', margin: '9px 0', width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontWeight: '900', fontSize: '20px' }}>
+          <span style={{ whiteSpace: 'nowrap' }}>CÒN LẠI CẦN THU:</span>
+          <span style={{ fontSize: '26px', fontWeight: '900', textAlign: 'right', whiteSpace: 'nowrap' }}>
+            {remaining > 0 ? `${remaining.toLocaleString('vi-VN')}đ` : '0đ (ĐÃ XONG)'}
+          </span>
+        </div>
       </div>
 
       {/* QR Code */}
       {qrDataUrl && (
         <>
-          <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
-          <div style={{ textAlign: 'center', width: '100%' }}>
-            <div style={{ fontWeight: '900', fontSize: '18px', marginBottom: '4px', letterSpacing: '0.2px' }}>QUÉT MÃ VIETQR THANH TOÁN</div>
+          <div style={{ textAlign: 'center', width: '100%', marginTop: '6px' }}>
+            <div style={{ fontWeight: '900', fontSize: '19px', marginBottom: '4px', letterSpacing: '0.5px' }}>QUÉT MÃ VIETQR THANH TOÁN</div>
             <img
               src={qrDataUrl}
               alt="VietQR"
-              style={{ width: '200px', height: '200px', margin: '6px auto', display: 'block', border: '1px solid rgba(0,0,0,0.1)' }}
+              style={{ width: '200px', height: '200px', margin: '4px auto', display: 'block', border: '2px solid #000000' }}
             />
-            <div style={{ fontWeight: '900', fontSize: '20px', marginTop: '4px' }}>
+            <div style={{ fontWeight: '900', fontSize: '21px', marginTop: '4px' }}>
               {bankConfig.accountNo} • {bankName}
             </div>
-            <div style={{ fontSize: '18px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '900', color: '#000000', marginTop: '2px' }}>
+            <div style={{ fontSize: '19px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '900', color: '#000000', marginTop: '2px' }}>
               {bankConfig.accountName}
             </div>
           </div>
+          <div style={{ borderTop: '2px dotted #000000', margin: '10px 0', width: '100%' }} />
         </>
       )}
 
-      <div style={{ borderTop: '2px dashed #000000', margin: '10px 0', width: '100%' }} />
-
       {/* Footer Note */}
-      <div style={{ textAlign: 'center', fontSize: '16px', fontStyle: 'italic', fontWeight: '800', color: '#000000', width: '100%', lineHeight: '1.4' }}>
+      <div style={{ textAlign: 'center', fontSize: '17px', fontStyle: 'italic', fontWeight: '900', color: '#000000', width: '100%', lineHeight: '1.35' }}>
         * Quý khách vui lòng kiểm tra kỹ thiết bị &amp; phụ kiện khi nhận bàn giao.
         <br />
         Cảm ơn Quý Khách!
       </div>
+
+      {/* Bottom whitespace — đủ chỗ xé hóa đơn không mất nội dung */}
+      <div style={{ height: '90px', width: '100%' }} />
     </div>
   );
 
@@ -532,9 +545,9 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
             const b = pixels[offset + 2];
             const a = pixels[offset + 3];
 
-            // Threshold: luminance < 185 for rich, dark thermal printing
+            // Threshold: luminance < 210 for rich, dark, extra-bold thermal printing
             const luminance = r * 0.299 + g * 0.587 + b * 0.114;
-            const isBlack = a > 128 && luminance < 185;
+            const isBlack = a > 100 && luminance < 210;
 
             if (isBlack) {
               currentByte |= 1 << (7 - bit);
@@ -598,7 +611,16 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
       clone.style.color = '#000000';
       document.body.appendChild(clone);
 
-      await new Promise(r => setTimeout(r, 60));
+      // Ensure all images in clone (Logo and QR code) are fully loaded and decoded
+      const cloneImgs = Array.from(clone.querySelectorAll('img'));
+      await Promise.all(cloneImgs.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(res => {
+          img.onload = () => res(null);
+          img.onerror = () => res(null);
+        });
+      }));
+      await new Promise(r => setTimeout(r, 120));
 
       const targetHeight = clone.scrollHeight || clone.offsetHeight;
       const dataUrl = await toPng(clone, {
