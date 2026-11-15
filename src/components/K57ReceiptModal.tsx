@@ -5,7 +5,6 @@ import QRCode from 'qrcode';
 import { toPng } from 'html-to-image';
 import { RentalContract, BankConfig } from '../types';
 import { getBankBin, VIET_BANKS, renderDocTypeLabel } from './ContractManager';
-import { CAOS_LOGO_BASE64 } from './caosLogoBase64';
 
 interface K57ReceiptModalProps {
   isOpen: boolean;
@@ -167,15 +166,6 @@ export const K57ReceiptModal: React.FC<K57ReceiptModalProps> = ({
       width: '100%',
       letterSpacing: '0.2px'
     }}>
-      {/* CAOS Typographic Logo */}
-      <div style={{ textAlign: 'center', width: '100%', marginBottom: '8px' }}>
-        <img
-          src={CAOS_LOGO_BASE64}
-          alt="CAOS"
-          style={{ width: '180px', height: 'auto', display: 'block', margin: '0 auto' }}
-        />
-      </div>
-
       {/* Header */}
       <div style={{ textAlign: 'center', fontWeight: '900', fontSize: '28px', textTransform: 'uppercase', letterSpacing: '0.8px', lineHeight: '1.2' }}>
         {effectiveShopName}
