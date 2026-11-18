@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { RentalContract, Expense, Camera, BankConfig } from '../types';
 import { cleanSystemNote, loadStoredData } from '../utils/mockData';
@@ -246,6 +246,12 @@ export default function RevenueDashboard({
   // Equipment table search and filter
   const [equipmentSearch, setEquipmentSearch] = useState<string>('');
   const [equipmentCategoryFilter, setEquipmentCategoryFilter] = useState<string>('all');
+  const [equipmentCurrentPage, setEquipmentCurrentPage] = useState<number>(1);
+  const [equipmentPageSize, setEquipmentPageSize] = useState<number>(10);
+
+  useEffect(() => {
+    setEquipmentCurrentPage(1);
+  }, [equipmentSearch, equipmentCategoryFilter]);
 
   // Compute boundaries for top timeframe filters dynamically using REAL-TIME clock
   const dateRange = useMemo(() => {
@@ -680,6 +686,13 @@ export default function RevenueDashboard({
       })
       .sort((a, b) => b.totalRevenue - a.totalRevenue || b.rentalCount - a.rentalCount);
   }, [equipmentRentalAnalytics, equipmentCategoryFilter, equipmentSearch]);
+
+  const totalEquipmentPages = Math.max(1, Math.ceil(displayEquipmentList.length / equipmentPageSize));
+
+  const paginatedEquipmentList = useMemo(() => {
+    const start = (equipmentCurrentPage - 1) * equipmentPageSize;
+    return displayEquipmentList.slice(start, start + equipmentPageSize);
+  }, [displayEquipmentList, equipmentCurrentPage, equipmentPageSize]);
 
   // Specific selected camera detail for Modal
   const modalCameraDetail = useMemo(() => {
@@ -1752,7 +1765,7 @@ export default function RevenueDashboard({
               Không tìm thấy thiết bị nào phù hợp.
             </div>
           ) : (
-            displayEquipmentList.map((item) => {
+            paginatedEquipmentList.map((item) => {
               const latestBooking = item.bookings[0];
               return (
                 <div
@@ -1859,7 +1872,7 @@ export default function RevenueDashboard({
                   </td>
                 </tr>
               ) : (
-                displayEquipmentList.map((item) => {
+                paginatedEquipmentList.map((item) => {
                   const latestBooking = item.bookings[0];
                   return (
                     <tr 
@@ -1961,6 +1974,87 @@ export default function RevenueDashboard({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination controls for equipment */}
+        {displayEquipmentList.length > 0 && (
+          <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 select-none text-xs">
+            {/* Info and page size selector */}
+            <div className="flex items-center gap-2 flex-wrap text-gray-500 font-medium">
+              <span>
+                Hiển thị <b className="font-mono text-gray-900 font-bold">{(equipmentCurrentPage - 1) * equipmentPageSize + 1}</b> - <b className="font-mono text-gray-900 font-bold">{Math.min(equipmentCurrentPage * equipmentPageSize, displayEquipmentList.length)}</b> trên <b className="font-mono text-orange-600 font-black">{displayEquipmentList.length}</b> thiết bị
+              </span>
+              <span className="text-gray-300 hidden sm:inline">|</span>
+              <div className="flex items-center gap-1.5">
+                <span>Cỡ trang:</span>
+                <select
+                  value={equipmentPageSize}
+                  onChange={(e) => {
+                    setEquipmentPageSize(Number(e.target.value));
+                    setEquipmentCurrentPage(1);
+                  }}
+                  className="bg-gray-50 border border-gray-250 rounded-lg px-2 py-1 font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-orange-500 cursor-pointer text-xs"
+                >
+                  <option value={5}>5 máy / trang</option>
+                  <option value={10}>10 máy / trang</option>
+                  <option value={20}>20 máy / trang</option>
+                  <option value={50}>50 máy / trang</option>
+                  <option value={1000}>Tất cả</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Pagination buttons */}
+            {totalEquipmentPages > 1 && (
+              <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-0.5">
+                <button
+                  type="button"
+                  disabled={equipmentCurrentPage === 1}
+                  onClick={() => setEquipmentCurrentPage(prev => Math.max(1, prev - 1))}
+                  className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shrink-0 shadow-3xs"
+                  title="Trang trước"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+
+                {Array.from({ length: totalEquipmentPages }, (_, idx) => idx + 1)
+                  .filter(page => page === 1 || page === totalEquipmentPages || Math.abs(page - equipmentCurrentPage) <= 1)
+                  .reduce<(number | 'dot')[]>((acc, page, i, arr) => {
+                    if (i > 0 && (page as number) - (arr[i - 1] as number) > 1) acc.push('dot');
+                    acc.push(page);
+                    return acc;
+                  }, [])
+                  .map((item, i) =>
+                    item === 'dot' ? (
+                      <span key={`dot-${i}`} className="px-1 text-gray-400 text-xs shrink-0 select-none">…</span>
+                    ) : (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setEquipmentCurrentPage(item as number)}
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 shadow-3xs ${
+                          equipmentCurrentPage === item
+                            ? 'bg-orange-600 border border-orange-600 text-white font-black shadow-xs ring-1 ring-orange-300'
+                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-950'
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    )
+                  )}
+
+                <button
+                  type="button"
+                  disabled={equipmentCurrentPage === totalEquipmentPages}
+                  onClick={() => setEquipmentCurrentPage(prev => Math.min(totalEquipmentPages, prev + 1))}
+                  className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shrink-0 shadow-3xs"
+                  title="Trang sau"
+                >
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Detailed Interactive Monthly Visual Report */}
