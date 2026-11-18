@@ -885,39 +885,44 @@ export default function RevenueDashboard({
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden">
-      {/* Top View Mode Switcher: Báo Cáo Tổng Hợp vs Doanh Thu Chốt Đơn Ngày */}
-      <div className="bg-white border border-gray-200 p-1.5 rounded-2xl shadow-xs flex items-center gap-1.5 select-none">
-        <button
-          type="button"
-          onClick={() => setDashboardViewMode('overview')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
-            dashboardViewMode === 'overview'
-              ? 'bg-orange-600 text-white shadow-sm font-black ring-2 ring-orange-400/40'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-          }`}
-        >
-          <BarChart3 className="w-4 h-4" />
-          <span>Báo Cáo Tổng Hợp</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setDashboardViewMode('daily_closing')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
-            dashboardViewMode === 'daily_closing'
-              ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-sm font-black ring-2 ring-orange-400/40'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-          }`}
-        >
-          <Zap className="w-4 h-4 text-amber-300" />
-          <span>Doanh Thu Chốt Đơn Ngày</span>
-          {todayClosingSummary.count > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black ${
-              dashboardViewMode === 'daily_closing' ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-700'
-            }`}>
-              Hôm nay: {todayClosingSummary.count} đơn ({todayClosingSummary.totalFormatted})
-            </span>
-          )}
-        </button>
+      {/* Top View Mode Switcher: Pill Slider gọn gàng, tinh tế chuẩn SaaS */}
+      <div className="flex items-center justify-start select-none">
+        <div className="inline-flex items-center p-1 bg-gray-200/75 rounded-xl sm:rounded-2xl border border-gray-300/60 shadow-inner gap-1">
+          <button
+            type="button"
+            onClick={() => setDashboardViewMode('overview')}
+            className={`inline-flex items-center gap-2 py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+              dashboardViewMode === 'overview'
+                ? 'bg-white text-gray-950 font-black shadow-xs ring-1 ring-black/5'
+                : 'text-gray-600 hover:text-gray-950 hover:bg-white/50'
+            }`}
+          >
+            <BarChart3 className={`w-4 h-4 ${dashboardViewMode === 'overview' ? 'text-orange-600' : 'text-gray-500'}`} />
+            <span>Báo Cáo Tổng Hợp</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setDashboardViewMode('daily_closing')}
+            className={`inline-flex items-center gap-1.5 sm:gap-2 py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+              dashboardViewMode === 'daily_closing'
+                ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white font-black shadow-xs shadow-orange-500/20'
+                : 'text-gray-600 hover:text-gray-950 hover:bg-white/50'
+            }`}
+          >
+            <Zap className={`w-4 h-4 ${dashboardViewMode === 'daily_closing' ? 'text-amber-200' : 'text-orange-500'}`} />
+            <span>Chốt Đơn Ngày</span>
+            {todayClosingSummary.count > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black ${
+                dashboardViewMode === 'daily_closing' 
+                  ? 'bg-white/20 text-white' 
+                  : 'bg-orange-100 text-orange-700 border border-orange-200'
+              }`}>
+                {todayClosingSummary.count} đơn ({todayClosingSummary.totalFormatted})
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {dashboardViewMode === 'daily_closing' ? (
