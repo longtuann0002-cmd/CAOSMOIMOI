@@ -256,9 +256,36 @@ export default function App() {
   const [changePasswordSuccess, setChangePasswordSuccess] = useState('');
 
   // Load states from localStorage or use rich mock dataset
-  const [cameras, setCameras] = useState<Camera[]>(() =>
-    loadStoredData('cameras', INITIAL_CAMERAS)
-  );
+  const [cameras, setCameras] = useState<Camera[]>(() => {
+    const base = loadStoredData('cameras', INITIAL_CAMERAS) as Camera[];
+    // Áp dụng patch khôi phục thiết bị một lần (nếu có) — dùng khi cần recovery thủ công
+    try {
+      const patchRaw = localStorage.getItem('camlease_camera_patch');
+      if (patchRaw) {
+        const patch = JSON.parse(patchRaw) as { remove?: string[]; add?: Camera[] };
+        localStorage.removeItem('camlease_camera_patch'); // Xóa patch sau khi áp dụng
+        let result = [...base];
+        // Xóa các thiết bị theo id hoặc tên
+        if (patch.remove && Array.isArray(patch.remove)) {
+          const removeSet = new Set(patch.remove);
+          result = result.filter(c => !removeSet.has(c.id) && !removeSet.has(c.name));
+        }
+        // Thêm thiết bị mới (chỉ nếu chưa có id trùng)
+        if (patch.add && Array.isArray(patch.add)) {
+          const existingIds = new Set(result.map(c => c.id));
+          patch.add.forEach(c => { if (c && c.id && !existingIds.has(c.id)) result.push(c); });
+        }
+        // Lưu ngay vào localStorage để loadInitialData đọc được đúng dữ liệu
+        localStorage.setItem('cameras', JSON.stringify(result));
+        console.log(`[Camera Patch] Đã áp dụng: ${result.length} thiết bị sau patch.`);
+        return result;
+      }
+    } catch (e) {
+      console.warn('[Camera Patch] Lỗi khi áp dụng patch:', e);
+    }
+    return base;
+  });
+
   const [contracts, setContracts] = useState<RentalContract[]>(() => {
     const loaded = loadStoredData('contracts', INITIAL_CONTRACTS);
     const deletedSet = getDeletedContractIds();
