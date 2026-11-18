@@ -15,7 +15,7 @@ import { syncDataToFirestore, fetchDataFromFirestore } from '../utils/firebasePu
 import { formatDMY } from '../utils/dateUtils';
 import { generateVietQrString, generateQrSvg } from '../utils/vietqr';
 import { toPng } from 'html-to-image';
-import { matchContract } from '../utils/searchUtils';
+import { matchContract, smartMatch } from '../utils/searchUtils';
 import { useScrollLock } from '../utils/useScrollLock';
 import { generateNextContractCode } from '../utils/contractUtils';
 import { K57ReceiptModal } from './K57ReceiptModal';
@@ -614,7 +614,12 @@ export default function ContractManager({
   });
 
   const [prevCalculatedTotal, setPrevCalculatedTotal] = useState(0);
+  const [newContractCameraSearch, setNewContractCameraSearch] = useState('');
   const contractDocNoteInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!showAddModal) setNewContractCameraSearch('');
+  }, [showAddModal]);
 
   // Predefined Contract/Rental Form templates (Mẫu đơn thuê sẵn có)
   const DEFAULT_TEMPLATES: ContractTemplate[] = useMemo(() => [
@@ -3132,14 +3137,64 @@ export default function ContractManager({
                     </span>
                   )}
                 </div>
+
+                {/* Ô tìm kiếm thiết bị */}
+                <div className="relative mb-2">
+                  <Search className="w-3.5 h-3.5 text-orange-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={newContractCameraSearch}
+                    onChange={e => setNewContractCameraSearch(e.target.value)}
+                    placeholder="Tìm theo tên máy, mã số, seri (VD: R50, XT20, M100...)"
+                    className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-gray-250 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-gray-900 placeholder-gray-400 font-medium shadow-3xs transition"
+                  />
+                  {newContractCameraSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setNewContractCameraSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-100 transition cursor-pointer"
+                      title="Xóa tìm kiếm"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
                 {/* Card list */}
                 <div className="border border-gray-250 rounded-xl p-2 bg-white shadow-2xs max-h-[220px] overflow-y-auto space-y-1.5">
-                  {cameras.filter(cam => cam.status !== 'Maintenance').length === 0 ? (
-                    <p className="text-xs text-gray-400 italic text-center py-4">
-                      Hiện không có thiết bị khả dụng (toàn bộ thiết bị đang bảo trì).
-                    </p>
-                  ) : (
-                    cameras.filter(cam => cam.status !== 'Maintenance').map(cam => {
+                  {(() => {
+                    const availableCameras = cameras.filter(cam => cam.status !== 'Maintenance');
+                    if (availableCameras.length === 0) {
+                      return (
+                        <p className="text-xs text-gray-400 italic text-center py-4">
+                          Hiện không có thiết bị khả dụng (toàn bộ thiết bị đang bảo trì).
+                        </p>
+                      );
+                    }
+                    const filteredCameras = newContractCameraSearch.trim()
+                      ? availableCameras.filter(cam =>
+                          smartMatch(`${cam.name || ''} ${cam.shortName || ''} ${cam.serialNumber || ''} ${cam.category || ''}`, newContractCameraSearch)
+                        )
+                      : availableCameras;
+
+                    if (filteredCameras.length === 0) {
+                      return (
+                        <div className="py-4 text-center space-y-1 select-none">
+                          <p className="text-xs text-gray-500 font-medium">
+                            Không tìm thấy thiết bị nào khớp "{newContractCameraSearch}"
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setNewContractCameraSearch('')}
+                            className="text-[11px] text-orange-600 font-bold hover:underline cursor-pointer"
+                          >
+                            Xóa bộ lọc để hiện lại {availableCameras.length} thiết bị
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    return filteredCameras.map(cam => {
                       const isSelected = newContractForm.selectedCameraIds.includes(cam.id);
                       const isPrinter = cam.category === 'Printer' || Boolean(cam.isPrinter);
                       const printCount = newContractForm.printCounts?.[cam.id] || 5;
@@ -3267,8 +3322,8 @@ export default function ContractManager({
                           )}
                         </div>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </div>
               </div>
 

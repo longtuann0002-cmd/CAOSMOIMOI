@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, RentalContract, BankConfig, Customer } from '../types';
 import MoneyInput from './MoneyInput';
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check, Shield, DollarSign, Share2, Printer } from 'lucide-react';
+import { Plus, Search, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check, Shield, DollarSign, Share2, Printer } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours, getPrintPrice } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
@@ -13,6 +13,7 @@ import { VIET_BANKS, getBankBin, QrDisplay } from './ContractManager';
 import { useScrollLock } from '../utils/useScrollLock';
 import { generateNextContractCode } from '../utils/contractUtils';
 import { K57ReceiptModal } from './K57ReceiptModal';
+import { smartMatch } from '../utils/searchUtils';
 
 // 20 fully distinct vivid palettes — ordered so adjacent entries look maximally different
 const CAMERA_COLOR_PALETTES = [
@@ -346,7 +347,12 @@ export default function BookingCalendar({
   });
 
   const [prevCalculatedTotal, setPrevCalculatedTotal] = useState(0);
+  const [quickCameraSearch, setQuickCameraSearch] = useState('');
   const quickDocNoteInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!showAddQuickModal) setQuickCameraSearch('');
+  }, [showAddQuickModal]);
 
   const calculatedDays = useMemo(() => {
     if (formData.is6Hours) return 1;
@@ -1805,13 +1811,62 @@ export default function BookingCalendar({
                   )}
                 </div>
 
+                {/* Ô tìm kiếm thiết bị nhanh */}
+                <div className="relative mb-2">
+                  <Search className="w-3.5 h-3.5 text-orange-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={quickCameraSearch}
+                    onChange={e => setQuickCameraSearch(e.target.value)}
+                    placeholder="Tìm theo tên máy, mã số, seri (VD: R50, XT20, M100...)"
+                    className="w-full pl-8 pr-7 py-1.5 text-xs bg-white/95 border border-orange-200/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-gray-900 placeholder-gray-400 font-medium shadow-3xs transition"
+                  />
+                  {quickCameraSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setQuickCameraSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-100 transition cursor-pointer"
+                      title="Xóa tìm kiếm"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
                 <div className="bg-white/95 border border-orange-200/90 rounded-xl p-2 max-h-[185px] overflow-y-auto space-y-1.5 shadow-inner">
-                  {cameras.filter(cam => cam.status !== 'Maintenance').length === 0 ? (
-                    <p className="text-xs text-gray-400 italic text-center py-3">
-                      Hiện không có thiết bị khả dụng (toàn bộ thiết bị đang bảo trì).
-                    </p>
-                  ) : (
-                    cameras.filter(cam => cam.status !== 'Maintenance').map(cam => {
+                  {(() => {
+                    const availableCameras = cameras.filter(cam => cam.status !== 'Maintenance');
+                    if (availableCameras.length === 0) {
+                      return (
+                        <p className="text-xs text-gray-400 italic text-center py-3">
+                          Hiện không có thiết bị khả dụng (toàn bộ thiết bị đang bảo trì).
+                        </p>
+                      );
+                    }
+                    const filteredCameras = quickCameraSearch.trim()
+                      ? availableCameras.filter(cam =>
+                          smartMatch(`${cam.name || ''} ${cam.shortName || ''} ${cam.serialNumber || ''} ${cam.category || ''}`, quickCameraSearch)
+                        )
+                      : availableCameras;
+
+                    if (filteredCameras.length === 0) {
+                      return (
+                        <div className="py-4 text-center space-y-1 select-none">
+                          <p className="text-xs text-gray-500 font-medium">
+                            Không tìm thấy thiết bị nào khớp "{quickCameraSearch}"
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setQuickCameraSearch('')}
+                            className="text-[11px] text-orange-600 font-bold hover:underline cursor-pointer"
+                          >
+                            Xóa bộ lọc để hiện lại {availableCameras.length} thiết bị
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    return filteredCameras.map(cam => {
                       const isSelected = formData.selectedCameraIds.includes(cam.id);
                       const isPrinter = cam.category === 'Printer' || Boolean(cam.isPrinter);
                       const printCount = formData.printCounts?.[cam.id] || 5;
@@ -1939,8 +1994,8 @@ export default function BookingCalendar({
                           )}
                         </div>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </div>
               </div>
 

@@ -1,15 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { RentalContract, Expense, Camera } from '../types';
-import { cleanSystemNote } from '../utils/mockData';
+import { RentalContract, Expense, Camera, BankConfig } from '../types';
+import { cleanSystemNote, loadStoredData } from '../utils/mockData';
 import { 
   DollarSign, Landmark, TrendingUp, TrendingDown, ClipboardList, 
   Calendar, FileText, Activity, Info, PieChart, ShoppingBag, 
   User, ChevronLeft, ChevronRight, BarChart3, CalendarDays, Filter,
   Camera as CameraIcon, Search, X, Clock, Layers, ArrowUpRight, CheckCircle2,
-  AlertTriangle, Phone
+  AlertTriangle, Phone, Zap, Check, Printer, Eye
 } from 'lucide-react';
 import { useScrollLock } from '../utils/useScrollLock';
+import { formatDMY } from '../utils/dateUtils';
+import { smartMatch } from '../utils/searchUtils';
+import { K57ReceiptModal } from './K57ReceiptModal';
 
 interface RevenueDashboardProps {
   contracts: RentalContract[];
@@ -80,8 +83,165 @@ export default function RevenueDashboard({
   const [showReceivablesModal, setShowReceivablesModal] = useState<boolean>(false);
   const [receivablesModalTab, setReceivablesModalTab] = useState<'debt' | 'deposit'>('debt');
 
+  // View mode switcher: 'overview' | 'daily_closing'
+  const [dashboardViewMode, setDashboardViewMode] = useState<'overview' | 'daily_closing'>('overview');
+
+  // Helper to extract local YYYY-MM-DD from contract createdAt (or fallback to startDate)
+  const getContractCreatedDate = (c: RentalContract): string => {
+    if (c.createdAt) {
+      try {
+        const d = new Date(c.createdAt);
+        if (!isNaN(d.getTime())) {
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${y}-${m}-${day}`;
+        }
+      } catch {
+        // fallback
+      }
+      if (c.createdAt.length >= 10) return c.createdAt.slice(0, 10);
+    }
+    return c.startDate || '';
+  };
+
+  const getContractCreatedTime = (c: RentalContract): string => {
+    if (c.createdAt) {
+      try {
+        const d = new Date(c.createdAt);
+        if (!isNaN(d.getTime())) {
+          const h = String(d.getHours()).padStart(2, '0');
+          const m = String(d.getMinutes()).padStart(2, '0');
+          return `${h}:${m}`;
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return '';
+  };
+
+  // Real-time today string YYYY-MM-DD
+  const todayStr = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, []);
+
+  // Today closing summary for top badge
+  const todayClosingSummary = useMemo(() => {
+    const list = (contracts || []).filter(c => c && c.status !== 'Cancelled' && getContractCreatedDate(c) === todayStr);
+    const total = list.reduce((sum, c) => sum + (c.totalPrice || 0) + (c.extraFee || 0), 0);
+    let totalFormatted = '';
+    if (total >= 1000000) {
+      totalFormatted = `${(total / 1000000).toFixed(1).replace('.0', '')}M`;
+    } else if (total >= 1000) {
+      totalFormatted = `${Math.round(total / 1000)}k`;
+    } else {
+      totalFormatted = `${total}đ`;
+    }
+    return { count: list.length, total, totalFormatted };
+  }, [contracts, todayStr]);
+
+  // Selected date for daily closing view
+  const [closingDate, setClosingDate] = useState<string>(todayStr);
+  const [dailyContractSearch, setDailyContractSearch] = useState<string>('');
+
+  // Contracts created/closed on the selected closingDate
+  const contractsClosedOnDate = useMemo(() => {
+    return (contracts || []).filter(c => {
+      if (!c || c.status !== 'Cancelled') return false;
+      return getContractCreatedDate(c) === closingDate;
+    });
+  }, [contracts, closingDate]);
+
+  // Financial summary for this closing date
+  const closingDateSummary = useMemo(() => {
+    let totalRevenue = 0;
+    let totalPaid = 0;
+    let totalRemaining = 0;
+    let totalExtraFee = 0;
+
+    contractsClosedOnDate.forEach(c => {
+      const fullTotal = (c.totalPrice || 0) + (c.extraFee || 0);
+      const paid = c.paidAmount || 0;
+      const remaining = Math.max(0, fullTotal - paid);
+
+      totalRevenue += fullTotal;
+      totalPaid += paid;
+      totalRemaining += remaining;
+      totalExtraFee += (c.extraFee || 0);
+    });
+
+    return {
+      count: contractsClosedOnDate.length,
+      totalRevenue,
+      totalPaid,
+      totalRemaining,
+      totalExtraFee
+    };
+  }, [contractsClosedOnDate]);
+
+  // Filtered contracts by dailyContractSearch
+  const filteredDailyContracts = useMemo(() => {
+    if (!dailyContractSearch.trim()) return contractsClosedOnDate;
+    return contractsClosedOnDate.filter(c => {
+      const itemsText = (c.items || []).map(i => i.cameraName || '').join(' ');
+      return smartMatch(`${c.contractCode || ''} ${c.customerName || ''} ${c.customerPhone || ''} ${itemsText}`, dailyContractSearch);
+    });
+  }, [contractsClosedOnDate, dailyContractSearch]);
+
+  // State for K57 receipt modal
+  const [selectedReceiptContract, setSelectedReceiptContract] = useState<RentalContract | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState<boolean>(false);
+  const [bankConfig] = useState<BankConfig>(() => {
+    return loadStoredData('bankConfig', {
+      bankId: 'MB',
+      accountNo: '0965312389',
+      accountName: 'HOANG DUY CAO'
+    });
+  });
+
+  const handleSelectToday = () => {
+    setClosingDate(todayStr);
+  };
+
+  const handleSelectYesterday = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    setClosingDate(`${y}-${m}-${day}`);
+  };
+
+  const handleChangeClosingDay = (offset: number) => {
+    const parts = closingDate.split('-');
+    if (parts.length !== 3) return;
+    const current = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    if (isNaN(current.getTime())) return;
+    current.setDate(current.getDate() + offset);
+    const y = current.getFullYear();
+    const m = String(current.getMonth() + 1).padStart(2, '0');
+    const day = String(current.getDate()).padStart(2, '0');
+    setClosingDate(`${y}-${m}-${day}`);
+  };
+
+  const formatVietnameseDateLabel = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    if (isNaN(d.getTime())) return dateStr;
+    const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const dayName = days[d.getDay()];
+    return `${dayName}, ${parts[2]}/${parts[1]}/${parts[0]}`;
+  };
+
   // Lock body scroll whenever modal is open
-  useScrollLock(Boolean(selectedCameraForModal || showReceivablesModal));
+  useScrollLock(Boolean(selectedCameraForModal || showReceivablesModal || showReceiptModal));
 
   // Equipment table search and filter
   const [equipmentSearch, setEquipmentSearch] = useState<string>('');
@@ -725,6 +885,416 @@ export default function RevenueDashboard({
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden">
+      {/* Top View Mode Switcher: Báo Cáo Tổng Hợp vs Doanh Thu Chốt Đơn Ngày */}
+      <div className="bg-white border border-gray-200 p-1.5 rounded-2xl shadow-xs flex items-center gap-1.5 select-none">
+        <button
+          type="button"
+          onClick={() => setDashboardViewMode('overview')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
+            dashboardViewMode === 'overview'
+              ? 'bg-orange-600 text-white shadow-sm font-black ring-2 ring-orange-400/40'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          <span>Báo Cáo Tổng Hợp</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setDashboardViewMode('daily_closing')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
+            dashboardViewMode === 'daily_closing'
+              ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-sm font-black ring-2 ring-orange-400/40'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+          }`}
+        >
+          <Zap className="w-4 h-4 text-amber-300" />
+          <span>Doanh Thu Chốt Đơn Ngày</span>
+          {todayClosingSummary.count > 0 && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black ${
+              dashboardViewMode === 'daily_closing' ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-700'
+            }`}>
+              Hôm nay: {todayClosingSummary.count} đơn ({todayClosingSummary.totalFormatted})
+            </span>
+          )}
+        </button>
+      </div>
+
+      {dashboardViewMode === 'daily_closing' ? (
+        <div className="space-y-4 sm:space-y-6 animate-fade-in">
+          {/* Header Card with Date Selector */}
+          <div className="bg-white border border-gray-200 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl shadow-xs space-y-3 sm:space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 sm:p-2.5 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl text-white shadow-xs shrink-0">
+                  <Zap className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+                    Doanh Thu Chốt Đơn Ngày
+                  </h3>
+                  <p className="text-xs text-gray-500 leading-normal">
+                    Thống kê doanh số các đơn thuê được tạo mới / chốt hợp đồng theo ngày.
+                  </p>
+                </div>
+              </div>
+
+              {/* Day navigator & Quick pickers */}
+              <div className="flex items-center flex-wrap gap-2">
+                {/* Prev day */}
+                <button
+                  type="button"
+                  onClick={() => handleChangeClosingDay(-1)}
+                  className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition cursor-pointer border border-gray-250 shadow-3xs"
+                  title="Xem ngày trước"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {/* Date input with styled wrapper */}
+                <div className="relative flex items-center bg-orange-50/70 border border-orange-200 rounded-xl px-2.5 py-1.5 shadow-3xs">
+                  <Calendar className="w-4 h-4 text-orange-600 mr-2 shrink-0" />
+                  <input
+                    type="date"
+                    value={closingDate}
+                    onChange={(e) => setClosingDate(e.target.value)}
+                    className="bg-transparent font-black text-xs sm:text-sm text-gray-900 focus:outline-none cursor-pointer font-mono"
+                  />
+                </div>
+
+                {/* Next day */}
+                <button
+                  type="button"
+                  onClick={() => handleChangeClosingDay(1)}
+                  className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition cursor-pointer border border-gray-250 shadow-3xs"
+                  title="Xem ngày sau"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                {/* Quick Today / Yesterday */}
+                <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+                  <button
+                    type="button"
+                    onClick={handleSelectToday}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border shadow-3xs ${
+                      closingDate === todayStr
+                        ? 'bg-orange-600 text-white border-orange-600 font-black ring-2 ring-orange-300'
+                        : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-250'
+                    }`}
+                  >
+                    ⚡ Hôm nay
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSelectYesterday}
+                    className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-gray-700 hover:bg-gray-100 border border-gray-250 transition cursor-pointer shadow-3xs"
+                  >
+                    ⏮️ Hôm qua
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Current Selected Date Banner */}
+            <div className="bg-gradient-to-r from-orange-50 via-amber-50/50 to-orange-50 border border-orange-200/80 rounded-xl p-2.5 sm:p-3 flex items-center justify-between flex-wrap gap-2 text-xs">
+              <span className="font-extrabold text-orange-950 flex items-center gap-1.5">
+                <span>🗓️ Đang xem ngày:</span>
+                <span className="text-orange-700 underline underline-offset-2">{formatVietnameseDateLabel(closingDate)}</span>
+                {closingDate === todayStr && (
+                  <span className="bg-orange-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                    Hôm nay
+                  </span>
+                )}
+              </span>
+              <span className="font-mono text-gray-600 font-bold">
+                Chốt được: <strong className="text-orange-600 font-black">{closingDateSummary.count}</strong> hợp đồng
+              </span>
+            </div>
+          </div>
+
+          {/* 4 Financial KPI Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            {/* Card 1: Contracts Count */}
+            <div className="bg-white border border-gray-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-3">
+              <div className="p-2.5 sm:p-3 bg-orange-50 text-orange-600 rounded-xl shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider block truncate">
+                  Số Đơn Chốt
+                </span>
+                <span className="font-mono text-base sm:text-xl font-black text-gray-900 block truncate mt-0.5">
+                  {closingDateSummary.count} <span className="text-xs font-bold font-sans text-gray-500">đơn</span>
+                </span>
+                <span className="text-[10px] text-gray-400 block truncate">Ký mới trong ngày</span>
+              </div>
+            </div>
+
+            {/* Card 2: Total Closed Revenue */}
+            <div className="bg-white border border-gray-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-3">
+              <div className="p-2.5 sm:p-3 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider block truncate">
+                  Tổng Doanh Số Chốt
+                </span>
+                <span className="font-mono text-base sm:text-xl font-black text-emerald-700 block truncate mt-0.5">
+                  {closingDateSummary.totalRevenue.toLocaleString()} đ
+                </span>
+                <span className="text-[10px] text-emerald-600 font-bold block truncate">
+                  {closingDateSummary.totalExtraFee > 0 ? `(Gồm +${closingDateSummary.totalExtraFee.toLocaleString()}đ phụ phí)` : 'Tổng giá trị hợp đồng'}
+                </span>
+              </div>
+            </div>
+
+            {/* Card 3: Paid / Deposited */}
+            <div className="bg-white border border-gray-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-3">
+              <div className="p-2.5 sm:p-3 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider block truncate">
+                  Tiền Đã Cọc / Thu
+                </span>
+                <span className="font-mono text-base sm:text-xl font-black text-blue-700 block truncate mt-0.5">
+                  {closingDateSummary.totalPaid.toLocaleString()} đ
+                </span>
+                <span className="text-[10px] text-blue-600 font-bold block truncate">Thực thu khi chốt</span>
+              </div>
+            </div>
+
+            {/* Card 4: Remaining to collect */}
+            <div className="bg-white border border-gray-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-3">
+              <div className="p-2.5 sm:p-3 bg-amber-50 text-amber-600 rounded-xl shrink-0">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider block truncate">
+                  Chờ Thu (Giao/Trả)
+                </span>
+                <span className="font-mono text-base sm:text-xl font-black text-amber-700 block truncate mt-0.5">
+                  {closingDateSummary.totalRemaining.toLocaleString()} đ
+                </span>
+                <span className="text-[10px] text-amber-600 font-bold block truncate">Thu nốt khi khách trả máy</span>
+              </div>
+            </div>
+          </div>
+
+          {/* List of Contracts closed on that day */}
+          <div className="bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 shadow-xs space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm sm:text-base font-black text-gray-900 flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4 text-orange-600" />
+                  Danh Sách Đơn Chốt Ngày {formatDMY(closingDate)}
+                </h4>
+                <p className="text-xs text-gray-500">
+                  Chi tiết từng hợp đồng ký mới trong ngày và tiến độ thanh toán.
+                </p>
+              </div>
+
+              {/* Search box if there are contracts */}
+              {contractsClosedOnDate.length > 0 && (
+                <div className="relative w-full sm:w-72">
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={dailyContractSearch}
+                    onChange={(e) => setDailyContractSearch(e.target.value)}
+                    placeholder="Tìm mã đơn, khách, SĐT, máy..."
+                    className="w-full pl-8 pr-7 py-1.5 text-xs bg-gray-50 border border-gray-250 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-gray-900 placeholder-gray-400 font-medium"
+                  />
+                  {dailyContractSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setDailyContractSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-200 transition cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* List / Cards */}
+            {contractsClosedOnDate.length === 0 ? (
+              <div className="p-8 sm:p-12 text-center bg-gray-50/50 rounded-xl border border-dashed border-gray-250 select-none space-y-2.5">
+                <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mx-auto">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <h5 className="text-sm font-bold text-gray-800">
+                  Chưa có đơn thuê nào được chốt trong ngày {formatDMY(closingDate)}
+                </h5>
+                <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                  Hợp đồng tạo mới trong ngày này sẽ tự động xuất hiện tại đây để bạn theo dõi doanh số chốt đơn.
+                </p>
+                {closingDate !== todayStr && (
+                  <button
+                    type="button"
+                    onClick={handleSelectToday}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 text-white rounded-lg text-xs font-bold hover:bg-orange-700 transition cursor-pointer shadow-3xs"
+                  >
+                    <span>Xem ngày Hôm nay</span>
+                  </button>
+                )}
+              </div>
+            ) : filteredDailyContracts.length === 0 ? (
+              <div className="p-6 text-center text-xs text-gray-500 italic">
+                Không tìm thấy đơn nào khớp với từ khóa "{dailyContractSearch}".
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredDailyContracts.map((c) => {
+                  const fullTotal = (c.totalPrice || 0) + (c.extraFee || 0);
+                  const paid = c.paidAmount || 0;
+                  const remaining = Math.max(0, fullTotal - paid);
+                  const createdTime = getContractCreatedTime(c);
+
+                  let statusBadge = (
+                    <span className="bg-gray-100 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-gray-200">
+                      {c.status}
+                    </span>
+                  );
+                  if (c.status === 'Completed') {
+                    statusBadge = (
+                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Check className="w-3 h-3 stroke-[3]" /> Hoàn tất
+                      </span>
+                    );
+                  } else if (c.status === 'Active') {
+                    statusBadge = (
+                      <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        Đang thuê
+                      </span>
+                    );
+                  } else if (c.status === 'Pending') {
+                    if (paid >= (c.totalPrice || 0) * 0.5 && (c.totalPrice || 0) > 0) {
+                      statusBadge = (
+                        <span className="bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          Đã cọc 50%
+                        </span>
+                      );
+                    } else {
+                      statusBadge = (
+                        <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          Chờ cọc
+                        </span>
+                      );
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={c.id}
+                      className="border border-gray-200 rounded-xl p-3 sm:p-4 hover:border-orange-300 hover:shadow-xs transition-all bg-white space-y-2.5"
+                    >
+                      {/* Top row */}
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-black text-xs sm:text-sm text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-lg shadow-3xs">
+                            {c.contractCode}
+                          </span>
+                          {createdTime && (
+                            <span className="text-[10px] text-gray-500 font-mono flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-gray-400" />
+                              {createdTime}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {statusBadge}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedReceiptContract(c);
+                              setShowReceiptModal(true);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg text-xs font-bold transition border border-orange-200 cursor-pointer shadow-3xs"
+                            title="Xem hóa đơn / Phiếu K57"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Hóa đơn</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Info grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs text-gray-700 pt-1 border-t border-gray-100">
+                        {/* Customer */}
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase block">Khách hàng</span>
+                          <span className="font-black text-gray-900 block truncate">{c.customerName}</span>
+                          <a
+                            href={`tel:${c.customerPhone}`}
+                            className="inline-flex items-center gap-1 text-orange-600 font-mono font-bold hover:underline"
+                          >
+                            <Phone className="w-3 h-3" />
+                            <span>{c.customerPhone}</span>
+                          </a>
+                        </div>
+
+                        {/* Equipment */}
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase block">Thiết bị thuê</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {(c.items || []).map((item, idx) => (
+                              <span
+                                key={idx}
+                                className="bg-gray-100 text-gray-800 text-[11px] font-bold px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                              >
+                                <CameraIcon className="w-3 h-3 text-orange-600" />
+                                <span>{item.cameraName}</span>
+                                {item.quantity > 1 && <span className="text-gray-500 font-mono">x{item.quantity}</span>}
+                              </span>
+                            ))}
+                          </div>
+                          {c.customerDocNote && (
+                            <span className="text-[10px] text-gray-500 italic block truncate">
+                              Thế chấp: {c.customerDocNote}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Duration */}
+                        <div className="space-y-0.5 sm:col-span-2 md:col-span-1">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase block">Thời gian thuê</span>
+                          <span className="font-medium text-gray-800 block">
+                            {c.is6Hours
+                              ? `Thuê 6h (${c.startTime || '08:00'} - ${c.returnTime || '14:00'}) ngày ${formatDMY(c.startDate)}`
+                              : `Từ ${formatDMY(c.startDate)} đến ${formatDMY(c.endDate)}`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Pricing strip */}
+                      <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-between flex-wrap gap-2 text-xs font-mono">
+                        <div>
+                          <span className="text-gray-500 text-[10px] block font-sans font-bold">Tổng doanh số đơn</span>
+                          <span className="font-black text-gray-950 text-sm">{fullTotal.toLocaleString()} đ</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-[10px] block font-sans font-bold">Đã cọc / thu</span>
+                          <span className="font-bold text-blue-700">{paid.toLocaleString()} đ</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-[10px] block font-sans font-bold">Còn lại khi trả</span>
+                          <span className={`font-black ${remaining > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                            {remaining > 0 ? `${remaining.toLocaleString()} đ` : 'Đã thanh toán đủ'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4 sm:space-y-6">
       {/* Timeframe selector card */}
       <div className="bg-white border border-gray-200 p-3 sm:p-5 rounded-xl sm:rounded-2xl shadow-xs space-y-3 sm:space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
@@ -1651,6 +2221,8 @@ export default function RevenueDashboard({
           </div>
         </div>
       </div>
+    </div>
+  )}
 
       {/* POPUP MODAL: SPECIFIC RENTAL DATES & REVENUE DETAILS FOR SELECTED EQUIPMENT */}
       {modalCameraDetail && typeof document !== 'undefined' && createPortal(
@@ -2229,6 +2801,19 @@ export default function RevenueDashboard({
           </div>
         </div>,
         document.body
+      )}
+
+      {/* MODAL 3: K57 RECEIPT MODAL */}
+      {showReceiptModal && selectedReceiptContract && (
+        <K57ReceiptModal
+          isOpen={showReceiptModal}
+          onClose={() => {
+            setShowReceiptModal(false);
+            setSelectedReceiptContract(null);
+          }}
+          contract={selectedReceiptContract}
+          bankConfig={bankConfig}
+        />
       )}
     </div>
   );
