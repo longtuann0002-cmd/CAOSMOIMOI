@@ -940,9 +940,10 @@ export default function RevenueDashboard({
 
       {dashboardViewMode === 'daily_closing' ? (
         <div className="space-y-4 sm:space-y-6 animate-fade-in">
-          {/* Header Card with Date Selector */}
-          <div className="bg-white border border-gray-200 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl shadow-xs space-y-3 sm:space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Header Card with Clean Integrated Date Controller */}
+          <div className="bg-white border border-gray-200 p-3.5 sm:p-5 rounded-2xl shadow-xs space-y-3 sm:space-y-4">
+            {/* Top row: Title + Quick Day Presets */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <span className="p-2 sm:p-2.5 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl text-white shadow-xs shrink-0">
                   <Zap className="w-5 h-5" />
@@ -957,77 +958,92 @@ export default function RevenueDashboard({
                 </div>
               </div>
 
-              {/* Day navigator & Quick pickers */}
-              <div className="flex items-center flex-wrap gap-2">
-                {/* Prev day */}
+              {/* Quick filter presets */}
+              <div className="inline-flex items-center p-1 bg-gray-100 rounded-xl border border-gray-200 self-start sm:self-auto select-none gap-1">
+                <button
+                  type="button"
+                  onClick={handleSelectToday}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    closingDate === todayStr
+                      ? 'bg-white text-orange-700 font-black shadow-xs border border-gray-200'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'
+                  }`}
+                >
+                  ⚡ Hôm nay
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSelectYesterday}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    closingDate === (() => {
+                      const d = new Date(); d.setDate(d.getDate() - 1);
+                      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    })()
+                      ? 'bg-white text-orange-700 font-black shadow-xs border border-gray-200'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'
+                  }`}
+                >
+                  ⏮️ Hôm qua
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom row: Integrated Date Selector & Result Badge */}
+            <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/40 to-orange-50/80 border border-orange-200 rounded-xl p-2.5 sm:p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 select-none">
+              {/* Date navigator */}
+              <div className="flex items-center gap-1.5 min-w-0">
                 <button
                   type="button"
                   onClick={() => handleChangeClosingDay(-1)}
-                  className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition cursor-pointer border border-gray-250 shadow-3xs"
-                  title="Xem ngày trước"
+                  className="p-1.5 sm:p-2 rounded-lg bg-white hover:bg-orange-100 text-gray-700 hover:text-orange-900 transition cursor-pointer border border-orange-200 shadow-3xs shrink-0"
+                  title="Ngày trước"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                {/* Date input with styled wrapper */}
-                <div className="relative flex items-center bg-orange-50/70 border border-orange-200 rounded-xl px-2.5 py-1.5 shadow-3xs">
-                  <Calendar className="w-4 h-4 text-orange-600 mr-2 shrink-0" />
+                {/* Clickable date box with invisible native date picker */}
+                <label className="relative flex items-center gap-2 bg-white border border-orange-200 hover:border-orange-400 px-3 py-1.5 rounded-lg shadow-3xs cursor-pointer transition min-w-0 group">
+                  <Calendar className="w-4 h-4 text-orange-600 shrink-0" />
+                  <span className="font-black text-xs sm:text-sm text-gray-900 truncate">
+                    {formatVietnameseDateLabel(closingDate)}
+                  </span>
+                  {closingDate === todayStr && (
+                    <span className="bg-orange-600 text-white text-[9.5px] font-black px-1.5 py-0.2 rounded shrink-0">
+                      HÔM NAY
+                    </span>
+                  )}
+                  {/* Invisible native date input overlay */}
                   <input
                     type="date"
                     value={closingDate}
-                    onChange={(e) => setClosingDate(e.target.value)}
-                    className="bg-transparent font-black text-xs sm:text-sm text-gray-900 focus:outline-none cursor-pointer font-mono"
+                    onChange={(e) => {
+                      if (e.target.value) setClosingDate(e.target.value);
+                    }}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    title="Bấm để chọn ngày khác trong lịch"
                   />
-                </div>
+                </label>
 
-                {/* Next day */}
                 <button
                   type="button"
                   onClick={() => handleChangeClosingDay(1)}
-                  className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition cursor-pointer border border-gray-250 shadow-3xs"
-                  title="Xem ngày sau"
+                  className="p-1.5 sm:p-2 rounded-lg bg-white hover:bg-orange-100 text-gray-700 hover:text-orange-900 transition cursor-pointer border border-orange-200 shadow-3xs shrink-0"
+                  title="Ngày sau"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
-
-                {/* Quick Today / Yesterday */}
-                <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
-                  <button
-                    type="button"
-                    onClick={handleSelectToday}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border shadow-3xs ${
-                      closingDate === todayStr
-                        ? 'bg-orange-600 text-white border-orange-600 font-black ring-2 ring-orange-300'
-                        : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-250'
-                    }`}
-                  >
-                    ⚡ Hôm nay
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSelectYesterday}
-                    className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-gray-700 hover:bg-gray-100 border border-gray-250 transition cursor-pointer shadow-3xs"
-                  >
-                    ⏮️ Hôm qua
-                  </button>
-                </div>
               </div>
-            </div>
 
-            {/* Current Selected Date Banner */}
-            <div className="bg-gradient-to-r from-orange-50 via-amber-50/50 to-orange-50 border border-orange-200/80 rounded-xl p-2.5 sm:p-3 flex items-center justify-between flex-wrap gap-2 text-xs">
-              <span className="font-extrabold text-orange-950 flex items-center gap-1.5">
-                <span>🗓️ Đang xem ngày:</span>
-                <span className="text-orange-700 underline underline-offset-2">{formatVietnameseDateLabel(closingDate)}</span>
-                {closingDate === todayStr && (
-                  <span className="bg-orange-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
-                    Hôm nay
-                  </span>
-                )}
-              </span>
-              <span className="font-mono text-gray-600 font-bold">
-                Chốt được: <strong className="text-orange-600 font-black">{closingDateSummary.count}</strong> hợp đồng
-              </span>
+              {/* Status summary tag */}
+              <div className="flex items-center gap-2 self-start sm:self-auto text-xs font-mono font-bold">
+                <span className="text-gray-500 font-sans">Chốt đơn:</span>
+                <span className="px-2.5 py-1 rounded-lg bg-white border border-orange-200 text-orange-800 font-black shadow-3xs flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-orange-600"></span>
+                  <span>{closingDateSummary.count} hợp đồng</span>
+                  <span className="text-gray-300">|</span>
+                  <span className="text-emerald-700">{closingDateSummary.totalRevenue.toLocaleString()}đ</span>
+                </span>
+              </div>
             </div>
           </div>
 
