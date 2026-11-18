@@ -561,6 +561,39 @@ export default function App() {
           return merged;
         });
       }
+      // Đồng bộ customers thời gian thực đa thiết bị (PC <-> Mobile)
+      if (key === 'customers' && Array.isArray(data) && data.length > 0) {
+        setCustomers(prev => {
+          const map = new Map<string, Customer>();
+          (data || []).forEach(c => { if (c && c.id) map.set(c.id, c); });
+          (prev || []).forEach(c => { if (c && c.id) map.set(c.id, c); });
+          const merged = Array.from(map.values());
+          saveStoredData('customers', merged);
+          return merged;
+        });
+      }
+      // Đồng bộ expenses thời gian thực đa thiết bị (PC <-> Mobile)
+      if (key === 'expenses' && Array.isArray(data) && data.length > 0) {
+        setExpenses(prev => {
+          const map = new Map<string, Expense>();
+          (data || []).forEach(e => { if (e && e.id) map.set(e.id, e); });
+          (prev || []).forEach(e => { if (e && e.id) map.set(e.id, e); });
+          const merged = Array.from(map.values());
+          saveStoredData('expenses', merged);
+          return merged;
+        });
+      }
+      // Đồng bộ snapshots thời gian thực đa thiết bị (PC lưu điểm khôi phục -> Mobile hiện ngay lập tức)
+      if (key === 'camlease_snapshots' && Array.isArray(data) && data.length > 0) {
+        setSnapshots(prev => {
+          const map = new Map<string, any>();
+          (data || []).forEach(s => { if (s && s.id) map.set(s.id, s); });
+          (prev || []).forEach(s => { if (s && s.id) map.set(s.id, s); });
+          const merged = Array.from(map.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          saveStoredData('camlease_snapshots', merged);
+          return merged;
+        });
+      }
     });
 
 

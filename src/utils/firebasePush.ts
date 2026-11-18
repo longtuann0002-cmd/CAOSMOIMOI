@@ -371,6 +371,9 @@ export function listenToCrossDeviceAlerts(
         }
       });
     }, (err) => {
+      if (err.code === 'permission-denied' || (err.message && err.message.toLowerCase().includes('permissions'))) {
+        return;
+      }
       console.warn('Firestore subscription status:', err.message);
     });
   } catch (e) {
@@ -563,6 +566,10 @@ export function subscribeToFirestoreDoc(key: string, onUpdate: (data: any) => vo
         }
       }
     }, (err) => {
+      // Khi Firestore chưa cấp quyền hoặc hệ thống đã chạy qua Supabase Cloud, bỏ qua để giữ Console sạch sẽ
+      if (err.code === 'permission-denied' || (err.message && err.message.toLowerCase().includes('permissions'))) {
+        return;
+      }
       console.warn(`[Firestore Realtime] Subscription error for "${key}":`, err.message);
     });
   } catch (err) {
