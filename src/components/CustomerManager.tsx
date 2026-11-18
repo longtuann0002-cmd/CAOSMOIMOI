@@ -63,8 +63,96 @@ export default function CustomerManager({
     notes: ''
   });
 
-  // Calculate customer debt and financials helper (smart matching via isContractOfCustomer)
+  // Pre-index (tiền lập chỉ mục) toàn bộ dữ liệu hợp đồng & tài chính cho từng khách hàng
+  // Chỉ tính 1 LẦN DUY NHẤT khi customers hoặc contracts thay đổi (O(N*M)), loại bỏ hoàn toàn nghẽn UI
+  const customerMetricsMap = useMemo(() => {
+    const map = new Map<string, {
+      contracts: RentalContract[];
+      sortedContracts: RentalContract[];
+      count: number;
+      spent: number;
+      totalDebt: number;
+      totalExpected: number;
+      debtContractsCount: number;
+      pendingDepositCount: number;
+      pendingDepositAmount: number;
+      latestContractTime: number;
+    }>();
+
+    const validContracts = (contracts || []).filter(c => c && c.status !== 'Cancelled');
+
+    (customers || []).forEach(cust => {
+      if (!cust || !cust.id) return;
+
+      const custContracts = validContracts.filter(c => isContractOfCustomer(c, cust));
+      
+      const sortedContracts = [...custContracts].sort(
+        (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      );
+
+      const totalDebt = custContracts.reduce(
+        (sum, c) => sum + Math.max(0, ((c.totalPrice || 0) + (c.extraFee || 0)) - (c.paidAmount || 0)), 
+        0
+      );
+
+      const totalSpent = custContracts.reduce((sum, c) => {
+        const actualPaid = c.status === 'Completed'
+          ? Math.max(c.paidAmount || 0, (c.totalPrice || 0) + (c.extraFee || 0))
+          : (c.paidAmount || 0);
+        return sum + actualPaid;
+      }, 0);
+
+      const totalExpected = custContracts.reduce((sum, c) => sum + ((c.totalPrice || 0) + (c.extraFee || 0)), 0);
+      const debtContractsCount = custContracts.filter(
+        c => ((c.totalPrice || 0) + (c.extraFee || 0)) > (c.paidAmount || 0)
+      ).length;
+
+      const pendingContracts = custContracts.filter(
+        c => c.status === 'Pending' && (c.paidAmount || 0) < Math.round((c.totalPrice || 0) * 0.5)
+      );
+      const pendingDepositCount = pendingContracts.length;
+      const pendingDepositAmount = pendingContracts.reduce((sum, c) => {
+        const reqDeposit = Math.round((c.totalPrice || 0) * 0.5);
+        return sum + Math.max(0, reqDeposit - (c.paidAmount || 0));
+      }, 0);
+
+      let latestContractTime = 0;
+      custContracts.forEach(c => {
+        const t = new Date(c.startDate).getTime();
+        if (t > latestContractTime) latestContractTime = t;
+      });
+
+      map.set(cust.id, {
+        contracts: custContracts,
+        sortedContracts,
+        count: custContracts.length || (cust.rentalCount || 0),
+        spent: totalSpent,
+        totalDebt,
+        totalExpected,
+        debtContractsCount,
+        pendingDepositCount,
+        pendingDepositAmount,
+        latestContractTime
+      });
+    });
+
+    return map;
+  }, [customers, contracts]);
+
+  // Calculate customer debt and financials helper (tra cứu O(1) từ map)
   const getCustomerFinancials = (custOrPhone: Customer | string) => {
+    if (typeof custOrPhone !== 'string' && custOrPhone?.id && customerMetricsMap.has(custOrPhone.id)) {
+      const m = customerMetricsMap.get(custOrPhone.id)!;
+      return {
+        custContracts: m.contracts,
+        totalDebt: m.totalDebt,
+        totalSpent: m.spent,
+        totalExpected: m.totalExpected,
+        debtContractsCount: m.debtContractsCount,
+        pendingDepositCount: m.pendingDepositCount,
+        pendingDepositAmount: m.pendingDepositAmount
+      };
+    }
     const cust: Partial<Customer> | null = typeof custOrPhone === 'string' ? { phone: custOrPhone } : custOrPhone;
     if (!cust || (!cust.phone && !cust.id && !cust.name)) {
       return {
@@ -88,7 +176,6 @@ export default function CustomerManager({
     const totalExpected = custContracts.reduce((sum, c) => sum + ((c.totalPrice || 0) + (c.extraFee || 0)), 0);
     const debtContractsCount = custContracts.filter(c => ((c.totalPrice || 0) + (c.extraFee || 0)) > (c.paidAmount || 0)).length;
     
-    // Pending reservation deposits (Đơn chờ cọc 50% giữ máy - Chỉ tính đơn chưa cọc đủ 50%)
     const pendingContracts = custContracts.filter(c => c.status === 'Pending' && (c.paidAmount || 0) < Math.round((c.totalPrice || 0) * 0.5));
     const pendingDepositCount = pendingContracts.length;
     const pendingDepositAmount = pendingContracts.reduce((sum, c) => {
@@ -124,20 +211,20 @@ export default function CustomerManager({
   }, [contracts]);
 
   const debtorCount = useMemo(() => {
-    return (customers || []).filter(cust => {
-      if (!cust) return false;
-      const { totalDebt } = getCustomerFinancials(cust);
-      return totalDebt > 0;
-    }).length;
-  }, [contracts, customers]);
+    let count = 0;
+    for (const m of customerMetricsMap.values()) {
+      if (m.totalDebt > 0) count++;
+    }
+    return count;
+  }, [customerMetricsMap]);
 
   const pendingDepositCustomerCount = useMemo(() => {
-    return (customers || []).filter(cust => {
-      if (!cust) return false;
-      const { pendingDepositCount } = getCustomerFinancials(cust);
-      return pendingDepositCount > 0;
-    }).length;
-  }, [contracts, customers]);
+    let count = 0;
+    for (const m of customerMetricsMap.values()) {
+      if (m.pendingDepositCount > 0) count++;
+    }
+    return count;
+  }, [customerMetricsMap]);
 
   const filteredCustomers = useMemo(() => {
     return (customers || [])
@@ -153,34 +240,38 @@ export default function CustomerManager({
           return false;
         }
 
-        // Filter by financial status
+        const metrics = customerMetricsMap.get(c.id);
+        const debt = metrics?.totalDebt || 0;
+        const pendingCount = metrics?.pendingDepositCount || 0;
+
+        // Filter by financial status (tra cứu O(1))
         if (debtFilter === 'UNPAID_DEPOSIT') {
-          const { pendingDepositCount } = getCustomerFinancials(c);
-          return pendingDepositCount > 0;
+          return pendingCount > 0;
         }
         if (debtFilter === 'HAS_DEBT') {
-          const { totalDebt } = getCustomerFinancials(c);
-          return totalDebt > 0;
+          return debt > 0;
         }
         if (debtFilter === 'NO_DEBT') {
-          const { totalDebt, pendingDepositCount } = getCustomerFinancials(c);
-          return totalDebt === 0 && pendingDepositCount === 0;
+          return debt === 0 && pendingCount === 0;
         }
 
         return true;
       })
       .sort((a, b) => {
-        const contractsA = (contracts || []).filter(c => c && isContractOfCustomer(c, a) && c.status !== 'Cancelled');
-        const contractsB = (contracts || []).filter(c => c && isContractOfCustomer(c, b) && c.status !== 'Cancelled');
+        const mA = customerMetricsMap.get(a.id);
+        const mB = customerMetricsMap.get(b.id);
 
-        const countA = contractsA.length || (a.rentalCount || 0);
-        const countB = contractsB.length || (b.rentalCount || 0);
+        const countA = mA?.count ?? (a.rentalCount || 0);
+        const countB = mB?.count ?? (b.rentalCount || 0);
 
-        const spentA = contractsA.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
-        const spentB = contractsB.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
+        const spentA = mA?.spent ?? 0;
+        const spentB = mB?.spent ?? 0;
 
-        const financialsA = getCustomerFinancials(a);
-        const financialsB = getCustomerFinancials(b);
+        const debtA = mA?.totalDebt ?? 0;
+        const debtB = mB?.totalDebt ?? 0;
+
+        const pendingAmtA = mA?.pendingDepositAmount ?? 0;
+        const pendingAmtB = mB?.pendingDepositAmount ?? 0;
 
         if (sortBy === 'RENTAL_DESC') {
           if (countB !== countA) return countB - countA;
@@ -200,28 +291,22 @@ export default function CustomerManager({
         }
 
         if (sortBy === 'DEBT_DESC') {
-          if (financialsB.totalDebt !== financialsA.totalDebt) {
-            return financialsB.totalDebt - financialsA.totalDebt;
+          if (debtB !== debtA) {
+            return debtB - debtA;
           }
           return countB - countA;
         }
 
         if (sortBy === 'PENDING_DEPOSIT') {
-          if (financialsB.pendingDepositAmount !== financialsA.pendingDepositAmount) {
-            return financialsB.pendingDepositAmount - financialsA.pendingDepositAmount;
+          if (pendingAmtB !== pendingAmtA) {
+            return pendingAmtB - pendingAmtA;
           }
           return countB - countA;
         }
 
         if (sortBy === 'LATEST_CONTRACT') {
-          const latestA = contractsA.reduce((max, c) => {
-            const time = new Date(c.startDate).getTime();
-            return time > max ? time : max;
-          }, 0);
-          const latestB = contractsB.reduce((max, c) => {
-            const time = new Date(c.startDate).getTime();
-            return time > max ? time : max;
-          }, 0);
+          const latestA = mA?.latestContractTime ?? 0;
+          const latestB = mB?.latestContractTime ?? 0;
           if (latestB !== latestA) return latestB - latestA;
           return countB - countA;
         }
@@ -244,7 +329,7 @@ export default function CustomerManager({
 
         return 0;
       });
-  }, [customers, searchQuery, debtFilter, trustFilter, sortBy, contracts]);
+  }, [customers, searchQuery, debtFilter, trustFilter, sortBy, customerMetricsMap]);
 
   // Pagination Configuration
   const [currentPage, setCurrentPage] = useState(1);
@@ -601,10 +686,8 @@ export default function CustomerManager({
       {/* Grid List - 2 columns on mobile, scales up on larger screens */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
         {paginatedCustomers.map(cust => {
-          const sortedContracts = (contracts || [])
-            .filter(contract => isContractOfCustomer(contract, cust))
-            .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-
+          const metrics = customerMetricsMap.get(cust.id);
+          const sortedContracts = metrics?.sortedContracts || [];
           const financials = getCustomerFinancials(cust);
 
           return (
@@ -1019,9 +1102,12 @@ export default function CustomerManager({
       {/* Customer detailed order history modal */}
       {selectedCustomerForHistory && typeof document !== 'undefined' && createPortal(
         (() => {
-          const sortedContracts = (contracts || [])
-            .filter(contract => isContractOfCustomer(contract, selectedCustomerForHistory))
-            .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+          const cached = customerMetricsMap.get(selectedCustomerForHistory.id);
+          const sortedContracts = cached
+            ? cached.sortedContracts
+            : (contracts || [])
+                .filter(contract => isContractOfCustomer(contract, selectedCustomerForHistory))
+                .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
           // Reverse to show newest orders first
           const displayContracts = [...sortedContracts].reverse();
