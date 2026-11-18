@@ -3,8 +3,6 @@ import { createPortal } from 'react-dom';
 import { Camera, RentalContract } from '../types';
 import MoneyInput from './MoneyInput';
 import { Search, Plus, Filter, Camera as CameraIcon, CheckCircle, Flame, Server, ShieldCheck, RefreshCw, Trash2, Edit2, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Image as ImageIcon, Upload, Link as LinkIcon, Sparkles, ArrowLeft, ArrowRight, GripVertical } from 'lucide-react';
-import { getInitialTieredPrices } from '../utils/pricing';
-import RentalFrequencyChart from './RentalFrequencyChart';
 import { matchCamera } from '../utils/searchUtils';
 import { useScrollLock } from '../utils/useScrollLock';
 
@@ -331,13 +329,6 @@ export default function EquipmentTracker({
 
   return (
     <div className="space-y-6">
-      {/* Biểu đồ tần suất thuê thiết bị trong tháng gần nhất bằng D3 */}
-      <RentalFrequencyChart
-        cameras={cameras}
-        contracts={contracts}
-        systemDate={systemDate}
-      />
-
       {/* Search and filter tools */}
       <div className="bg-white border border-gray-150 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm space-y-3.5 sm:space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
