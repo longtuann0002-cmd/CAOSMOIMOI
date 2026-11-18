@@ -18,6 +18,19 @@ import { matchContract, matchCamera, matchCustomer } from './utils/searchUtils';
 import { compressImageFile } from './utils/imageUtils';
 import { deduplicateContracts, generateNextContractCode, mergeContracts, addDeletedContractIds, removeDeletedContractIds, getDeletedContractIds, isMockContract, KNOWN_MOCK_CONTRACT_IDS } from './utils/contractUtils';
 
+/**
+ * Hợp nhất thông minh danh sách cameras: local luôn thắng, cloud chỉ bổ sung thiết bị chưa có.
+ * Tránh tình trạng cloud ghi đè xóa thiết bị vừa được thêm mới ở local.
+ */
+function mergeCameras(local: Camera[], cloud: Camera[]): Camera[] {
+  const map = new Map<string, Camera>();
+  // Ưu tiên local trước (mới nhất, do người dùng vừa chỉnh sửa)
+  (local || []).forEach(c => { if (c && c.id) map.set(c.id, c); });
+  // Cloud chỉ bổ sung những thiết bị chưa có trong local
+  (cloud || []).forEach(c => { if (c && c.id && !map.has(c.id)) map.set(c.id, c); });
+  return Array.from(map.values());
+}
+
 
 // Component imports
 import BookingCalendar from './components/BookingCalendar';
@@ -513,7 +526,16 @@ export default function App() {
           return prev;
         });
       }
+      // Đồng bộ cameras từ Supabase Realtime — dùng merge để không mất thiết bị mới
+      if (key === 'cameras' && Array.isArray(data) && data.length > 0) {
+        setCameras(prev => {
+          const merged = mergeCameras(prev, data);
+          saveStoredData('cameras', merged);
+          return merged;
+        });
+      }
     });
+
 
     // Lắng nghe thay đổi thời gian thực từ Firestore Cloud Docs (Đồng bộ đa thiết bị PC <-> Mobile)
     const unsubFirestoreBrand = subscribeToFirestoreDoc('brand_settings_store', (brand) => {
@@ -532,9 +554,11 @@ export default function App() {
 
     const unsubFirestoreCameras = subscribeToFirestoreDoc('cameras_store', (cams) => {
       if (Array.isArray(cams) && cams.length > 0) {
-        setCameras(cams);
+        // Dùng merge thay vì ghi đè: local luôn thắng, cloud chỉ bổ sung thiết bị mới
+        setCameras(prev => mergeCameras(prev, cams));
       }
     });
+
 
     const unsubFirestoreDeleted = subscribeToFirestoreDoc('deleted_contracts_store', (delIds) => {
       if (Array.isArray(delIds) && delIds.length > 0) {
@@ -968,8 +992,11 @@ export default function App() {
           saveStoredData('contracts', deduplicated);
         }
 
+        // Merge thông minh: local luôn thắng, cloud chỉ bổ sung thiết bị chưa có ở local
         if (cloudCameras !== null) {
-          setCameras(cloudCameras);
+          const mergedCameras = mergeCameras(localCameras, cloudCameras);
+          setCameras(mergedCameras);
+          saveStoredData('cameras', mergedCameras);
         } else {
           setCameras(localCameras);
         }
@@ -1406,8 +1433,12 @@ export default function App() {
         ? await fetchFromSupabase('cameras').catch(() => null)
         : await fetchDataFromFirestore('cameras_store').catch(() => null);
       if (cloudCameras && Array.isArray(cloudCameras) && cloudCameras.length > 0) {
-        setCameras(cloudCameras);
-        saveStoredData('cameras', cloudCameras);
+        // Merge để không mất thiết bị mới chưa kịp sync cloud khi đăng nhập lại
+        setCameras(prev => {
+          const merged = mergeCameras(prev, cloudCameras);
+          saveStoredData('cameras', merged);
+          return merged;
+        });
       }
 
       // 4. Kéo customers
