@@ -3821,6 +3821,7 @@ export default function App() {
                   customers={customers}
                   onAddContract={handleAddContract}
                   onUpdateContract={handleUpdateContract}
+                  onUpdateContractStatus={handleUpdateContractStatus}
                   onDeleteContract={currentUser?.role === 'admin' ? handleDeleteContract : undefined}
                   selectedDate={selectedDate}
                   setSelectedDate={setSelectedDate}

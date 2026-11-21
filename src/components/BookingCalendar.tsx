@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, RentalContract, BankConfig, Customer } from '../types';
+import { Camera, RentalContract, BankConfig, Customer, ContractStatus } from '../types';
 import MoneyInput from './MoneyInput';
-import { Plus, Search, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check, Shield, DollarSign, Share2, Printer } from 'lucide-react';
+import { Plus, Search, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, Camera as CameraIcon, AlertTriangle, CheckCircle, Info, Trash2, CreditCard, Settings, Phone, Copy, Sparkles, Clock, User, Filter, Eye, Image as ImageIcon, FileText, Zap, Edit2, X, Save, Check, Shield, DollarSign, Share2, Printer } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { getCameraRateForDuration, checkBookingConflict, add6Hours, getPrintPrice } from '../utils/pricing';
 import { loadStoredData, saveStoredData } from '../utils/mockData';
@@ -65,12 +65,41 @@ const renderDocTypeLabel = (docType: string) => {
   }
 };
 
+const getStatusBadgeClass = (status: ContractStatus) => {
+  switch (status) {
+    case 'Pending':
+      return 'bg-amber-100 text-amber-800 border-amber-200';
+    case 'Active':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'Completed':
+      return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+    case 'Overdue':
+      return 'bg-rose-100 text-rose-800 border-rose-200';
+    case 'Cancelled':
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
+};
+
+const getStatusLabel = (status: ContractStatus) => {
+  switch (status) {
+    case 'Pending': return 'Chờ bàn giao';
+    case 'Active': return 'Đang thuê';
+    case 'Completed': return 'Đã hoàn thành';
+    case 'Overdue': return 'Quá hạn trả';
+    case 'Cancelled': return 'Đã hủy đơn';
+    default: return status;
+  }
+};
+
 interface BookingCalendarProps {
   cameras: Camera[];
   contracts: RentalContract[];
   customers?: Customer[];
   onAddContract: (contract: RentalContract) => void;
   onUpdateContract?: (contract: RentalContract) => void;
+  onUpdateContractStatus?: (id: string, status: ContractStatus, note?: string, paidAmount?: number) => void;
   onDeleteContract?: (id: string) => void;
   selectedDate: string;
   setSelectedDate: (date: string) => void;
@@ -135,6 +164,7 @@ export default function BookingCalendar({
   customers = [],
   onAddContract,
   onUpdateContract,
+  onUpdateContractStatus,
   onDeleteContract,
   selectedDate,
   setSelectedDate,
@@ -746,6 +776,14 @@ export default function BookingCalendar({
   const [rulesDraft, setRulesDraft] = useState<string>('');
   const [saveRulesAsDefault, setSaveRulesAsDefault] = useState(false);
 
+  // States for editing deposit / collateral
+  const [editingDeposit, setEditingDeposit] = useState(false);
+  const [depositDraft, setDepositDraft] = useState({
+    amount: 0,
+    docType: 'CCCD_And_1M' as RentalContract['customerDocType'],
+    docNote: ''
+  });
+
   // Hàm mở hóa đơn và khởi tạo toàn bộ draft state
   const openReceiptModal = (c: RentalContract) => {
     setQuickReceiptContract(c);
@@ -766,6 +804,43 @@ export default function BookingCalendar({
     setEditingRules(false);
     setRulesDraft(c.rentalRules || localStorage.getItem('caos_default_rental_rules') || DEFAULT_RENTAL_RULES);
     setSaveRulesAsDefault(false);
+    setEditingDeposit(false);
+    setDepositDraft({
+      amount: c.depositAmount || 0,
+      docType: c.customerDocType || 'CCCD_And_1M',
+      docNote: c.customerDocNote || ''
+    });
+  };
+
+  const handleSaveDeposit = () => {
+    if (!quickReceiptContract) return;
+    const updated: RentalContract = {
+      ...quickReceiptContract,
+      depositAmount: depositDraft.amount,
+      customerDocType: depositDraft.docType,
+      customerDocNote: depositDraft.docNote
+    };
+    setQuickReceiptContract(updated);
+    if (onUpdateContract) {
+      onUpdateContract(updated);
+    }
+    setEditingDeposit(false);
+  };
+
+  const handleStatusChange = (contractId: string, newStatus: ContractStatus) => {
+    if (onUpdateContractStatus) {
+      onUpdateContractStatus(contractId, newStatus);
+    }
+    setQuickReceiptContract(prev => {
+      if (prev && prev.id === contractId) {
+        const updated = { ...prev, status: newStatus };
+        if (!onUpdateContractStatus && onUpdateContract) {
+          onUpdateContract(updated);
+        }
+        return updated;
+      }
+      return prev;
+    });
   };
 
   const [previewReceiptImage, setPreviewReceiptImage] = useState<{ url: string; filename: string } | null>(null);
@@ -1470,14 +1545,30 @@ export default function BookingCalendar({
                         </span>
                         <h4 className="font-extrabold text-gray-900 text-sm truncate">{b.cameraName}</h4>
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 border ${
-                        b.contract.status === 'Active' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                        b.contract.status === 'Overdue' ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
-                        'bg-gray-100 text-gray-700 border-gray-200'
-                      }`}>
-                        {b.contract.status === 'Active' ? 'Đang thuê' :
-                         b.contract.status === 'Overdue' ? 'Quá hạn' : 'Đã xong'}
-                      </span>
+                      <div className="relative inline-block" title="Nhấn để đổi trạng thái" onClick={e => e.stopPropagation()}>
+                        <div className={`inline-flex items-center gap-1 border text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 cursor-pointer hover:ring-2 hover:ring-orange-400/50 transition-all ${getStatusBadgeClass(b.contract.status)}`}>
+                          <span>{getStatusLabel(b.contract.status)}</span>
+                          <ChevronDown className="w-3 h-3 opacity-60 shrink-0" />
+                        </div>
+                        <select
+                          value={b.contract.status}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            const newStatus = e.target.value as ContractStatus;
+                            if (newStatus !== b.contract.status) {
+                              handleStatusChange(b.contract.id, newStatus);
+                            }
+                          }}
+                          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                          title="Đổi trạng thái hợp đồng"
+                        >
+                          <option value="Pending">⏳ Chờ bàn giao (Pending)</option>
+                          <option value="Active">🔵 Đang thuê (Active)</option>
+                          <option value="Completed">✅ Đã hoàn thành (Completed)</option>
+                          <option value="Overdue">🔴 Quá hạn trả (Overdue)</option>
+                          <option value="Cancelled">⚪ Đã hủy đơn (Cancelled)</option>
+                        </select>
+                      </div>
                     </div>
 
                     <div className="bg-white p-2.5 rounded-xl border border-gray-150 space-y-1.5 text-xs">
@@ -2573,6 +2664,35 @@ export default function BookingCalendar({
                     <span className="text-gray-300 font-normal">•</span>
                     <span>Ngày lập: {new Date(quickReceiptContract.createdAt).toLocaleString('vi-VN')}</span>
                   </div>
+                  {/* Status Badge & Quick Status Selector */}
+                  <div className="flex items-center justify-center gap-1.5 pt-0.5">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Trạng thái:</span>
+                    <div className="relative inline-block" title="Nhấn để đổi trạng thái">
+                      <div className={`inline-flex items-center gap-1 border text-[10.5px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-3xs cursor-pointer hover:ring-2 hover:ring-orange-400/50 transition-all ${getStatusBadgeClass(quickReceiptContract.status)}`}>
+                        <span>{getStatusLabel(quickReceiptContract.status)}</span>
+                        {!isExportingReceipt && <ChevronDown className="w-3 h-3 opacity-60 shrink-0" />}
+                      </div>
+                      {!isExportingReceipt && (
+                        <select
+                          value={quickReceiptContract.status}
+                          onChange={(e) => {
+                            const newStatus = e.target.value as ContractStatus;
+                            if (newStatus !== quickReceiptContract.status) {
+                              handleStatusChange(quickReceiptContract.id, newStatus);
+                            }
+                          }}
+                          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                          title="Đổi trạng thái hợp đồng"
+                        >
+                          <option value="Pending">⏳ Chờ bàn giao (Pending)</option>
+                          <option value="Active">🔵 Đang thuê (Active)</option>
+                          <option value="Completed">✅ Đã hoàn thành (Completed)</option>
+                          <option value="Overdue">🔴 Quá hạn trả (Overdue)</option>
+                          <option value="Cancelled">⚪ Đã hủy đơn (Cancelled)</option>
+                        </select>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Section 1: Customer details & Timings */}
@@ -3101,16 +3221,135 @@ export default function BookingCalendar({
                 </div>
 
                 {/* KHỐI TÀI SẢN THẾ CHẤP — tách riêng, không lẫn với tiền thuê */}
-                <div className="bg-gray-50/80 border border-gray-200 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <Shield className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider leading-none mb-0.5">Tài sản thế chấp</p>
-                      <p className="text-xs text-gray-500 font-medium truncate">Hoàn trả khi trả máy</p>
+                {editingDeposit ? (
+                  <div className="bg-orange-50/80 border border-orange-200 rounded-xl p-3 space-y-2.5 text-xs text-left" data-no-export="true">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-black text-orange-900 tracking-wider flex items-center gap-1">
+                        <Shield className="w-3.5 h-3.5 text-orange-600" />
+                        <span>CHỈNH SỬA TÀI SẢN THẾ CHẤP</span>
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-700 block mb-1">
+                        Tiền cọc thế chấp (VNĐ):
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        step={50000}
+                        value={depositDraft.amount}
+                        onChange={(e) => setDepositDraft(d => ({ ...d, amount: Math.max(0, parseInt(e.target.value) || 0) }))}
+                        className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm font-mono font-bold bg-white text-gray-900 focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                        placeholder="0"
+                      />
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {[0, 500000, 1000000, 2000000, 3000000, 5000000].map(amt => (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => setDepositDraft(d => ({ ...d, amount: amt }))}
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border transition cursor-pointer ${
+                              depositDraft.amount === amt
+                                ? 'bg-orange-600 text-white border-orange-600'
+                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                            }`}
+                          >
+                            {amt === 0 ? '0đ' : `${(amt / 1000).toLocaleString()}k`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-700 block mb-1">
+                          Hình thức thế chấp:
+                        </label>
+                        <select
+                          value={depositDraft.docType}
+                          onChange={(e) => setDepositDraft(d => ({ ...d, docType: e.target.value as RentalContract['customerDocType'] }))}
+                          className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white text-gray-900 font-bold focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                        >
+                          <option value="CCCD_And_1M">Giữ CCCD gốc + 1.000.000đ</option>
+                          <option value="CCCD">Giữ CCCD gốc</option>
+                          <option value="GPLX">Giữ GPLX gốc</option>
+                          <option value="Passport">Giữ hộ chiếu (Passport)</option>
+                          <option value="CashDeposit">Đặt cọc tiền mặt</option>
+                          <option value="Other">Tài sản khác / Xe máy</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-700 block mb-1">
+                          Ghi chú giấy tờ / tài sản:
+                        </label>
+                        <input
+                          type="text"
+                          value={depositDraft.docNote}
+                          onChange={(e) => setDepositDraft(d => ({ ...d, docNote: e.target.value }))}
+                          placeholder="Số CCCD hoặc tài sản..."
+                          className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white text-gray-900 font-medium focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleSaveDeposit}
+                        className="flex-1 flex items-center justify-center gap-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-1.5 rounded-lg transition cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" /> Lưu thế chấp
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingDeposit(false)}
+                        className="px-3 py-1.5 text-xs font-bold text-gray-600 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+                      >
+                        Hủy
+                      </button>
                     </div>
                   </div>
-                  <span className="font-bold text-gray-700 font-mono text-sm shrink-0">{quickReceiptContract.depositAmount.toLocaleString()}đ</span>
-                </div>
+                ) : (
+                  <div className="bg-gray-50/80 border border-gray-200 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <Shield className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider leading-none">Tài sản thế chấp</p>
+                          <span className="text-[9.5px] font-bold text-orange-700 bg-orange-100/70 px-1 py-0.2 rounded">
+                            {renderDocTypeLabel(quickReceiptContract.customerDocType)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 font-medium truncate mt-0.5">
+                          {quickReceiptContract.customerDocNote?.trim() ? quickReceiptContract.customerDocNote.trim() : 'Hoàn trả khi trả máy'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-bold text-gray-700 font-mono text-sm">{quickReceiptContract.depositAmount.toLocaleString()}đ</span>
+                      {!isExportingReceipt && onUpdateContract && (
+                        <button
+                          type="button"
+                          data-no-export="true"
+                          onClick={() => {
+                            setDepositDraft({
+                              amount: quickReceiptContract.depositAmount || 0,
+                              docType: quickReceiptContract.customerDocType || 'CCCD_And_1M',
+                              docNote: quickReceiptContract.customerDocNote || ''
+                            });
+                            setEditingDeposit(true);
+                          }}
+                          className="no-export-item flex items-center gap-1 text-[10px] font-bold text-orange-600 hover:bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-lg transition cursor-pointer"
+                          title="Sửa thế chấp"
+                        >
+                          <Edit2 className="w-3 h-3" /> Sửa
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* LƯU Ý & NỘI QUY THUÊ MÁY (Được xuất trong ảnh hoá đơn & in ấn) */}
                 <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-2.5 sm:p-3 space-y-1.5 text-xs">
