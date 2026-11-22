@@ -1910,12 +1910,17 @@ export default function App() {
           updatedTarget = updatedContract;
 
           // Adjust camera statuses based on contract transition
-          if (status === 'Completed' || status === 'Cancelled') {
+          if (status === 'Completed' || status === 'Cancelled' || status === 'Pending') {
             setCameras(prevCams =>
               prevCams.map(cam => {
                 const wasRented = c.items.some(i => i.cameraId === cam.id);
                 if (wasRented) {
-                  return { ...cam, status: 'Available' as const };
+                  const stillRented = prev.some(
+                    ct => ct.id !== c.id && (ct.status === 'Active' || ct.status === 'Overdue') && ct.items.some(i => i.cameraId === cam.id)
+                  );
+                  if (!stillRented) {
+                    return { ...cam, status: 'Available' as const };
+                  }
                 }
                 return cam;
               })

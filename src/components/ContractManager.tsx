@@ -2903,6 +2903,7 @@ export default function ContractManager({
                               onUpdateContractStatus(selectedContract.id, 'Pending', 'Khách hàng chưa thanh toán tiền cọc 50% để giữ máy.', 0);
                               setSelectedContract({
                                 ...selectedContract,
+                                status: 'Pending',
                                 paidAmount: 0
                               });
                             }}
@@ -2922,6 +2923,7 @@ export default function ContractManager({
                               onUpdateContractStatus(selectedContract.id, 'Pending', 'Đã nhận đủ 50% tiền cọc giữ máy chuyển khoản từ khách hàng.', deposit50);
                               setSelectedContract({
                                 ...selectedContract,
+                                status: 'Pending',
                                 paidAmount: deposit50
                               });
                             }}
@@ -2941,6 +2943,7 @@ export default function ContractManager({
                               onUpdateContractStatus(selectedContract.id, 'Pending', 'Khách hàng đã thanh toán trước đủ 100% tiền thuê.', totalPrice);
                               setSelectedContract({
                                 ...selectedContract,
+                                status: 'Pending',
                                 paidAmount: totalPrice
                               });
                             }}

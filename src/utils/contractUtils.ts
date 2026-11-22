@@ -323,14 +323,8 @@ export function mergeContracts(
         secondary = existing;
       }
 
-      // QUY TẮC BẢO TOÀN TRẠNG THÁI: Tuyệt đối không bao giờ để trạng thái hạ cấp từ 'Active'/'Completed' về 'Pending'
-      // trừ khi bản ghi Pending có updatedAt mới hơn rõ rệt
-      let resolvedStatus = primary.status;
-      if (primary.status === 'Pending' && (secondary.status === 'Active' || secondary.status === 'Completed' || secondary.status === 'Overdue')) {
-        if (incTime <= existingTime) {
-          resolvedStatus = secondary.status;
-        }
-      }
+      // Trạng thái được bảo lưu theo bản cập nhật mới nhất (primary có updatedAt mới hơn)
+      const resolvedStatus = primary.status;
 
       const mergedItem: RentalContract = {
         ...secondary,
