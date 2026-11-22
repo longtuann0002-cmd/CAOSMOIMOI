@@ -2214,13 +2214,13 @@ export default function ContractManager({
                           </div>
                         ) : (
                           <div className="space-y-1 text-xs">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-nowrap">
                               <span className="text-gray-500 font-medium text-[11px] whitespace-nowrap shrink-0">Bắt đầu:</span>
-                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs">{formatDMY(selectedContract.startDate)}</strong>
+                              <strong className="text-gray-900 font-bold font-mono text-[10.5px] sm:text-xs whitespace-nowrap">{formatDMY(selectedContract.startDate)}</strong>
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-nowrap">
                               <span className="text-gray-500 font-medium text-[11px] whitespace-nowrap shrink-0">Hạn trả máy:</span>
-                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs">
+                              <strong className="text-gray-900 font-bold font-mono text-[10.5px] sm:text-xs whitespace-nowrap">
                                 {selectedContract.is6Hours ? `Gói 6h (${selectedContract.startTime || '08:00'} - ${selectedContract.returnTime || '14:00'})` : formatDMY(selectedContract.endDate)}
                               </strong>
                             </div>
