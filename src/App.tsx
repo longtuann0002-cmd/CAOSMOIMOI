@@ -3329,7 +3329,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-[100dvh] bg-white md:bg-[#f4f5f8] flex font-sans select-none antialiased w-full overflow-hidden p-0 md:p-3 md:gap-3">
+    <div className="h-[100dvh] bg-white md:bg-[#f4f5f8] flex font-sans antialiased w-full max-w-full overflow-hidden p-0 md:p-3 md:gap-3">
       
       {/* MODERN FLOATING RAIL / EXPANDABLE SIDEBAR - Matching Reference Design */}
       <aside 
@@ -3559,7 +3559,7 @@ export default function App() {
       </aside>
 
       {/* RIGHT MAIN WORKSPACE CANVAS - Grand Floating Sheet Matching Reference Image */}
-      <div className="flex-grow flex flex-col min-w-0 h-full bg-white rounded-none md:rounded-[28px] border-0 md:border md:border-slate-200/70 md:shadow-[0_4px_30px_rgba(0,0,0,0.03)] overflow-hidden relative">
+      <div className="flex-grow flex flex-col min-w-0 w-full max-w-full h-full bg-white rounded-none md:rounded-[28px] border-0 md:border md:border-slate-200/70 md:shadow-[0_4px_30px_rgba(0,0,0,0.03)] overflow-hidden relative">
         
         {/* SLEEK MODERN HEADER BAR */}
         <header className="px-3.5 sm:px-6 pt-[max(6px,calc(env(safe-area-inset-top,0px)+2px))] pb-2 sm:py-3.5 flex items-center justify-between border-b border-slate-100/90 select-none shrink-0 bg-white backdrop-blur-md sticky top-0 z-30">
@@ -3810,9 +3810,16 @@ export default function App() {
         </div>
 
         {/* MAIN BODY AREA */}
-        <main className="flex-grow w-full px-3 sm:px-6 md:px-8 py-3 sm:py-6 pb-24 md:pb-6 overflow-y-auto" style={{ paddingBottom: 'max(96px, calc(env(safe-area-inset-bottom, 0px) + 76px))' }}>
+        <main 
+          className="flex-grow w-full max-w-full px-2 sm:px-6 md:px-8 py-2.5 sm:py-6 pb-24 md:pb-6 overflow-y-auto overflow-x-hidden touch-pan-y" 
+          style={{ 
+            WebkitOverflowScrolling: 'touch', 
+            overscrollBehaviorY: 'contain',
+            paddingBottom: 'max(96px, calc(env(safe-area-inset-bottom, 0px) + 76px))' 
+          }}
+        >
 
-          <div className="w-full">
+          <div className="w-full max-w-full overflow-hidden">
             {activeTab === 'calendar' && (
               <TabErrorBoundary tabName="Lịch Đặt Máy">
                 <BookingCalendar

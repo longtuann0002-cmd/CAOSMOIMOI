@@ -1045,9 +1045,9 @@ export default function BookingCalendar({
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3.5 sm:space-y-6 w-full max-w-full overflow-hidden">
       {/* Real-time Camera Status & Filter Bar - Ultra Compact */}
-      <div className="bg-white border border-gray-150/70 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 shadow-3xs">
+      <div className="bg-white border border-gray-150/70 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 shadow-3xs w-full max-w-full overflow-hidden">
         <div className="flex items-center justify-between gap-2 mb-1.5 pb-1.5 border-b border-gray-100">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="w-2 h-2 rounded-full bg-orange-600 animate-pulse shrink-0"></span>
@@ -1150,7 +1150,7 @@ export default function BookingCalendar({
       </div>
 
       {/* Main Calendar Section */}
-      <div className="bg-white border border-gray-150/70 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+      <div className="bg-white border border-gray-150/70 rounded-xl sm:rounded-2xl p-2 sm:p-5 shadow-sm w-full max-w-full overflow-hidden">
         {/* Calendar Header with Navigation */}
         <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3.5 mb-3 sm:mb-4 border-b border-gray-100 pb-3.5 sm:pb-4">
           {/* Title & Today on Mobile */}
@@ -1268,20 +1268,20 @@ export default function BookingCalendar({
         </div>
 
         {/* Calendar Grid Container */}
-        <div className="w-full pb-1">
+        <div className="w-full max-w-full pb-1 overflow-x-auto sm:overflow-visible scrollbar-none">
           {/* Day Grid Headers: T2 ở đầu, CN ở cuối */}
-          <div className="grid grid-cols-7 gap-1 bg-slate-100/70 py-2 px-1 rounded-xl text-center font-black text-gray-600 text-[11px] sm:text-xs tracking-wider mb-2 select-none">
-            <div>T2</div>
-            <div>T3</div>
-            <div>T4</div>
-            <div>T5</div>
-            <div>T6</div>
-            <div>T7</div>
-            <div className="text-rose-600 font-black">CN</div>
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-2 bg-slate-100/70 py-1.5 sm:py-2 px-0.5 sm:px-1 rounded-xl text-center font-black text-gray-600 text-[10px] sm:text-xs tracking-wider mb-1 sm:mb-2 select-none w-full min-w-0">
+            <div className="truncate">T2</div>
+            <div className="truncate">T3</div>
+            <div className="truncate">T4</div>
+            <div className="truncate">T5</div>
+            <div className="truncate">T6</div>
+            <div className="truncate">T7</div>
+            <div className="text-rose-600 font-black truncate">CN</div>
           </div>
 
           {/* Calendar Day Cells */}
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-2 w-full min-w-0">
             {calendarDays.map(({ day, isCurrentMonth, dateString }) => {
               const allBookings = dayBookingsMap[dateString] || [];
               const bookings = selectedCameraFilter === 'ALL'
@@ -1310,29 +1310,29 @@ export default function BookingCalendar({
                 <div
                   key={dateString}
                   onClick={() => handleDayClick(dateString)}
-                  className={`border rounded-xl p-1 sm:p-2 cursor-pointer transition-all flex flex-col justify-start gap-1 sm:gap-1.5 ${statusStyle} ${monthStyle} ${
+                  className={`border rounded-lg sm:rounded-xl p-0.5 sm:p-2 cursor-pointer transition-all flex flex-col justify-start gap-0.5 sm:gap-1.5 min-w-0 w-full overflow-hidden ${statusStyle} ${monthStyle} ${
                     isSelected ? 'ring-2 ring-orange-500 border-orange-500 bg-orange-50/30 shadow-xs' : 'hover:shadow-3xs'
-                  } ${viewMode === 'week' ? 'min-h-[85px] sm:min-h-[160px]' : 'min-h-[56px] sm:min-h-[96px]'}`}
+                  } ${viewMode === 'week' ? 'min-h-[75px] sm:min-h-[160px]' : 'min-h-[48px] sm:min-h-[96px]'}`}
                 >
                   {/* Cell Header: Day number + count badge */}
-                  <div className="flex justify-between items-center pb-0.5 sm:pb-1">
-                    <span className={`text-[11px] sm:text-xs font-black inline-flex items-center justify-center ${
+                  <div className="flex justify-between items-center pb-0.5 sm:pb-1 w-full min-w-0">
+                    <span className={`text-[10px] sm:text-xs font-black inline-flex items-center justify-center shrink-0 ${
                       isToday 
-                        ? 'w-5 h-5 rounded-full bg-orange-600 text-white shadow-3xs' 
+                        ? 'w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-orange-600 text-white shadow-3xs text-[8.5px] sm:text-xs' 
                         : (isCurrentMonth ? (isSelected ? 'text-orange-700' : 'text-gray-800') : 'text-gray-400')
                     }`}>
                       {day}
                     </span>
                     {bookingCount > 0 && (
-                      <span className="bg-white/95 border border-gray-200 text-gray-700 text-[8px] sm:text-[9.5px] font-black px-1.5 py-0.5 rounded-full shadow-3xs leading-none">
+                      <span className="bg-white/95 border border-gray-200 text-gray-700 text-[7px] sm:text-[9.5px] font-black px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded-full shadow-3xs leading-none shrink-0">
                         {bookingCount}
                       </span>
                     )}
                   </div>
 
-                  {/* Mobile View: High-contrast micro-labels - Show all booked devices */}
-                  <div className="flex md:hidden flex-col gap-0.5 mt-0.5 select-none w-full">
-                    {bookings.map((b, idx) => {
+                  {/* Mobile View: High-contrast micro-labels - Show top 3 on mobile with overflow count */}
+                  <div className="flex md:hidden flex-col gap-0.5 mt-0.5 select-none w-full min-w-0 overflow-hidden">
+                    {bookings.slice(0, 3).map((b, idx) => {
                       const colors = getCameraColorProps(b.cameraShort);
                       return (
                         <div
@@ -1341,22 +1341,27 @@ export default function BookingCalendar({
                             e.stopPropagation();
                             openReceiptModal(b.contract);
                           }}
-                          className={`px-1 py-0.5 rounded-[4px] text-[8px] font-black tracking-tight leading-tight border-0 border-l-[2.5px] ${colors.border} ${colors.bgClass} flex items-center justify-between truncate w-full shadow-3xs cursor-pointer active:scale-95 transition`}
+                          className={`px-0.5 py-0.2 rounded-[3px] text-[7.5px] font-black tracking-tight leading-tight border-0 border-l-[2px] ${colors.border} ${colors.bgClass} flex items-center justify-between min-w-0 w-full shadow-3xs cursor-pointer active:scale-95 transition overflow-hidden`}
                           title={`Bấm xem hóa đơn: ${b.cameraName} (${b.contract.customerName})`}
                         >
-                          <span className="truncate">{b.cameraShort}</span>
+                          <span className="truncate min-w-0 flex-1">{b.cameraShort}</span>
                           {b.isPrinter ? (
-                            <span className="text-[7px] font-bold text-rose-800 shrink-0">{b.printCount ?? '?'}t</span>
+                            <span className="text-[6.5px] font-bold text-rose-800 shrink-0 ml-0.5">{b.printCount ?? '?'}t</span>
                           ) : b.contract.is6Hours ? (
-                            <span className="text-[7px] font-bold text-amber-800 shrink-0">6h</span>
+                            <span className="text-[6.5px] font-bold text-amber-800 shrink-0 ml-0.5">6h</span>
                           ) : null}
                         </div>
                       );
                     })}
+                    {bookings.length > 3 && (
+                      <span className="text-[7px] font-black text-gray-500 bg-gray-100/90 rounded px-1 py-0.2 text-center truncate block leading-none">
+                        +{bookings.length - 3} máy
+                      </span>
+                    )}
                   </div>
 
                   {/* Desktop View: Booking item text blocks - Show all booked devices */}
-                  <div className="hidden md:block space-y-1 mt-0.5 flex-grow select-none">
+                  <div className="hidden md:block space-y-1 mt-0.5 flex-grow select-none min-w-0 w-full overflow-hidden">
                     {bookings.map((b, idx) => {
                       const colors = getCameraColorProps(b.cameraShort);
                       const subLabel = b.isPrinter
@@ -1430,7 +1435,7 @@ export default function BookingCalendar({
               </div>
 
               {calendarDaysWithBookings.length > 0 ? (
-                <div className="max-h-[300px] overflow-y-auto pr-1 space-y-2 scrollbar-none">
+                <div className="space-y-2">
                   {calendarDaysWithBookings.map(({ dateString, day }) => {
                     const dayBookings = dayBookingsMap[dateString] || [];
                     const formattedDate = () => {

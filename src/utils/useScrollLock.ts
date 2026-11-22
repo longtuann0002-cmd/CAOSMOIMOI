@@ -7,12 +7,21 @@ let originalPaddingRight = '';
 
 export function useScrollLock(isLocked: boolean) {
   useEffect(() => {
-    if (!isLocked) return;
+    if (!isLocked) {
+      if (lockCount <= 0) {
+        lockCount = 0;
+        document.body.style.overflow = '';
+        document.body.style.touchAction = '';
+        document.body.style.paddingRight = '';
+        document.body.classList.remove('modal-locked');
+      }
+      return;
+    }
 
     if (lockCount === 0) {
-      originalOverflow = document.body.style.overflow;
-      originalTouchAction = document.body.style.touchAction;
-      originalPaddingRight = document.body.style.paddingRight;
+      originalOverflow = document.body.style.overflow || '';
+      originalTouchAction = document.body.style.touchAction || '';
+      originalPaddingRight = document.body.style.paddingRight || '';
 
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = 'hidden';
