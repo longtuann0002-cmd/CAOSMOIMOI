@@ -2703,21 +2703,8 @@ export default function BookingCalendar({
                       <div className="space-y-1">
                         <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">THÔNG TIN KHÁCH THUÊ</h4>
                         <p className="font-black text-gray-900 text-sm sm:text-base">{quickReceiptContract.customerName}</p>
-                        <div className="text-xs space-y-1.5">
+                        <div className="text-xs space-y-1">
                           <p className="text-gray-600 font-mono font-bold">SĐT: {quickReceiptContract.customerPhone}</p>
-                          <p className="text-gray-600 text-xs truncate flex items-center gap-1">
-                            <span className="text-gray-500 font-medium shrink-0">Thế chấp:</span>
-                            <span className="font-bold font-mono text-gray-850 truncate">
-                              {quickReceiptContract.customerDocType === 'Other'
-                                ? (quickReceiptContract.customerDocNote?.trim() || 'Tài sản khác')
-                                : `${renderDocTypeLabel(quickReceiptContract.customerDocType)}${
-                                    quickReceiptContract.customerDocNote?.trim() && 
-                                    !['Giữ CCCD gốc + 1.000.000đ', 'Giữ CCCD gốc', 'Giữ GPLX gốc', 'Giữ Hộ chiếu gốc', 'Đặt cọc tiền mặt'].includes(quickReceiptContract.customerDocNote.trim())
-                                      ? ` (${quickReceiptContract.customerDocNote.trim()})`
-                                      : ''
-                                  }`}
-                            </span>
-                          </p>
                         </div>
                       </div>
 

@@ -2050,21 +2050,8 @@ export default function ContractManager({
                       ) : (
                         <div className="space-y-1">
                           <p className="font-black text-gray-900 text-sm sm:text-base">{selectedContract.customerName}</p>
-                          <div className="text-xs space-y-1.5">
+                          <div className="text-xs space-y-1">
                             <p className="text-gray-600 font-mono font-bold">SĐT: {selectedContract.customerPhone}</p>
-                            <p className="text-gray-600 text-xs truncate flex items-center gap-1">
-                              <span className="text-gray-500 font-medium shrink-0">Thế chấp:</span>
-                              <span className="font-bold font-mono text-gray-850 truncate">
-                                {selectedContract.customerDocType === 'Other'
-                                  ? (selectedContract.customerDocNote?.trim() || 'Tài sản khác')
-                                  : `${renderDocTypeLabel(selectedContract.customerDocType)}${
-                                      selectedContract.customerDocNote?.trim() && 
-                                      !['Giữ CCCD gốc + 1.000.000đ', 'Giữ CCCD gốc', 'Giữ GPLX gốc', 'Giữ Hộ chiếu gốc', 'Đặt cọc tiền mặt'].includes(selectedContract.customerDocNote.trim())
-                                        ? ` (${selectedContract.customerDocNote.trim()})`
-                                        : ''
-                                    }`}
-                              </span>
-                            </p>
                           </div>
                         </div>
                       )}
