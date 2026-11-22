@@ -2664,35 +2664,6 @@ export default function BookingCalendar({
                     <span className="text-gray-300 font-normal">•</span>
                     <span>Ngày lập: {new Date(quickReceiptContract.createdAt).toLocaleString('vi-VN')}</span>
                   </div>
-                  {/* Status Badge & Quick Status Selector */}
-                  <div className="flex items-center justify-center gap-1.5 pt-0.5">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Trạng thái:</span>
-                    <div className="relative inline-block" title="Nhấn để đổi trạng thái">
-                      <div className={`inline-flex items-center gap-1 border text-[10.5px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-3xs cursor-pointer hover:ring-2 hover:ring-orange-400/50 transition-all ${getStatusBadgeClass(quickReceiptContract.status)}`}>
-                        <span>{getStatusLabel(quickReceiptContract.status)}</span>
-                        {!isExportingReceipt && <ChevronDown className="w-3 h-3 opacity-60 shrink-0" />}
-                      </div>
-                      {!isExportingReceipt && (
-                        <select
-                          value={quickReceiptContract.status}
-                          onChange={(e) => {
-                            const newStatus = e.target.value as ContractStatus;
-                            if (newStatus !== quickReceiptContract.status) {
-                              handleStatusChange(quickReceiptContract.id, newStatus);
-                            }
-                          }}
-                          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-                          title="Đổi trạng thái hợp đồng"
-                        >
-                          <option value="Pending">⏳ Chờ bàn giao (Pending)</option>
-                          <option value="Active">🔵 Đang thuê (Active)</option>
-                          <option value="Completed">✅ Đã hoàn thành (Completed)</option>
-                          <option value="Overdue">🔴 Quá hạn trả (Overdue)</option>
-                          <option value="Cancelled">⚪ Đã hủy đơn (Cancelled)</option>
-                        </select>
-                      )}
-                    </div>
-                  </div>
                 </div>
 
                 {/* Section 1: Customer details & Timings */}
@@ -2895,13 +2866,13 @@ export default function BookingCalendar({
                           </div>
                         ) : (
                           <div className="space-y-1 text-xs">
-                            <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1.5">
                               <span className="text-gray-500 font-medium text-[11px] whitespace-nowrap shrink-0">Bắt đầu:</span>
-                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs whitespace-nowrap">{formatDMY(quickReceiptContract.startDate)}</strong>
+                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs">{formatDMY(quickReceiptContract.startDate)}</strong>
                             </div>
-                            <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1.5">
                               <span className="text-gray-500 font-medium text-[11px] whitespace-nowrap shrink-0">Hạn trả máy:</span>
-                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs whitespace-nowrap">
+                              <strong className="text-gray-900 font-bold font-mono text-[11px] sm:text-xs">
                                 {quickReceiptContract.is6Hours ? `Gói 6h (${quickReceiptContract.startTime || '08:00'} - ${quickReceiptContract.returnTime || '14:00'})` : formatDMY(quickReceiptContract.endDate)}
                               </strong>
                             </div>
