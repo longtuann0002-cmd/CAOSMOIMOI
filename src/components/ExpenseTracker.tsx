@@ -3,23 +3,26 @@ import { createPortal } from 'react-dom';
 import { Expense } from '../types';
 import MoneyInput from './MoneyInput';
 import { formatDMY } from '../utils/dateUtils';
-import { Search, Plus, Trash2, Tag, Calendar, User, DollarSign, ListCollapse, ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Trash2, Tag, Calendar, User, DollarSign, ListCollapse, ChevronLeft, ChevronRight, FileSpreadsheet, Pencil } from 'lucide-react';
 import { useScrollLock } from '../utils/useScrollLock';
 
 interface ExpenseTrackerProps {
   expenses: Expense[];
   onAddExpense: (expense: Expense) => void;
+  onUpdateExpense?: (expense: Expense) => void;
   onDeleteExpense: (id: string) => void;
 }
 
 export default function ExpenseTracker({
   expenses,
   onAddExpense,
+  onUpdateExpense,
   onDeleteExpense
 }: ExpenseTrackerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -66,6 +69,32 @@ export default function ExpenseTracker({
     return filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
   }, [filteredExpenses]);
 
+  const handleOpenAddModal = () => {
+    setEditingExpense(null);
+    setFormState({
+      description: '',
+      amount: 150000,
+      date: new Date().toISOString().split('T')[0],
+      category: 'Maintenance',
+      operator: 'Người vận hành'
+    });
+    setValidationError(null);
+    setShowAddModal(true);
+  };
+
+  const handleOpenEditModal = (exp: Expense) => {
+    setEditingExpense(exp);
+    setFormState({
+      description: exp.description,
+      amount: exp.amount,
+      date: exp.date,
+      category: exp.category,
+      operator: exp.operator
+    });
+    setValidationError(null);
+    setShowAddModal(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formState.description || !formState.amount) {
@@ -73,13 +102,23 @@ export default function ExpenseTracker({
       return;
     }
 
-    const newExp: Expense = {
-      id: `exp-${Date.now()}`,
-      ...formState
-    };
+    if (editingExpense) {
+      if (onUpdateExpense) {
+        onUpdateExpense({
+          ...editingExpense,
+          ...formState
+        });
+      }
+    } else {
+      const newExp: Expense = {
+        id: `exp-${Date.now()}`,
+        ...formState
+      };
+      onAddExpense(newExp);
+    }
 
-    onAddExpense(newExp);
     setShowAddModal(false);
+    setEditingExpense(null);
     setValidationError(null);
     // Reset
     setFormState({
@@ -180,7 +219,7 @@ export default function ExpenseTracker({
               <FileSpreadsheet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" /> Xuất bản CSV
             </button>
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={handleOpenAddModal}
               className="bg-orange-600 text-white font-extrabold sm:font-medium px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[11px] sm:text-sm flex items-center justify-center gap-1.5 hover:bg-orange-700 transition-all cursor-pointer shadow-2xs"
             >
               <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" /> Ghi chi tiêu
@@ -274,15 +313,24 @@ export default function ExpenseTracker({
                       -{exp.amount.toLocaleString()}đ
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => {
-                          setDeleteConfirmId(exp.id);
-                        }}
-                        className="text-gray-400 hover:text-rose-650 p-2 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        title="Xóa hóa đơn chi"
-                      >
-                        <Trash2 className="w-4.5 h-4.5" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => handleOpenEditModal(exp)}
+                          className="text-gray-400 hover:text-amber-600 p-2 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                          title="Sửa hóa đơn chi"
+                        >
+                          <Pencil className="w-4.5 h-4.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeleteConfirmId(exp.id);
+                          }}
+                          className="text-gray-400 hover:text-rose-650 p-2 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="Xóa hóa đơn chi"
+                        >
+                          <Trash2 className="w-4.5 h-4.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -315,7 +363,7 @@ export default function ExpenseTracker({
                     <span className="font-mono font-black text-sm text-rose-650 block">
                       -{exp.amount.toLocaleString()}đ
                     </span>
-                    <span className="text-[10px] text-gray-400 font-medium block mt-0.5">Xuất hóa đơn</span>
+                    <span className="text-[10px] text-gray-400 font-medium block mt-0.5">Đã ghi sổ</span>
                   </div>
                 </div>
 
@@ -331,13 +379,22 @@ export default function ExpenseTracker({
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setDeleteConfirmId(exp.id)}
-                    className="text-gray-400 hover:text-rose-650 active:bg-rose-50/50 p-1.5 rounded-lg transition-all cursor-pointer"
-                    title="Xóa hóa đơn chi"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEditModal(exp)}
+                      className="text-gray-400 hover:text-amber-600 active:bg-amber-50/50 p-1.5 rounded-lg transition-all cursor-pointer"
+                      title="Sửa hóa đơn chi"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirmId(exp.id)}
+                      className="text-gray-400 hover:text-rose-650 active:bg-rose-50/50 p-1.5 rounded-lg transition-all cursor-pointer"
+                      title="Xóa hóa đơn chi"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
@@ -405,11 +462,14 @@ export default function ExpenseTracker({
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden self-center border border-gray-100 animate-scale-up flex flex-col max-h-[90vh]">
             <div className="bg-orange-600 text-white px-6 py-4 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-lg flex items-center gap-2">
-                <DollarSign className="w-5 h-5" /> Kê Khai Khoản Chi Vận Hành Mới
+                <DollarSign className="w-5 h-5" /> {editingExpense ? 'Chỉnh Sửa Khoản Chi Phí' : 'Kê Khai Khoản Chi Vận Hành Mới'}
               </h3>
               <button
                 type="button"
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingExpense(null);
+                }}
                 className="text-white hover:text-gray-200 font-bold text-xl cursor-pointer"
               >
                 &times;
@@ -496,7 +556,10 @@ export default function ExpenseTracker({
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setEditingExpense(null);
+                  }}
                   className="px-4 py-2 text-sm font-medium text-gray-650 hover:bg-gray-105 rounded-xl transition-colors cursor-pointer"
                 >
                   Hủy bỏ
@@ -505,7 +568,7 @@ export default function ExpenseTracker({
                   type="submit"
                   className="bg-orange-600 text-white font-medium px-5 py-2 rounded-xl text-sm hover:bg-orange-700 transition-all cursor-pointer"
                 >
-                  Lưu phiếu chi
+                  {editingExpense ? 'Lưu thay đổi' : 'Lưu phiếu chi'}
                 </button>
               </div>
             </form>

@@ -2251,6 +2251,10 @@ export default function App() {
     setExpenses(prev => [newExp, ...prev]);
   };
 
+  const handleUpdateExpense = (updatedExp: Expense) => {
+    setExpenses(prev => prev.map(e => e.id === updatedExp.id ? updatedExp : e));
+  };
+
   const handleDeleteExpense = (id: string) => {
     setExpenses(prev => prev.filter(e => e.id !== id));
   };
@@ -3913,6 +3917,7 @@ export default function App() {
                   <ExpenseTracker
                     expenses={expenses}
                     onAddExpense={handleAddExpense}
+                    onUpdateExpense={handleUpdateExpense}
                     onDeleteExpense={handleDeleteExpense}
                   />
                 ) : (

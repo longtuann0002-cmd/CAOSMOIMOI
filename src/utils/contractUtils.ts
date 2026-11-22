@@ -1,4 +1,4 @@
-import { RentalContract } from '../types';
+﻿import { RentalContract } from '../types';
 
 /**
  * Trích xuất số thứ tự từ mã hợp đồng (ví dụ: "HD-2026-104" -> 104, "HD-005" -> 5)
@@ -18,14 +18,14 @@ export function extractContractSeq(code: string, year?: number): number | null {
   }
 
   // Mẫu tổng quát: HD-YYYY-XXX
-  const genYearMatch = cleanCode.match(/^HD-\d{4}-(\\d+)$/i);
+  const genYearMatch = cleanCode.match(/^HD-\d{4}-(\d+)$/i);
   if (genYearMatch) {
     const num = parseInt(genYearMatch[1], 10);
     return isNaN(num) ? null : num;
   }
 
   // Mẫu rút gọn: HD-XXX
-  const shortMatch = cleanCode.match(/^HD-(\\d+)$/i);
+  const shortMatch = cleanCode.match(/^HD-(\d+)$/i);
   if (shortMatch) {
     const num = parseInt(shortMatch[1], 10);
     return isNaN(num) ? null : num;

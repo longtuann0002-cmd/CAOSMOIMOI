@@ -1212,14 +1212,16 @@ export default function CustomerManager({
                   {/* Financial Overview Metrics Summary */}
                   {(() => {
                     const totalCustomerSpend = sortedContracts.reduce((sum, c) => sum + (c.paidAmount || 0), 0);
-                    const totalCustomerOriginal = sortedContracts.reduce((sum, c) => sum + (c.totalPrice || 0), 0);
+                    // LOW-01 FIX: bao gồm extraFee trong tổng giá trị hợp đồng
+                    const totalCustomerOriginal = sortedContracts.reduce((sum, c) => sum + (c.totalPrice || 0) + (c.extraFee || 0), 0);
                     const pendingDepositCount = sortedContracts.filter(c => c.status === 'Pending' && ((c.paidAmount || 0) < Math.round((c.totalPrice || 0) * 0.5))).length;
                     const pendingDepositAmount = sortedContracts
                       .filter(c => c.status === 'Pending' && ((c.paidAmount || 0) < Math.round((c.totalPrice || 0) * 0.5)))
                       .reduce((sum, c) => sum + Math.max(0, Math.round((c.totalPrice || 0) * 0.5) - (c.paidAmount || 0)), 0);
+                    // MED-01 FIX: bao gồm extraFee trong tính công nợ
                     const totalCustomerDebt = sortedContracts
                       .filter(c => c.status !== 'Cancelled')
-                      .reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) - (c.paidAmount || 0)), 0);
+                      .reduce((sum, c) => sum + Math.max(0, (c.totalPrice || 0) + (c.extraFee || 0) - (c.paidAmount || 0)), 0);
 
                     return (
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
@@ -1300,7 +1302,8 @@ export default function CustomerManager({
                             return Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
                           })();
 
-                          const remainingDebt = Math.max(0, (contract.totalPrice || 0) - (contract.paidAmount || 0));
+                          // MED-02 FIX: bao gồm extraFee trong nợ từng đơn
+                          const remainingDebt = Math.max(0, (contract.totalPrice || 0) + (contract.extraFee || 0) - (contract.paidAmount || 0));
 
                           return (
                             <div 

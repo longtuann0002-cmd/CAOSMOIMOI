@@ -2083,7 +2083,7 @@ export default function RevenueDashboard({
                   type="button"
                   disabled={equipmentCurrentPage === 1}
                   onClick={() => setEquipmentCurrentPage(prev => Math.max(1, prev - 1))}
-                  className="w-6.5 h-6.5 sm:w-7 sm:h-7 flex items-center justify-center rounded-md sm:rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer shrink-0 shadow-3xs"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer shrink-0 shadow-3xs"
                   title="Trang trước"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
@@ -2104,7 +2104,7 @@ export default function RevenueDashboard({
                         key={item}
                         type="button"
                         onClick={() => setEquipmentCurrentPage(item as number)}
-                        className={`w-6.5 h-6.5 sm:w-7 sm:h-7 flex items-center justify-center rounded-md sm:rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer shrink-0 shadow-3xs ${
+                        className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold transition cursor-pointer shrink-0 shadow-3xs ${
                           equipmentCurrentPage === item
                             ? 'bg-orange-600 border border-orange-600 text-white font-black'
                             : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-950'
@@ -2119,7 +2119,7 @@ export default function RevenueDashboard({
                   type="button"
                   disabled={equipmentCurrentPage === totalEquipmentPages}
                   onClick={() => setEquipmentCurrentPage(prev => Math.min(totalEquipmentPages, prev + 1))}
-                  className="w-6.5 h-6.5 sm:w-7 sm:h-7 flex items-center justify-center rounded-md sm:rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer shrink-0 shadow-3xs"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer shrink-0 shadow-3xs"
                   title="Trang sau"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
