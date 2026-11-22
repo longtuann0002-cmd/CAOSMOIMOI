@@ -2050,8 +2050,21 @@ export default function ContractManager({
                       ) : (
                         <div className="space-y-1">
                           <p className="font-black text-gray-900 text-sm sm:text-base">{selectedContract.customerName}</p>
-                          <div className="text-xs space-y-1">
+                          <div className="text-xs space-y-1.5">
                             <p className="text-gray-600 font-mono font-bold">SĐT: {selectedContract.customerPhone}</p>
+                            <p className="text-gray-600 text-xs truncate flex items-center gap-1">
+                              <span className="text-gray-500 font-medium shrink-0">Thế chấp:</span>
+                              <span className="font-bold font-mono text-gray-850 truncate">
+                                {selectedContract.customerDocType === 'Other'
+                                  ? (selectedContract.customerDocNote?.trim() || 'Tài sản khác')
+                                  : `${renderDocTypeLabel(selectedContract.customerDocType)}${
+                                      selectedContract.customerDocNote?.trim() && 
+                                      !['Giữ CCCD gốc + 1.000.000đ', 'Giữ CCCD gốc', 'Giữ GPLX gốc', 'Giữ Hộ chiếu gốc', 'Đặt cọc tiền mặt'].includes(selectedContract.customerDocNote.trim())
+                                        ? ` (${selectedContract.customerDocNote.trim()})`
+                                        : ''
+                                    }`}
+                              </span>
+                            </p>
                           </div>
                         </div>
                       )}
@@ -2651,12 +2664,7 @@ export default function ContractManager({
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       <Shield className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                       <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider leading-none">Tài sản thế chấp</p>
-                          <span className="text-[9.5px] font-bold text-orange-700 bg-orange-100/70 px-1 py-0.2 rounded">
-                            {renderDocTypeLabel(selectedContract.customerDocType)}
-                          </span>
-                        </div>
+                        <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider leading-none">Tài sản thế chấp</p>
                         <p className="text-xs text-gray-500 font-medium truncate mt-0.5">
                           {selectedContract.customerDocNote?.trim() ? selectedContract.customerDocNote.trim() : 'Hoàn trả khi trả máy'}
                         </p>
