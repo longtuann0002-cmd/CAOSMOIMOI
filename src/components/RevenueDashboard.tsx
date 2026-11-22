@@ -145,6 +145,27 @@ export default function RevenueDashboard({
     return { count: list.length, total, totalFormatted };
   }, [contracts, todayStr]);
 
+  // Yesterday string YYYY-MM-DD
+  const yesterdayStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }, []);
+
+  // Most recent contract date (fallback when current day has no contracts)
+  const latestContractDate = useMemo(() => {
+    const dates = (contracts || [])
+      .filter(c => c && c.status !== 'Cancelled')
+      .map(c => getContractCreatedDate(c))
+      .filter(Boolean)
+      .sort()
+      .reverse();
+    return dates[0] || todayStr;
+  }, [contracts, todayStr]);
+
   // Selected date for daily closing view
   const [closingDate, setClosingDate] = useState<string>(todayStr);
   const [dailyContractSearch, setDailyContractSearch] = useState<string>('');
@@ -152,7 +173,7 @@ export default function RevenueDashboard({
   // Contracts created/closed on the selected closingDate
   const contractsClosedOnDate = useMemo(() => {
     return (contracts || []).filter(c => {
-      if (!c || c.status !== 'Cancelled') return false;
+      if (!c || c.status === 'Cancelled') return false;
       return getContractCreatedDate(c) === closingDate;
     });
   }, [contracts, closingDate]);
@@ -940,79 +961,90 @@ export default function RevenueDashboard({
 
       {dashboardViewMode === 'daily_closing' ? (
         <div className="space-y-4 sm:space-y-6 animate-fade-in">
-          {/* Header Card with Clean Integrated Date Controller */}
-          <div className="bg-white border border-gray-200 p-3.5 sm:p-5 rounded-2xl shadow-xs space-y-3 sm:space-y-4">
+          {/* Header Card with Modern, Clean Integrated Date Controller */}
+          <div className="bg-white border border-gray-200/90 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
             {/* Top row: Title + Quick Day Presets */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 sm:p-2.5 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl text-white shadow-xs shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-xs shrink-0">
                   <Zap className="w-5 h-5" />
-                </span>
+                </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
                     Doanh Thu Chốt Đơn Ngày
                   </h3>
-                  <p className="text-xs text-gray-500 leading-normal">
+                  <p className="text-xs text-gray-500">
                     Thống kê doanh số các đơn thuê được tạo mới / chốt hợp đồng theo ngày.
                   </p>
                 </div>
               </div>
 
               {/* Quick filter presets */}
-              <div className="inline-flex items-center p-1 bg-gray-100 rounded-xl border border-gray-200 self-start sm:self-auto select-none gap-1">
+              <div className="inline-flex items-center p-1 bg-gray-100/90 rounded-xl border border-gray-200/70 self-start sm:self-auto select-none gap-1">
                 <button
                   type="button"
-                  onClick={handleSelectToday}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  onClick={() => setClosingDate(todayStr)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     closingDate === todayStr
-                      ? 'bg-white text-orange-700 font-black shadow-xs border border-gray-200'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'
+                      ? 'bg-white text-orange-600 font-black shadow-xs border border-gray-200/80'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
                   }`}
                 >
                   ⚡ Hôm nay
                 </button>
                 <button
                   type="button"
-                  onClick={handleSelectYesterday}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    closingDate === (() => {
-                      const d = new Date(); d.setDate(d.getDate() - 1);
-                      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                    })()
-                      ? 'bg-white text-orange-700 font-black shadow-xs border border-gray-200'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'
+                  onClick={() => setClosingDate(yesterdayStr)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    closingDate === yesterdayStr
+                      ? 'bg-white text-orange-600 font-black shadow-xs border border-gray-200/80'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
                   }`}
                 >
                   ⏮️ Hôm qua
                 </button>
+                {latestContractDate && latestContractDate !== todayStr && latestContractDate !== yesterdayStr && (
+                  <button
+                    type="button"
+                    onClick={() => setClosingDate(latestContractDate)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      closingDate === latestContractDate
+                        ? 'bg-white text-orange-600 font-black shadow-xs border border-gray-200/80'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50'
+                    }`}
+                    title={`Xem ngày có đơn gần nhất (${formatDMY(latestContractDate)})`}
+                  >
+                    🔥 Gần nhất ({formatDMY(latestContractDate).slice(0, 5)})
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Bottom row: Integrated Date Selector & Result Badge */}
-            <div className="bg-gradient-to-r from-orange-50/80 via-amber-50/40 to-orange-50/80 border border-orange-200 rounded-xl p-2.5 sm:p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 select-none">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-gray-100">
               {/* Date navigator */}
               <div className="flex items-center gap-1.5 min-w-0">
                 <button
                   type="button"
                   onClick={() => handleChangeClosingDay(-1)}
-                  className="p-1.5 sm:p-2 rounded-lg bg-white hover:bg-orange-100 text-gray-700 hover:text-orange-900 transition cursor-pointer border border-orange-200 shadow-3xs shrink-0"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-orange-50 hover:text-orange-600 text-gray-600 transition cursor-pointer border border-gray-200 shadow-3xs shrink-0"
                   title="Ngày trước"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                {/* Clickable date box with invisible native date picker */}
-                <label className="relative flex items-center gap-2 bg-white border border-orange-200 hover:border-orange-400 px-3 py-1.5 rounded-lg shadow-3xs cursor-pointer transition min-w-0 group">
-                  <Calendar className="w-4 h-4 text-orange-600 shrink-0" />
+                {/* Modern Clickable Date Picker Pill */}
+                <label className="relative flex items-center gap-2 bg-gradient-to-r from-orange-50/70 to-amber-50/70 hover:from-orange-50 hover:to-amber-50 border border-orange-200 hover:border-orange-300 px-3 py-1.5 rounded-lg shadow-3xs cursor-pointer transition select-none group min-w-0">
+                  <Calendar className="w-4 h-4 text-orange-600 shrink-0 group-hover:scale-110 transition-transform" />
                   <span className="font-black text-xs sm:text-sm text-gray-900 truncate">
                     {formatVietnameseDateLabel(closingDate)}
                   </span>
                   {closingDate === todayStr && (
-                    <span className="bg-orange-600 text-white text-[9.5px] font-black px-1.5 py-0.2 rounded shrink-0">
+                    <span className="bg-orange-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded tracking-wide shrink-0">
                       HÔM NAY
                     </span>
                   )}
-                  {/* Invisible native date input overlay */}
+                  {/* Native date picker input overlay */}
                   <input
                     type="date"
                     value={closingDate}
@@ -1027,7 +1059,7 @@ export default function RevenueDashboard({
                 <button
                   type="button"
                   onClick={() => handleChangeClosingDay(1)}
-                  className="p-1.5 sm:p-2 rounded-lg bg-white hover:bg-orange-100 text-gray-700 hover:text-orange-900 transition cursor-pointer border border-orange-200 shadow-3xs shrink-0"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 hover:bg-orange-50 hover:text-orange-600 text-gray-600 transition cursor-pointer border border-gray-200 shadow-3xs shrink-0"
                   title="Ngày sau"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -1037,8 +1069,8 @@ export default function RevenueDashboard({
               {/* Status summary tag */}
               <div className="flex items-center gap-2 self-start sm:self-auto text-xs font-mono font-bold">
                 <span className="text-gray-500 font-sans">Chốt đơn:</span>
-                <span className="px-2.5 py-1 rounded-lg bg-white border border-orange-200 text-orange-800 font-black shadow-3xs flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-orange-600"></span>
+                <span className="px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-200 text-gray-800 font-black shadow-3xs flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${closingDateSummary.count > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}></span>
                   <span>{closingDateSummary.count} hợp đồng</span>
                   <span className="text-gray-300">|</span>
                   <span className="text-emerald-700">{closingDateSummary.totalRevenue.toLocaleString()}đ</span>
@@ -1047,71 +1079,85 @@ export default function RevenueDashboard({
             </div>
           </div>
 
-          {/* 4 Financial KPI Cards */}
+          {/* 4 Financial KPI Cards - Modern, Spacious, No Truncation */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {/* Card 1: Contracts Count */}
-            <div className="bg-white border border-gray-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-3">
-              <div className="p-2.5 sm:p-3 bg-orange-50 text-orange-600 rounded-xl shrink-0">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider block truncate">
+            <div className="bg-white border border-gray-200/90 hover:border-orange-300 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs transition-all relative overflow-hidden flex flex-col justify-between group">
+              <div className="flex items-center justify-between gap-1 mb-2">
+                <span className="text-[11px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight">
                   Số Đơn Chốt
                 </span>
-                <span className="font-mono text-base sm:text-xl font-black text-gray-900 block truncate mt-0.5">
-                  {closingDateSummary.count} <span className="text-xs font-bold font-sans text-gray-500">đơn</span>
-                </span>
-                <span className="text-[10px] text-gray-400 block truncate">Ký mới trong ngày</span>
+                <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                  <FileText className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div>
+                <div className="font-mono text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                  {closingDateSummary.count} <span className="text-xs font-bold font-sans text-gray-400">đơn</span>
+                </div>
+                <div className="text-[10px] text-gray-400 mt-1 font-medium truncate">
+                  Ký mới trong ngày
+                </div>
               </div>
             </div>
 
             {/* Card 2: Total Closed Revenue */}
-            <div className="bg-white border border-gray-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-3">
-              <div className="p-2.5 sm:p-3 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
-                <DollarSign className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider block truncate">
+            <div className="bg-white border border-gray-200/90 hover:border-emerald-300 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs transition-all relative overflow-hidden flex flex-col justify-between group">
+              <div className="flex items-center justify-between gap-1 mb-2">
+                <span className="text-[11px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight truncate" title="Tổng Doanh Số Chốt">
                   Tổng Doanh Số Chốt
                 </span>
-                <span className="font-mono text-base sm:text-xl font-black text-emerald-700 block truncate mt-0.5">
-                  {closingDateSummary.totalRevenue.toLocaleString()} đ
-                </span>
-                <span className="text-[10px] text-emerald-600 font-bold block truncate">
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <DollarSign className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div>
+                <div className="font-mono text-xl sm:text-2xl font-black text-emerald-600 tracking-tight">
+                  {closingDateSummary.totalRevenue.toLocaleString()} <span className="text-xs font-bold font-sans text-emerald-700/60">đ</span>
+                </div>
+                <div className="text-[10px] text-emerald-600 font-medium mt-1 truncate">
                   {closingDateSummary.totalExtraFee > 0 ? `(Gồm +${closingDateSummary.totalExtraFee.toLocaleString()}đ phụ phí)` : 'Tổng giá trị hợp đồng'}
-                </span>
+                </div>
               </div>
             </div>
 
             {/* Card 3: Paid / Deposited */}
-            <div className="bg-white border border-gray-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-3">
-              <div className="p-2.5 sm:p-3 bg-blue-50 text-blue-600 rounded-xl shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider block truncate">
+            <div className="bg-white border border-gray-200/90 hover:border-blue-300 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs transition-all relative overflow-hidden flex flex-col justify-between group">
+              <div className="flex items-center justify-between gap-1 mb-2">
+                <span className="text-[11px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight">
                   Tiền Đã Cọc / Thu
                 </span>
-                <span className="font-mono text-base sm:text-xl font-black text-blue-700 block truncate mt-0.5">
-                  {closingDateSummary.totalPaid.toLocaleString()} đ
-                </span>
-                <span className="text-[10px] text-blue-600 font-bold block truncate">Thực thu khi chốt</span>
+                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div>
+                <div className="font-mono text-xl sm:text-2xl font-black text-blue-600 tracking-tight">
+                  {closingDateSummary.totalPaid.toLocaleString()} <span className="text-xs font-bold font-sans text-blue-700/60">đ</span>
+                </div>
+                <div className="text-[10px] text-blue-600 font-medium mt-1 truncate">
+                  Thực thu khi chốt
+                </div>
               </div>
             </div>
 
             {/* Card 4: Remaining to collect */}
-            <div className="bg-white border border-gray-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs flex items-center gap-3">
-              <div className="p-2.5 sm:p-3 bg-amber-50 text-amber-600 rounded-xl shrink-0">
-                <Clock className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider block truncate">
+            <div className="bg-white border border-gray-200/90 hover:border-amber-300 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs transition-all relative overflow-hidden flex flex-col justify-between group">
+              <div className="flex items-center justify-between gap-1 mb-2">
+                <span className="text-[11px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight truncate" title="Chờ Thu (Giao/Trả)">
                   Chờ Thu (Giao/Trả)
                 </span>
-                <span className="font-mono text-base sm:text-xl font-black text-amber-700 block truncate mt-0.5">
-                  {closingDateSummary.totalRemaining.toLocaleString()} đ
-                </span>
-                <span className="text-[10px] text-amber-600 font-bold block truncate">Thu nốt khi khách trả máy</span>
+                <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <Clock className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div>
+                <div className="font-mono text-xl sm:text-2xl font-black text-amber-600 tracking-tight">
+                  {closingDateSummary.totalRemaining.toLocaleString()} <span className="text-xs font-bold font-sans text-amber-700/60">đ</span>
+                </div>
+                <div className="text-[10px] text-amber-600 font-medium mt-1 truncate">
+                  Thu nốt khi trả máy
+                </div>
               </div>
             </div>
           </div>
@@ -1165,15 +1211,26 @@ export default function RevenueDashboard({
                 <p className="text-xs text-gray-500 max-w-sm mx-auto">
                   Hợp đồng tạo mới trong ngày này sẽ tự động xuất hiện tại đây để bạn theo dõi doanh số chốt đơn.
                 </p>
-                {closingDate !== todayStr && (
-                  <button
-                    type="button"
-                    onClick={handleSelectToday}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 text-white rounded-lg text-xs font-bold hover:bg-orange-700 transition cursor-pointer shadow-3xs"
-                  >
-                    <span>Xem ngày Hôm nay</span>
-                  </button>
-                )}
+                <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
+                  {closingDate !== todayStr && (
+                    <button
+                      type="button"
+                      onClick={() => setClosingDate(todayStr)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 text-white rounded-lg text-xs font-bold hover:bg-orange-700 transition cursor-pointer shadow-3xs"
+                    >
+                      <span>⚡ Xem ngày Hôm nay</span>
+                    </button>
+                  )}
+                  {latestContractDate && latestContractDate !== closingDate && (
+                    <button
+                      type="button"
+                      onClick={() => setClosingDate(latestContractDate)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs font-bold transition cursor-pointer shadow-3xs"
+                    >
+                      <span>🔥 Xem ngày có đơn gần nhất ({formatDMY(latestContractDate)})</span>
+                    </button>
+                  )}
+                </div>
               </div>
             ) : filteredDailyContracts.length === 0 ? (
               <div className="p-6 text-center text-xs text-gray-500 italic">
