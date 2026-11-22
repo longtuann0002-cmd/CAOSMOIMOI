@@ -2050,43 +2050,43 @@ export default function RevenueDashboard({
 
         {/* Pagination controls for equipment */}
         {displayEquipmentList.length > 0 && (
-          <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 select-none text-xs">
-            {/* Info and page size selector */}
-            <div className="flex items-center gap-2 flex-wrap text-gray-500 font-medium">
-              <span>
-                Hiển thị <b className="font-mono text-gray-900 font-bold">{(equipmentCurrentPage - 1) * equipmentPageSize + 1}</b> - <b className="font-mono text-gray-900 font-bold">{Math.min(equipmentCurrentPage * equipmentPageSize, displayEquipmentList.length)}</b> trên <b className="font-mono text-orange-600 font-black">{displayEquipmentList.length}</b> thiết bị
+          <div className="pt-2.5 sm:pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 select-none text-xs">
+            {/* Left side on desktop / Top row on mobile: Balanced row */}
+            <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2.5 text-gray-500 font-medium text-[11px] sm:text-xs">
+              <span className="truncate">
+                Hiển thị <b className="font-mono text-gray-900 font-bold">{(equipmentCurrentPage - 1) * equipmentPageSize + 1}</b>–<b className="font-mono text-gray-900 font-bold">{Math.min(equipmentCurrentPage * equipmentPageSize, displayEquipmentList.length)}</b> trên <b className="font-mono text-orange-600 font-black">{displayEquipmentList.length}</b> thiết bị
               </span>
-              <span className="text-gray-300 hidden sm:inline">|</span>
-              <div className="flex items-center gap-1.5">
-                <span>Cỡ trang:</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-gray-300 hidden sm:inline">|</span>
+                <span className="text-gray-400 hidden sm:inline">Cỡ trang:</span>
                 <select
                   value={equipmentPageSize}
                   onChange={(e) => {
                     setEquipmentPageSize(Number(e.target.value));
                     setEquipmentCurrentPage(1);
                   }}
-                  className="bg-gray-50 border border-gray-250 rounded-lg px-2 py-1 font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-orange-500 cursor-pointer text-xs"
+                  className="bg-gray-50 hover:bg-white border border-gray-200 rounded-md sm:rounded-lg px-2 py-0.5 sm:py-1 font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-500 cursor-pointer text-[11px] sm:text-xs transition shadow-3xs"
                 >
-                  <option value={5}>5 máy / trang</option>
-                  <option value={10}>10 máy / trang</option>
-                  <option value={20}>20 máy / trang</option>
-                  <option value={50}>50 máy / trang</option>
+                  <option value={5}>5 / trang</option>
+                  <option value={10}>10 / trang</option>
+                  <option value={20}>20 / trang</option>
+                  <option value={50}>50 / trang</option>
                   <option value={1000}>Tất cả</option>
                 </select>
               </div>
             </div>
 
-            {/* Pagination buttons */}
+            {/* Pagination buttons: compact, refined & balanced */}
             {totalEquipmentPages > 1 && (
-              <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-0.5">
+              <div className="flex items-center justify-center sm:justify-end gap-1 self-center sm:self-auto">
                 <button
                   type="button"
                   disabled={equipmentCurrentPage === 1}
                   onClick={() => setEquipmentCurrentPage(prev => Math.max(1, prev - 1))}
-                  className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shrink-0 shadow-3xs"
+                  className="w-6.5 h-6.5 sm:w-7 sm:h-7 flex items-center justify-center rounded-md sm:rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer shrink-0 shadow-3xs"
                   title="Trang trước"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
 
                 {Array.from({ length: totalEquipmentPages }, (_, idx) => idx + 1)
@@ -2104,9 +2104,9 @@ export default function RevenueDashboard({
                         key={item}
                         type="button"
                         onClick={() => setEquipmentCurrentPage(item as number)}
-                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 shadow-3xs ${
+                        className={`w-6.5 h-6.5 sm:w-7 sm:h-7 flex items-center justify-center rounded-md sm:rounded-lg text-[11px] sm:text-xs font-bold transition cursor-pointer shrink-0 shadow-3xs ${
                           equipmentCurrentPage === item
-                            ? 'bg-orange-600 border border-orange-600 text-white font-black shadow-xs ring-1 ring-orange-300'
+                            ? 'bg-orange-600 border border-orange-600 text-white font-black'
                             : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-950'
                         }`}
                       >
@@ -2119,10 +2119,10 @@ export default function RevenueDashboard({
                   type="button"
                   disabled={equipmentCurrentPage === totalEquipmentPages}
                   onClick={() => setEquipmentCurrentPage(prev => Math.min(totalEquipmentPages, prev + 1))}
-                  className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shrink-0 shadow-3xs"
+                  className="w-6.5 h-6.5 sm:w-7 sm:h-7 flex items-center justify-center rounded-md sm:rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer shrink-0 shadow-3xs"
                   title="Trang sau"
                 >
-                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
