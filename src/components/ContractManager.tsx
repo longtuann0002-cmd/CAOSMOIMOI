@@ -2167,8 +2167,8 @@ export default function ContractManager({
                         <span className="text-[10px] text-orange-700 font-semibold">Chọn ngày & gói thuê</span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="min-w-0">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="min-w-0 w-full">
                           <label className="text-[10px] font-extrabold text-gray-700 uppercase block mb-1">Bắt đầu *</label>
                           <input
                             type="date"
@@ -2181,10 +2181,10 @@ export default function ContractManager({
                                 endDate: (!d.is6Hours && d.endDate < newStart) ? newStart : d.endDate
                               }));
                             }}
-                            className="w-full min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-mono font-bold bg-white text-gray-900 box-border focus:ring-1 focus:ring-orange-500"
+                            className="w-full min-w-0 max-w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold bg-white text-gray-900 box-border focus:ring-1 focus:ring-orange-500"
                           />
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 w-full">
                           <label className="text-[10px] font-extrabold text-gray-700 uppercase block mb-1">
                             {dateDraft.is6Hours ? 'Ngày thuê' : 'Hạn trả *'}
                           </label>
@@ -2194,7 +2194,7 @@ export default function ContractManager({
                             value={dateDraft.is6Hours ? dateDraft.startDate : dateDraft.endDate}
                             min={dateDraft.startDate}
                             onChange={e => setDateDraft(d => ({ ...d, endDate: e.target.value }))}
-                            className="w-full min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-mono font-bold bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400 box-border focus:ring-1 focus:ring-orange-500"
+                            className="w-full min-w-0 max-w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400 box-border focus:ring-1 focus:ring-orange-500"
                           />
                         </div>
                       </div>
@@ -2336,7 +2336,7 @@ export default function ContractManager({
                   </div>
 
                   {editingItems ? (
-                    <div className="space-y-2 bg-orange-50/70 border border-orange-200 p-2.5 rounded-xl">
+                    <div className="space-y-2 bg-orange-50/70 border border-orange-200 p-2.5 rounded-xl overflow-hidden w-full max-w-full">
                       <div className="space-y-1.5 divide-y divide-orange-200/60">
                         {itemsDraft.map((item, idx) => {
                           const cam = cameras.find(c => c.id === item.cameraId);
@@ -2378,11 +2378,11 @@ export default function ContractManager({
                       </div>
 
                       {/* Dropdown thêm thiết bị mới */}
-                      <div className="pt-2 border-t border-orange-200 flex gap-1.5">
+                      <div className="pt-2 border-t border-orange-200 flex items-center gap-2">
                         <select
                           value={selectedAddCameraId}
                           onChange={e => setSelectedAddCameraId(e.target.value)}
-                          className="flex-1 border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold bg-white text-gray-800"
+                          className="flex-1 min-w-0 w-full truncate border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-bold bg-white text-gray-800"
                         >
                           <option value="">+ Chọn máy/lens thêm vào đơn...</option>
                           {cameras
@@ -2410,7 +2410,7 @@ export default function ContractManager({
                             setItemsDraft(prev => [...prev, newItem]);
                             setSelectedAddCameraId('');
                           }}
-                          className="bg-orange-600 disabled:bg-gray-300 text-white font-bold text-xs px-2.5 py-1 rounded-lg transition cursor-pointer"
+                          className="shrink-0 bg-orange-600 disabled:bg-gray-300 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition cursor-pointer whitespace-nowrap shadow-xs"
                         >
                           Thêm
                         </button>
