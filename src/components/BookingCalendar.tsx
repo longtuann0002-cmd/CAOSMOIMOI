@@ -1180,24 +1180,27 @@ export default function BookingCalendar({
 
             {/* Filter by Camera Dropdown - Ultra Compact */}
             <div className="flex items-center gap-1.5 w-full sm:w-auto">
-              <select
-                value={selectedCameraFilter}
-                onChange={e => setSelectedCameraFilter(e.target.value)}
-                className="w-full sm:w-auto text-xs font-bold border border-gray-200 rounded-xl px-2.5 py-2 bg-white text-gray-700 hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-3xs cursor-pointer max-w-full sm:max-w-[200px] truncate"
-                title="Lọc lịch hiển thị theo thiết bị"
-              >
-                <option value="ALL">🔍 Tất cả thiết bị ({cameras.filter(c => c.status !== 'Maintenance').length})</option>
-                {cameras.filter(c => c.status !== 'Maintenance').map(c => (
-                  <option key={c.id} value={c.shortName}>
-                    {c.shortName} - {c.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative flex items-center w-full sm:w-auto">
+                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 pointer-events-none" />
+                <select
+                  value={selectedCameraFilter}
+                  onChange={e => setSelectedCameraFilter(e.target.value)}
+                  className="w-full sm:w-auto text-[11px] font-semibold border border-gray-200 rounded-xl pl-7 pr-6 py-1.5 bg-white text-gray-700 hover:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-500 shadow-3xs cursor-pointer max-w-full sm:max-w-[190px] truncate"
+                  title="Lọc lịch hiển thị theo thiết bị"
+                >
+                  <option value="ALL">Tất cả thiết bị ({cameras.filter(c => c.status !== 'Maintenance').length})</option>
+                  {cameras.filter(c => c.status !== 'Maintenance').map(c => (
+                    <option key={c.id} value={c.shortName}>
+                      {c.shortName} - {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {selectedCameraFilter !== 'ALL' && (
                 <button
                   type="button"
                   onClick={() => setSelectedCameraFilter('ALL')}
-                  className="text-[11px] text-orange-600 hover:text-orange-800 font-bold bg-orange-50 hover:bg-orange-100 px-2.5 py-2 rounded-xl border border-orange-200 cursor-pointer shrink-0 transition"
+                  className="text-[10px] text-orange-600 hover:text-orange-800 font-bold bg-orange-50 hover:bg-orange-100 px-2 py-1.5 rounded-xl border border-orange-200 cursor-pointer shrink-0 transition"
                   title="Bỏ lọc máy"
                 >
                   ✕
