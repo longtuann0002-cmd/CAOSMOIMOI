@@ -2768,7 +2768,7 @@ export default function BookingCalendar({
 
                   {/* FORM SỬA THỜI HẠN THUÊ MÁY (FULL WIDTH DƯỚI HÀNG KHÁCH + QR) */}
                   {editingDates && (
-                    <div className="mt-2.5 space-y-2.5 bg-orange-50/90 border border-orange-300 p-3 rounded-xl text-left w-full shadow-xs animate-fade-in" data-no-export="true">
+                    <div className="mt-2.5 space-y-2.5 bg-orange-50/90 border border-orange-300 p-3 rounded-xl text-left w-full shadow-xs animate-fade-in overflow-hidden" data-no-export="true">
                       <div className="flex items-center justify-between pb-1.5 border-b border-orange-200">
                         <span className="text-[11px] font-black uppercase text-orange-900 tracking-wide flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 text-orange-600" />
@@ -2777,35 +2777,41 @@ export default function BookingCalendar({
                         <span className="text-[10px] text-orange-700 font-semibold">Chọn ngày & gói thuê</span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <div className="min-w-0 w-full">
+                      <div className="space-y-2.5 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-2.5 w-full">
+                        <div className="w-full min-w-0">
                           <label className="text-[10px] font-extrabold text-gray-700 uppercase block mb-1">Bắt đầu *</label>
-                          <input
-                            type="date"
-                            value={dateDraft.startDate}
-                            onChange={e => {
-                              const newStart = e.target.value;
-                              setDateDraft(d => ({
-                                ...d,
-                                startDate: newStart,
-                                endDate: (!d.is6Hours && d.endDate < newStart) ? newStart : d.endDate
-                              }));
-                            }}
-                            className="w-full min-w-0 max-w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold bg-white text-gray-900 box-border focus:ring-1 focus:ring-orange-500"
-                          />
+                          <div className="w-full overflow-hidden rounded-lg border border-gray-300 bg-white focus-within:ring-1 focus-within:ring-orange-500 shadow-3xs">
+                            <input
+                              type="date"
+                              value={dateDraft.startDate}
+                              onChange={e => {
+                                const newStart = e.target.value;
+                                setDateDraft(d => ({
+                                  ...d,
+                                  startDate: newStart,
+                                  endDate: (!d.is6Hours && d.endDate < newStart) ? newStart : d.endDate
+                                }));
+                              }}
+                              className="w-full block border-0 px-2.5 py-1.5 text-xs font-mono font-bold bg-transparent text-gray-900 outline-none"
+                              style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', WebkitAppearance: 'none' }}
+                            />
+                          </div>
                         </div>
-                        <div className="min-w-0 w-full">
+                        <div className="w-full min-w-0">
                           <label className="text-[10px] font-extrabold text-gray-700 uppercase block mb-1">
                             {dateDraft.is6Hours ? 'Ngày thuê' : 'Hạn trả *'}
                           </label>
-                          <input
-                            type="date"
-                            disabled={dateDraft.is6Hours}
-                            value={dateDraft.is6Hours ? dateDraft.startDate : dateDraft.endDate}
-                            min={dateDraft.startDate}
-                            onChange={e => setDateDraft(d => ({ ...d, endDate: e.target.value }))}
-                            className="w-full min-w-0 max-w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400 box-border focus:ring-1 focus:ring-orange-500"
-                          />
+                          <div className={`w-full overflow-hidden rounded-lg border border-gray-300 ${dateDraft.is6Hours ? 'bg-gray-100' : 'bg-white'} focus-within:ring-1 focus-within:ring-orange-500 shadow-3xs`}>
+                            <input
+                              type="date"
+                              disabled={dateDraft.is6Hours}
+                              value={dateDraft.is6Hours ? dateDraft.startDate : dateDraft.endDate}
+                              min={dateDraft.startDate}
+                              onChange={e => setDateDraft(d => ({ ...d, endDate: e.target.value }))}
+                              className="w-full block border-0 px-2.5 py-1.5 text-xs font-mono font-bold bg-transparent text-gray-900 disabled:text-gray-400 outline-none"
+                              style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', WebkitAppearance: 'none' }}
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -2830,26 +2836,32 @@ export default function BookingCalendar({
 
                       {dateDraft.is6Hours && (
                         <div className="grid grid-cols-2 gap-2 pt-1 border-t border-orange-200/60">
-                          <div className="min-w-0">
+                          <div className="min-w-0 w-full">
                             <label className="text-[10px] font-bold text-gray-600 block mb-1">Giờ nhận</label>
-                            <input
-                              type="time"
-                              value={dateDraft.startTime}
-                              onChange={e => {
-                                const newStart = e.target.value;
-                                setDateDraft(d => ({ ...d, startTime: newStart, returnTime: add6Hours(newStart) }));
-                              }}
-                              className="w-full min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-mono bg-white text-gray-900 font-bold box-border"
-                            />
+                            <div className="w-full overflow-hidden rounded-lg border border-gray-300 bg-white focus-within:ring-1 focus-within:ring-orange-500 shadow-3xs">
+                              <input
+                                type="time"
+                                value={dateDraft.startTime}
+                                onChange={e => {
+                                  const newStart = e.target.value;
+                                  setDateDraft(d => ({ ...d, startTime: newStart, returnTime: add6Hours(newStart) }));
+                                }}
+                                className="w-full block border-0 px-2.5 py-1.5 text-xs font-mono bg-transparent text-gray-900 font-bold outline-none"
+                                style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
+                              />
+                            </div>
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 w-full">
                             <label className="text-[10px] font-bold text-gray-600 block mb-1">Giờ trả (+6h)</label>
-                            <input
-                              type="time"
-                              value={dateDraft.returnTime}
-                              onChange={e => setDateDraft(d => ({ ...d, returnTime: e.target.value }))}
-                              className="w-full min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-mono bg-white text-gray-900 font-bold box-border"
-                            />
+                            <div className="w-full overflow-hidden rounded-lg border border-gray-300 bg-white focus-within:ring-1 focus-within:ring-orange-500 shadow-3xs">
+                              <input
+                                type="time"
+                                value={dateDraft.returnTime}
+                                onChange={e => setDateDraft(d => ({ ...d, returnTime: e.target.value }))}
+                                className="w-full block border-0 px-2.5 py-1.5 text-xs font-mono bg-transparent text-gray-900 font-bold outline-none"
+                                style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
+                              />
+                            </div>
                           </div>
                         </div>
                       )}
