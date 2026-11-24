@@ -706,6 +706,35 @@ export default function BookingCalendar({
     });
   }, [cameras, dayBookingsMap, selectedDate]);
 
+  // Option A Helpers for Selected Day Modal / Sheet
+  const selectedDayFormattedTitle = useMemo(() => {
+    if (!selectedDate) return '';
+    const d = new Date(selectedDate);
+    if (isNaN(d.getTime())) return formatDMY(selectedDate);
+    const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    return `${dayNames[d.getDay()]}, ${formatDMY(selectedDate)}`;
+  }, [selectedDate]);
+
+  const isSelectedDateToday = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return selectedDate === today;
+  }, [selectedDate]);
+
+  const availableCamerasForDay = useMemo(() => {
+    return systemStatusInfo.filter(cam => cam.statusText === 'Còn trống cả ngày' || cam.is6h);
+  }, [systemStatusInfo]);
+
+  const handleBookSpecificCamera = (camId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      startDate: selectedDate,
+      endDate: selectedDate,
+      selectedCameraIds: [camId]
+    }));
+    setShowDayDetailModal(false);
+    setShowAddQuickModal(true);
+  };
+
   const handlePrev = () => {
     if (viewMode === 'month') {
       if (currentMonth === 1) {
@@ -748,6 +777,10 @@ export default function BookingCalendar({
 
   const [quickReceiptContract, setQuickReceiptContract] = useState<RentalContract | null>(null);
   const [isExportingReceipt, setIsExportingReceipt] = useState<boolean>(false);
+
+  // Option A: Modal / Bottom Sheet hiển thị trạng thái thiết bị và đơn thuê theo ngày được chọn
+  const [showDayDetailModal, setShowDayDetailModal] = useState<boolean>(false);
+  const [dayDetailTab, setDayDetailTab] = useState<'available' | 'booked'>('available');
 
   // Trạng thái chỉnh sửa trực tiếp trên Hóa đơn (quickReceiptContract)
   const [editingDates, setEditingDates] = useState(false);
@@ -847,7 +880,7 @@ export default function BookingCalendar({
   const [showK57Modal, setShowK57Modal] = useState<boolean>(false);
 
   // Lock body scroll whenever any modal is open to prevent background scrolling on mobile
-  useScrollLock(Boolean(showAddQuickModal || quickReceiptContract || deleteConfirmId || customAlertMessage || showBankSettings || previewReceiptImage || showK57Modal));
+  useScrollLock(Boolean(showAddQuickModal || quickReceiptContract || deleteConfirmId || customAlertMessage || showBankSettings || previewReceiptImage || showK57Modal || showDayDetailModal));
 
   const handleShareOrDownload = async (dataUrl: string, filename: string) => {
     try {
@@ -1042,113 +1075,11 @@ export default function BookingCalendar({
     const parts = dateStr.split('-');
     setCurrentYear(parseInt(parts[0]));
     setCurrentMonth(parseInt(parts[1]));
+    setShowDayDetailModal(true);
   };
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Real-time Camera Status & Filter Bar - Ultra Compact */}
-      <div className="bg-white border border-gray-150/70 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 shadow-3xs">
-        <div className="flex items-center justify-between gap-2 mb-1.5 pb-1.5 border-b border-gray-100">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="w-2 h-2 rounded-full bg-orange-600 animate-pulse shrink-0"></span>
-            <span className="text-[11px] sm:text-xs font-black text-gray-800 uppercase tracking-wider truncate">
-              Trạng thái máy ({formatDMY(selectedDate)})
-            </span>
-            <span className="text-[10px] text-gray-400 font-bold hidden sm:inline-block shrink-0">
-              • {systemStatusInfo.filter(c => c.statusText === 'Còn trống cả ngày').length} trống / {systemStatusInfo.length} máy
-            </span>
-          </div>
-          {selectedCameraFilter !== 'ALL' && (
-            <button
-              type="button"
-              onClick={() => setSelectedCameraFilter('ALL')}
-              className="text-[10px] text-orange-600 hover:text-orange-800 font-bold bg-orange-50 hover:bg-orange-100 px-2 py-0.5 rounded-md transition cursor-pointer flex items-center gap-1 shrink-0"
-            >
-              ✕ Bỏ lọc ({selectedCameraFilter})
-            </button>
-          )}
-        </div>
-
-        {systemStatusInfo.length === 0 ? (
-          <div className="p-2 text-center text-xs text-gray-400 italic bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
-            Tất cả thiết bị hiện đang ở trạng thái bảo trì hoặc chưa có thiết bị sẵn sàng.
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-10 gap-1 sm:gap-1.5">
-            {systemStatusInfo.map(cam => {
-              const isFilterActive = selectedCameraFilter === cam.shortName;
-              const isAvailable = cam.statusText === 'Còn trống cả ngày';
-              const isFull = cam.statusText === 'Kín lịch cả ngày';
-              const isPrinter = Boolean((cam as any).isPrinterCam);
-
-              // Modern soft surface style: clean neutral for available, soft color accent for busy/6h
-              let chipClass = 'bg-white hover:bg-slate-50/80 border border-slate-200/70 text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
-              let dotColor = 'bg-emerald-500 ring-2 ring-emerald-100';
-              let badgeStyle = 'text-emerald-700 bg-emerald-50';
-
-              if (isPrinter && !isAvailable) {
-                chipClass = 'bg-rose-50/60 hover:bg-rose-100/60 border border-rose-200/70 text-rose-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
-                dotColor = 'bg-rose-500 ring-2 ring-rose-200';
-                badgeStyle = 'text-rose-700 bg-rose-100/80 font-extrabold';
-              } else if (isFull) {
-                chipClass = 'bg-rose-50/60 hover:bg-rose-100/60 border border-rose-200/70 text-rose-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
-                dotColor = 'bg-rose-500 ring-2 ring-rose-200';
-                badgeStyle = 'text-rose-700 bg-rose-100/70 font-extrabold';
-              } else if (!isAvailable) {
-                chipClass = 'bg-amber-50/60 hover:bg-amber-100/60 border border-amber-200/70 text-amber-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
-                dotColor = 'bg-amber-500 ring-2 ring-amber-200';
-                badgeStyle = 'text-amber-700 bg-amber-100/70 font-extrabold';
-              }
-
-              if (isFilterActive) {
-                chipClass += ' ring-2 ring-orange-500 border-orange-400 bg-orange-50/70 font-black';
-              }
-
-              const totalPrints = (cam as any).totalPrints || 1;
-
-              return (
-                <button
-                  type="button"
-                  key={cam.id}
-                  onClick={() => setSelectedCameraFilter(prev => prev === cam.shortName ? 'ALL' : cam.shortName)}
-                  className={`px-2 py-1 rounded-xl text-[11px] sm:text-xs flex items-center justify-between gap-1 transition-all cursor-pointer select-none active:scale-97 ${chipClass}`}
-                  title={`${cam.cameraName} (${cam.serialNumber || 'Không serial'}) - ${cam.statusText}. Bấm để lọc.`}
-                >
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className={`w-1.5 h-1.5 rounded-full ${dotColor} shrink-0`} />
-                    <span className="font-extrabold truncate text-slate-800">{cam.shortName}</span>
-                  </div>
-                  {isAvailable && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${badgeStyle} shrink-0 leading-tight`}>
-                      Trống
-                    </span>
-                  )}
-                  {!isAvailable && isPrinter && (
-                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md text-rose-700 bg-rose-100/80 shrink-0 leading-tight flex items-center gap-0.5">
-                      <span>🖨️</span>
-                      <span>{totalPrints} tấm</span>
-                    </span>
-                  )}
-                  {!isAvailable && !isPrinter && isFull && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${badgeStyle} shrink-0 leading-tight`}>
-                      Kín
-                    </span>
-                  )}
-                  {!isAvailable && !isPrinter && !isFull && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${badgeStyle} shrink-0 leading-tight flex items-center gap-1`}>
-                      <span>6h</span>
-                      {cam.hoursLabel && (
-                        <span className="font-mono text-[8px] sm:text-[8.5px] opacity-90">({cam.hoursLabel})</span>
-                      )}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       {/* Main Calendar Section */}
       <div className="bg-white border border-gray-150/70 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
         {/* Calendar Header with Navigation */}
@@ -1245,6 +1176,33 @@ export default function BookingCalendar({
                   <ChevronRight className="w-4 h-4 stroke-[2.5]" />
                 </button>
               </div>
+            </div>
+
+            {/* Filter by Camera Dropdown - Ultra Compact */}
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <select
+                value={selectedCameraFilter}
+                onChange={e => setSelectedCameraFilter(e.target.value)}
+                className="w-full sm:w-auto text-xs font-bold border border-gray-200 rounded-xl px-2.5 py-2 bg-white text-gray-700 hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-3xs cursor-pointer max-w-full sm:max-w-[200px] truncate"
+                title="Lọc lịch hiển thị theo thiết bị"
+              >
+                <option value="ALL">🔍 Tất cả thiết bị ({cameras.filter(c => c.status !== 'Maintenance').length})</option>
+                {cameras.filter(c => c.status !== 'Maintenance').map(c => (
+                  <option key={c.id} value={c.shortName}>
+                    {c.shortName} - {c.name}
+                  </option>
+                ))}
+              </select>
+              {selectedCameraFilter !== 'ALL' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCameraFilter('ALL')}
+                  className="text-[11px] text-orange-600 hover:text-orange-800 font-bold bg-orange-50 hover:bg-orange-100 px-2.5 py-2 rounded-xl border border-orange-200 cursor-pointer shrink-0 transition"
+                  title="Bỏ lọc máy"
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
             {/* Quick Booking Button - Prominent & Full Width on Mobile */}
@@ -3888,6 +3846,262 @@ export default function BookingCalendar({
                 type="button"
                 onClick={() => setPreviewReceiptImage(null)}
                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl transition cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Option A: Modal / Bottom Sheet Chi Tiết Ngày & Máy Còn Trống */}
+      {showDayDetailModal && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
+          onClick={() => setShowDayDetailModal(false)}
+        >
+          <div 
+            className="bg-white rounded-t-3xl sm:rounded-2xl max-w-lg w-full flex flex-col max-h-[88vh] sm:max-h-[90vh] shadow-2xl border border-gray-150 overflow-hidden animate-slide-up sm:animate-scale-up"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Thanh gạt cho mobile */}
+            <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto my-2 sm:hidden shrink-0" />
+
+            {/* Header Modal */}
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gray-150 bg-gradient-to-r from-orange-50/70 via-white to-white shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="p-2 bg-orange-600 text-white rounded-xl shadow-2xs shrink-0">
+                  <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-black text-sm sm:text-base text-gray-900 tracking-tight truncate">
+                      {selectedDayFormattedTitle}
+                    </h3>
+                    {isSelectedDateToday && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-600 text-white uppercase tracking-wider shadow-3xs">
+                        Hôm nay
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                    {availableCamerasForDay.length} máy trống • {dayBookingsMap[selectedDate]?.length || 0} lượt thuê
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDayDetailModal(false)}
+                className="p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer shrink-0"
+                title="Đóng"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 2 Tabs Chuyển đổi: 🟢 Máy còn trống vs 📋 Lịch thuê trong ngày */}
+            <div className="flex border-b border-gray-150 bg-gray-50/80 p-1.5 gap-1 shrink-0 select-none">
+              <button
+                type="button"
+                onClick={() => setDayDetailTab('available')}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  dayDetailTab === 'available'
+                    ? 'bg-white text-emerald-800 shadow-3xs font-black'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                <span>Máy còn trống ({availableCamerasForDay.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDayDetailTab('booked')}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  dayDetailTab === 'booked'
+                    ? 'bg-white text-orange-700 shadow-3xs font-black'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                <span>Đơn thuê ({dayBookingsMap[selectedDate]?.length || 0})</span>
+              </button>
+            </div>
+
+            {/* Nội dung danh sách có thể cuộn */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5 modal-scrollable" style={{ overscrollBehavior: 'contain' }}>
+              {dayDetailTab === 'available' ? (
+                // TAB 1: DANH SÁCH MÁY CÒN TRỐNG
+                availableCamerasForDay.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400 font-medium text-xs bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <p className="font-bold text-gray-600 mb-1">Tất cả thiết bị đều đã kín lịch</p>
+                    <p>Không còn thiết bị nào sẵn sàng trong ngày {formatDMY(selectedDate)}.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {availableCamerasForDay.map(cam => {
+                      const colors = getCameraColorProps(cam.shortName);
+                      const is6h = cam.is6h;
+                      return (
+                        <div
+                          key={cam.id}
+                          className="bg-white border border-gray-200 hover:border-orange-300 rounded-xl p-2.5 sm:p-3 flex items-center justify-between gap-2.5 shadow-3xs transition"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className={`w-8 h-8 rounded-lg font-mono font-black text-xs flex items-center justify-center shrink-0 border ${colors.bgClass} ${colors.border}`}>
+                              {cam.shortName.slice(0, 4)}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-gray-900 text-xs sm:text-sm truncate">
+                                  {cam.name}
+                                </span>
+                                <span className="text-[9.5px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded border border-gray-200/60">
+                                  {cam.category === 'Body' ? 'Thân máy' :
+                                   cam.category === 'Lens' ? 'Ống kính' :
+                                   cam.category === 'Combo' ? 'Bộ máy' :
+                                   cam.category === 'Printer' ? 'Máy in' : 'Phụ kiện'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5 font-medium">
+                                <span className="font-mono text-gray-700 font-bold">
+                                  {cam.dailyRate ? `${cam.dailyRate.toLocaleString()}đ/ng` : 'Liên hệ'}
+                                </span>
+                                <span className="text-gray-300">•</span>
+                                {is6h ? (
+                                  <span className="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.2 rounded text-[10px]">
+                                    6h ({cam.hoursLabel})
+                                  </span>
+                                ) : (
+                                  <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded text-[10px]">
+                                    ✓ Trống cả ngày
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleBookSpecificCamera(cam.id)}
+                            className="bg-orange-600 hover:bg-orange-700 active:scale-95 text-white font-bold text-xs py-1.5 px-3 rounded-lg shadow-3xs transition cursor-pointer shrink-0 flex items-center gap-1"
+                            title="Tạo đơn thuê cho thiết bị này"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Đặt máy</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                // TAB 2: ĐƠN THUÊ TRONG NGÀY
+                !dayBookingsMap[selectedDate]?.length ? (
+                  <div className="p-8 text-center text-gray-400 font-medium text-xs bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <p className="font-bold text-gray-600 mb-1">Chưa có đơn thuê nào</p>
+                    <p>Toàn bộ thiết bị đều sẵn sàng cho thuê trong ngày {formatDMY(selectedDate)}.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {dayBookingsMap[selectedDate].map((b, idx) => {
+                      const colors = getCameraColorProps(b.cameraShort);
+                      return (
+                        <div
+                          key={idx}
+                          className="bg-white border border-gray-200 rounded-xl p-3 shadow-3xs space-y-2 hover:border-orange-300 transition"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`${colors.tagColor} text-xs font-black px-2 py-0.5 rounded-lg font-mono shrink-0`}>
+                                {b.cameraShort}
+                              </span>
+                              <span className="font-extrabold text-xs sm:text-sm text-gray-900 truncate">
+                                {b.cameraName}
+                              </span>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadgeClass(b.contract.status)} shrink-0`}>
+                              {getStatusLabel(b.contract.status)}
+                            </span>
+                          </div>
+
+                          <div className="bg-gray-50/80 p-2 rounded-lg text-xs space-y-1">
+                            <div className="flex justify-between items-center text-gray-600">
+                              <span>Khách hàng:</span>
+                              <strong className="text-gray-900">{b.contract.customerName}</strong>
+                            </div>
+                            <div className="flex justify-between items-center text-gray-600">
+                              <span>Thời gian:</span>
+                              <strong className="font-mono text-gray-900">
+                                {b.isPrinter
+                                  ? `🖨️ ${b.printCount ?? '?'} tấm ảnh`
+                                  : b.contract.is6Hours
+                                    ? `Gói 6h (${b.contract.startTime || '08:00'} - ${b.contract.returnTime || '14:00'})`
+                                    : (b.timeString === '00:00-00:00' ? 'Cả ngày' : b.timeString)
+                                }
+                              </strong>
+                            </div>
+                            {b.contract.customerPhone && (
+                              <div className="flex justify-between items-center text-gray-600 pt-0.5">
+                                <span>Liên hệ:</span>
+                                <a
+                                  href={`tel:${b.contract.customerPhone}`}
+                                  className="font-mono font-bold text-orange-700 hover:underline flex items-center gap-1"
+                                >
+                                  <Phone className="w-3 h-3 text-orange-600" />
+                                  <span>{b.contract.customerPhone}</span>
+                                </a>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                            <span className="font-mono text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                              {b.contract.contractCode}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowDayDetailModal(false);
+                                openReceiptModal(b.contract);
+                              }}
+                              className="text-orange-600 hover:text-white hover:bg-orange-600 border border-orange-200 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>Xem hóa đơn</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+            </div>
+
+            {/* Footer Modal */}
+            <div className="p-3 sm:p-4 bg-gray-50/80 border-t border-gray-150 flex items-center justify-between gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    startDate: selectedDate,
+                    endDate: selectedDate,
+                    selectedCameraIds: []
+                  }));
+                  setShowDayDetailModal(false);
+                  setShowAddQuickModal(true);
+                }}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 active:scale-98 text-white font-black text-xs sm:text-sm py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Tạo đơn ngày này</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDayDetailModal(false)}
+                className="bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl transition cursor-pointer"
               >
                 Đóng
               </button>
