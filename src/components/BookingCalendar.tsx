@@ -2677,9 +2677,9 @@ export default function BookingCalendar({
                         </div>
 
                         {editingDates ? (
-                          <div className="space-y-2 bg-orange-50/70 border border-orange-200 p-2 rounded-xl text-left">
-                            <div className="grid grid-cols-2 gap-1.5">
-                              <div>
+                          <div className="space-y-2 bg-orange-50/70 border border-orange-200 p-2.5 rounded-xl text-left">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div className="min-w-0">
                                 <label className="text-[9.5px] font-extrabold text-gray-600 uppercase block mb-0.5">Bắt đầu *</label>
                                 <input
                                   type="date"
@@ -2692,10 +2692,10 @@ export default function BookingCalendar({
                                       endDate: (!d.is6Hours && d.endDate < newStart) ? newStart : d.endDate
                                     }));
                                   }}
-                                  className="w-full border border-gray-300 rounded-lg px-1.5 py-1 text-[11px] font-mono font-bold bg-white text-gray-900"
+                                  className="w-full min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-mono font-bold bg-white text-gray-900 box-border"
                                 />
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <label className="text-[9.5px] font-extrabold text-gray-600 uppercase block mb-0.5">
                                   {dateDraft.is6Hours ? 'Ngày thuê' : 'Hạn trả *'}
                                 </label>
@@ -2705,7 +2705,7 @@ export default function BookingCalendar({
                                   value={dateDraft.is6Hours ? dateDraft.startDate : dateDraft.endDate}
                                   min={dateDraft.startDate}
                                   onChange={e => setDateDraft(d => ({ ...d, endDate: e.target.value }))}
-                                  className="w-full border border-gray-300 rounded-lg px-1.5 py-1 text-[11px] font-mono font-bold bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400"
+                                  className="w-full min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-mono font-bold bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400 box-border"
                                 />
                               </div>
                             </div>
@@ -4080,7 +4080,7 @@ export default function BookingCalendar({
             </div>
 
             {/* Footer Modal */}
-            <div className="p-3 sm:p-4 bg-gray-50/80 border-t border-gray-150 flex items-center justify-between gap-2 shrink-0">
+            <div className="p-3.5 sm:p-4 bg-gray-50/95 border-t border-gray-150 flex items-center justify-between gap-2.5 shrink-0 pb-8 sm:pb-4">
               <button
                 type="button"
                 onClick={() => {
@@ -4096,7 +4096,7 @@ export default function BookingCalendar({
                 className="flex-1 bg-orange-600 hover:bg-orange-700 active:scale-98 text-white font-black text-xs sm:text-sm py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Tạo đơn ngày này</span>
+                <span>Tạo đơn ngày này</span>
               </button>
               <button
                 type="button"

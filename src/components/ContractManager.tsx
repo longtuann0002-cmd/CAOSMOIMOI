@@ -2067,9 +2067,9 @@ export default function ContractManager({
                         </div>
 
                         {editingDates ? (
-                          <div className="space-y-2 bg-orange-50/70 border border-orange-200 p-2 rounded-xl text-left" data-no-export="true">
-                            <div className="grid grid-cols-2 gap-1.5">
-                              <div>
+                          <div className="space-y-2 bg-orange-50/70 border border-orange-200 p-2.5 rounded-xl text-left" data-no-export="true">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div className="min-w-0">
                                 <label className="text-[9.5px] font-extrabold text-gray-600 uppercase block mb-0.5">Bắt đầu *</label>
                                 <input
                                   type="date"
@@ -2082,10 +2082,10 @@ export default function ContractManager({
                                       endDate: (!d.is6Hours && d.endDate < newStart) ? newStart : d.endDate
                                     }));
                                   }}
-                                  className="w-full border border-gray-300 rounded-lg px-1.5 py-1 text-[11px] font-mono font-bold bg-white text-gray-900"
+                                  className="w-full min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-mono font-bold bg-white text-gray-900 box-border"
                                 />
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <label className="text-[9.5px] font-extrabold text-gray-600 uppercase block mb-0.5">
                                   {dateDraft.is6Hours ? 'Ngày thuê' : 'Hạn trả *'}
                                 </label>
@@ -2095,7 +2095,7 @@ export default function ContractManager({
                                   value={dateDraft.is6Hours ? dateDraft.startDate : dateDraft.endDate}
                                   min={dateDraft.startDate}
                                   onChange={e => setDateDraft(d => ({ ...d, endDate: e.target.value }))}
-                                  className="w-full border border-gray-300 rounded-lg px-1.5 py-1 text-[11px] font-mono font-bold bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400"
+                                  className="w-full min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-mono font-bold bg-white text-gray-900 disabled:bg-gray-100 disabled:text-gray-400 box-border"
                                 />
                               </div>
                             </div>
